@@ -40,3 +40,14 @@ button,select,input,textarea{font-family:inherit}select,textarea,input{color:var
  .turnbar{display:flex!important;align-items:stretch!important;gap:4px!important;white-space:nowrap;overscroll-behavior-x:contain}
  .turnbar>*{flex:0 0 auto!important;grid-column:auto!important;min-width:65px}.turnbar .turnmark{min-width:80px}.turnbar .eco{min-width:69px}
 }
+
+/* Shared visual grammar with character-specific accents. */
+body[data-v3-character=brackmard]{--v3-accent:#e7b66f;--v3-panel:#251b17;--v3-line:#735743;--v3-text:#fff5e9}
+body[data-v3-character=nans]{--v3-accent:#e9ad73;--v3-panel:#281e18;--v3-line:#705340;--v3-text:#fff1e4}
+body[data-v3-character=rufus]{--v3-accent:#c69bfa;--v3-panel:#211b2b;--v3-line:#605374;--v3-text:#f9f1ff}
+body[data-v3-character] .card,body[data-v3-character] .resource-card,body[data-v3-character] .weapon-block{border-radius:16px;min-width:0}
+body[data-v3-character] .turnbar{border-radius:15px;box-shadow:0 10px 25px #0006;backdrop-filter:blur(12px)}
+body[data-v3-character] nav.tabs button{border-radius:11px;touch-action:manipulation}
+body[data-v3-character] button:disabled{opacity:.42;cursor:not-allowed}
+body[data-v3-character] input,body[data-v3-character] select,body[data-v3-character] textarea{max-width:100%}
+body[data-v3-character] .panel{min-width:0}

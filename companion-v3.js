@@ -1,6 +1,6 @@
 /* Companion V3 shared surfaces. The character's combat engine stays authoritative. */
 (()=>{'use strict';
-const cfg=window.COMPANION_V3;if(!cfg)return;
+const cfg=window.COMPANION_V3;if(!cfg)return;document.body.dataset.v3Character=cfg.id;
 const key='companion-v3:'+cfg.id+':'+location.pathname.replace(/index\.html$/,'');
 const backup=key+':backup';const base=()=>({schema:1,items:[],notes:'',preview:true,npcs:[]});
 let data=base(),blocked=false;
