@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=11">
+<link rel="stylesheet" href="companion-v3.css?v=12">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -54,17 +54,16 @@
   </section>
 
   <section class="turnbar" id="turnbar" aria-label="Économie du tour">
-    <div class="round"><b>Tour <span id="turnNo">1</span></b><small>Round <span id="roundNo">1</span> · <span id="turnDamageValue">0 dégâts</span></small></div>
+    <div class="round"><b>Tour <span id="turnNo">1</span> · <span class="actor-chip">Rufus</span></b><small>Round <span id="roundNo">1</span></small></div>
     <button class="economy" data-econ="action"><b>Action</b><small>disponible</small></button>
     <button class="economy" data-econ="bonus"><b>Bonus</b><small>disponible</small></button>
     <button class="economy" data-econ="reaction"><b>Réaction</b><small>disponible</small></button>
     <button class="economy" data-econ="move"><b>Mouvement</b><small>9 m</small></button>
-    <button class="turn-hp damage" id="turnDamageBtn"><b>Dégâts</b><small>PV reçus</small></button>
-    <button class="turn-hp heal" id="turnHealBtn"><b>Soins</b><small>récupérer</small></button>
-    <button class="turn-conc none" id="turnConcentration"><small>Concentration</small><b id="turnConcText">Aucune</b></button>
-    <button class="next" id="nextTurn">Fin du tour ›</button>
-    <button class="rest quick-rest" id="quickShortRestBtn" title="Repos court">☕ <b>Court</b></button>
-    <button class="rest quick-rest long" id="quickLongRestBtn" title="Repos long">☾ <b>Long</b></button>
+    <div class="damage-turn"><b><span id="turnDamageValue">0</span> dégâts</b><small>par Rufus</small></div>
+    <button class="turn-conc none" id="turnConcentration" title="Interrompre la concentration"><small>Concentration</small><b id="turnConcText">Aucune</b></button>
+    <button class="next" id="nextTurn">Fin du tour de Rufus ›</button>
+    <button class="restquick" id="quickShortRestBtn" title="Repos court">↻ Court</button>
+    <button class="restquick long" id="quickLongRestBtn" title="Repos long">☾ Long</button>
   </section>
 
   <nav class="nav" aria-label="Sections">
@@ -80,26 +79,21 @@
 
   <section class="view active" id="combat">
     <div class="grid">
-      <article class="card full attack-stage" id="attackStage">
-        <div class="attack-stage-head">
-          <div>
-            <div class="eyebrow">Décision immédiate</div>
-            <h2>Arsenal du Renard</h2>
-            <div class="meta" id="sneakStatus">Sournoise disponible · choisissez vos conditions.</div>
+      <article class="card full combat-console" id="attackStage">
+        <div class="combat-console-main">
+          <div class="combat-console-title"><div class="eyebrow">Conditions d’attaque</div><div class="sneak-line"><b>Sournoise</b><span class="sneak-badge" id="sneakBadge">5d6 prêts</span></div><small id="sneakStatus">Disponible · avantage ou allié adjacent.</small></div>
+          <div class="condition-grid">
+            <button class="toggle" data-cond="targetNotActed"><b>Pas joué</b><small>Avantage</small></button>
+            <button class="toggle" data-cond="surprised"><b>Surprise</b><small>Critique</small></button>
+            <button class="toggle" data-cond="allyAdjacent"><b>Allié proche</b><small>Sournoise</small></button>
+            <button class="toggle" data-cond="agony"><b>Agonie</b><small>Avantage</small></button>
           </div>
-          <div class="sneak-badge" id="sneakBadge">5d6 prêts</div>
         </div>
-        <div class="condition-grid">
-          <button class="toggle" data-cond="targetNotActed"><b>Cible n’a pas joué</b><small>Assassinat → avantage</small></button>
-          <button class="toggle" data-cond="surprised"><b>Cible surprise</b><small>touche → critique</small></button>
-          <button class="toggle" data-cond="allyAdjacent"><b>Allié adjacent</b><small>autorise Sournoise</small></button>
-          <button class="toggle" data-cond="agony"><b>Agonie finale</b><small>Œil du Destin → avantage</small></button>
-        </div>
-        <div class="roll-modes" aria-label="Mode de jet">
+        <div class="roll-modes compact-rolls" aria-label="Mode de jet">
           <button class="toggle on" data-roll-mode="normal">Normal</button>
           <button class="toggle" data-roll-mode="adv">Avantage</button>
           <button class="toggle" data-roll-mode="dis">Désavantage</button>
-          <label class="manual">Jet manuel <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="d20"></label>
+          <label class="manual">d20 <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="—"></label>
         </div>
       </article>
 
@@ -115,7 +109,7 @@
       <article class="card weapon">
         <div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale</h2>
         <div class="attack-dice">+9 · 1d4+5 perforants</div>
-        <p class="meta">Rappel fiche : JdS CON DD 13 → désavantage à la prochaine attaque. Le déclencheur exact reste à valider avec le MJ.</p>
+        <details class="rules-mini"><summary>Détails</summary><p>Rappel fiche : JdS CON DD 13 → désavantage à la prochaine attaque. Le déclencheur exact reste à valider avec le MJ.</p></details>
         <button class="primary attack-btn" data-attack="spectral">Attaquer</button>
       </article>
 
@@ -129,14 +123,15 @@
       <article class="card weapon ranged">
         <div class="eyebrow">Distance · action</div><h2>Arbalète légère</h2>
         <div class="attack-dice" id="crossbowDice">+8 · 1d8+4 perforants</div>
-        <p class="meta">24/96 m · Tireur d’élite ignore longue portée et abris ; option −5 / +10.</p>
+        <p class="meta">24/96 m · chargement · deux mains.</p>
+        <details class="rules-mini"><summary>Tireur d’élite</summary><p>Ignore la pénalité de longue portée et les abris concernés ; option −5 au jet / +10 dégâts.</p></details>
         <button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button>
         <button class="primary attack-btn" data-attack="crossbow">Tirer</button>
       </article>
 
       <article class="card reaction-card">
         <div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2>
-        <p class="meta">La Sournoise est 1 fois par tour : elle peut donc se déclencher de nouveau sur une réaction pendant le tour d’un autre.</p>
+        <details class="rules-mini"><summary>Pourquoi une nouvelle Sournoise ?</summary><p>La Sournoise est limitée à une fois par tour, pas une fois par round : une réaction pendant le tour d’un autre peut donc la déclencher à nouveau.</p></details>
         <div class="two-actions">
           <button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button>
           <button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button>
@@ -188,9 +183,9 @@
     <div class="grid">
       <article class="card wide vision-card">
         <div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2>
-        <p>Choisissez une cible visible à 18 m pendant 1 minute : avantage contre elle, critiques sur <b>17–20</b> et révélation d’une résistance, immunité ou vulnérabilité pertinente.</p>
+        <p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p>
         <div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div>
-        <p class="meta">À chaque utilisation : JdS SAG DD 10 + utilisations précédentes. Échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p>
+        <details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details>
         <div class="status-line" id="visionStatus"></div>
       </article>
 
@@ -336,23 +331,33 @@
 
   <section class="view" id="inventory">
     <article class="card full inventory-shell">
-      <div class="section-head">
-        <div><div class="eyebrow">Équipement & objets divers</div><h2>Inventaire</h2><p class="meta">Images locales possibles · persistance dans ce navigateur.</p></div>
+      <div class="inventory-hero">
+        <div><div class="eyebrow">Équipement lié</div><h2>Arsenal & reliques de Rufus</h2><p class="meta">Les pièces actives restent visibles en tête ; tout le reste est filtrable et éditable.</p></div>
         <button class="primary compact" id="addItemBtn">+ Objet</button>
       </div>
-      <div class="inventory-tabs"><button class="ability on" data-inventory-tab="equipment">Équipements</button><button class="ability" data-inventory-tab="misc">Objets divers</button><button class="ability" data-inventory-tab="consumable">Consommables</button></div>
-      <div class="inventory-grid" id="inventoryGrid"></div><div class="footer-actions"><button class="ability" id="inventoryExportBtn">Exporter inventaire JSON</button><button class="ability" id="inventoryImportBtn">Importer inventaire JSON</button></div><input type="file" id="inventoryImportFile" accept="application/json,.json" hidden>
+      <div class="inventory-loadout" id="inventoryLoadout"></div>
+      <div class="inventory-toolbar">
+        <label class="inventory-search">Rechercher<input id="inventorySearch" type="search" placeholder="Arme, poison, objet…"></label>
+        <div class="inventory-tabs"><button class="ability on" data-inventory-tab="equipment">Équipements</button><button class="ability" data-inventory-tab="misc">Objets</button><button class="ability" data-inventory-tab="consumable">Consommables</button></div>
+      </div>
+      <div class="inventory-summary"><b id="inventoryCount">0 objet</b><span>Cliquer sur un objet pour ouvrir ses détails.</span></div>
+      <div class="inventory-grid" id="inventoryGrid"></div>
+      <div class="footer-actions inventory-transfer"><button class="ability" id="inventoryExportBtn">Exporter inventaire JSON</button><button class="ability" id="inventoryImportBtn">Importer inventaire JSON</button></div>
+      <input type="file" id="inventoryImportFile" accept="application/json,.json" hidden>
+
       <form class="item-editor" id="itemEditor" hidden>
         <input type="hidden" name="index">
+        <div class="item-editor-head"><div><div class="eyebrow">Inventaire</div><h3 id="itemEditorTitle">Modifier l’objet</h3></div><button type="button" class="ability item-editor-close" id="closeItemBtn" aria-label="Fermer">×</button></div>
         <div class="item-editor-grid">
           <label>Nom<input name="name" maxlength="120" required></label>
           <label>Catégorie<select name="category"><option value="equipment">Équipement</option><option value="misc">Objet divers</option><option value="consumable">Consommable</option></select></label>
           <label>Quantité<input name="qty" type="number" min="0" max="999" value="1" required></label>
+          <label>Icône<select name="icon"><option value="auto">Auto</option><option value="blade">Lame</option><option value="raven">Corbeau</option><option value="armor">Armure</option><option value="bow">Distance</option><option value="poison">Poison</option><option value="ring">Bague</option><option value="boots">Bottes</option><option value="amulet">Amulette</option><option value="bag">Sac</option><option value="globe">Globe</option><option value="elephant">Éléphant</option><option value="disguise">Déguisement</option><option value="ammo">Munitions</option><option value="misc">Mystère</option></select></label>
           <label class="check"><input name="equipped" type="checkbox"> Équipé / actif</label>
           <label class="editor-wide">Notes<textarea name="note" rows="3" maxlength="3000"></textarea></label>
-          <label class="editor-wide">Image<input name="image" type="text" maxlength="350000" placeholder="URL HTTPS ou image locale"></label>
+          <label class="editor-wide">Image personnalisée<input name="image" type="text" maxlength="350000" placeholder="URL HTTPS ou image locale"></label>
         </div>
-        <div class="editor-actions"><button type="button" class="ability" id="pickImageBtn">Choisir une image</button><button type="submit" class="primary compact">Enregistrer</button><button type="button" class="ability dangerish" id="deleteItemBtn">Supprimer</button><button type="button" class="ability" id="closeItemBtn">Fermer</button></div>
+        <div class="editor-actions"><button type="button" class="ability" id="pickImageBtn">Choisir une image</button><button type="submit" class="primary compact">Enregistrer</button><button type="button" class="ability dangerish" id="deleteItemBtn">Supprimer</button></div>
       </form>
       <input type="file" id="imageFile" accept="image/*" hidden>
     </article>
@@ -382,7 +387,15 @@
     </article>
   </section>
 </main>
+<aside class="result-ribbon collapsed" id="resultRibbon" aria-live="polite">
+  <b id="resultRibbonTitle">Dernier résultat</b>
+  <div id="resultRibbonText">Prêt · les détails complets sont dans Journal / Notes.</div>
+  <div class="result-ribbon-actions">
+    <button class="ribbon-undo" id="ribbonUndo" aria-label="Annuler la dernière action" title="Annuler la dernière action"><span>↶</span><span class="undo-label">Annuler</span></button>
+    <button class="ribbon-toggle" id="ribbonToggle" aria-label="Afficher ou réduire le dernier résultat" title="Afficher ou réduire">⌄</button>
+  </div>
+</aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=11"></script>
+<script src="companion-v3.js?v=12"></script>
 </body>
 </html>
