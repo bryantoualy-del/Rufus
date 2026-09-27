@@ -142,7 +142,7 @@ function combatSnapshot(){
     sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
     lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
     invisibilityReady:S.invisibilityReady,vision:clone(S.vision),linceul:clone(S.linceul),ravenMemoryBonus:S.ravenMemoryBonus,
-    pending:S.pending?clone(S.pending):null,journalLength:S.journal.length
+    pending:S.pending?clone(S.pending):null,journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
   };
 }
 function pushHistory(){
@@ -168,8 +168,18 @@ function undo(){
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
     pending:snap.pending
   });
-  S.journal=S.journal.slice(Math.max(0,S.journal.length-snap.journalLength));
-  if(S.journal.length>snap.journalLength)S.journal.length=snap.journalLength;
+  if(snap.journalLength===0)S.journal=[];
+  else if(snap.journalHeadId){
+    const idx=S.journal.findIndex(e=>e.id===snap.journalHeadId);
+    if(idx>=0){
+      S.journal=S.journal.slice(idx);
+      if(S.journal.length<snap.journalLength){
+        const existing=new Set(S.journal.map(e=>e.id));
+        for(const old of snap.journalTail||[])if(!existing.has(old.id))S.journal.push(old);
+      }
+      if(S.journal.length>snap.journalLength)S.journal.length=snap.journalLength;
+    }else S.journal=S.journal.slice(-snap.journalLength);
+  }else S.journal=S.journal.slice(-snap.journalLength);
   S.history=remaining;save();render();toast('Dernière action restaurée.');
 }
 
@@ -329,11 +339,17 @@ function renderPending(){
   }
   const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=S.vision.active?'17–20':'20';
   const rolls=p.rolls.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat);
+  if(p.nat===1){
+    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge used">1 naturel</div></div>'+
+      '<div class="pending-details">Échec automatique. Chanceux peut encore fournir un autre d20 avant la résolution.</div>'+
+      '<div class="pending-actions"><button class="ability dangerish" data-miss>Confirmer l’échec</button>'+(S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+'</div>';
+    return;
+  }
   el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
     '<div class="pending-details">Critique : '+critRange+(S.conditions.surprised?' · cible surprise = critique sur touche':'')+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
     '<div class="pending-actions">'+
       (eligible?'<button class="primary" data-hit-sneak>Touché + Sournoise 5d6</button>':'')+
-      '<button class="ability" data-hit>Touché'+(p.nat===20||S.conditions.surprised?' · critique':'')+'</button>'+
+      '<button class="ability" data-hit>Touché'+(p.nat===20||S.conditions.surprised||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
       '<button class="ability dangerish" data-miss>Raté</button>'+
       (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
       (S.ravenMemoryBonus?'<button class="ability" data-raven-pending>Ombre · +1d8</button>':'')+
@@ -433,7 +449,7 @@ function newDay(){
 }
 function nextTurn(){
   commit('Tour suivant','Économie du tour restaurée.',()=>{
-    S.turn++;if((S.turn-1)%4===0)S.round++;
+    S.turn++;S.round++;
     S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.targetNotActed=false;S.conditions.surprised=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
   });
   if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment){
@@ -533,6 +549,25 @@ function download(name,body,type='application/json'){
   const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 function exportData(){download('Rufus-Companion-V3.json',JSON.stringify({format:'rufus-companion-v3',schema:3,exportedAt:new Date().toISOString(),state:S},null,2));logEvent('Export JSON','Sauvegarde complète exportée.');save();renderJournal();}
+function exportNotes(){
+  const mechanics=S.journal.slice().reverse().map(e=>'- '+e.time+' · '+e.title+(e.detail?' — '+e.detail:'')).join('\n');
+  const body='# Rufus — Notes de session\n\n'+(S.notes||'_Aucune note libre._')+'\n\n## Journal mécanique\n\n'+(mechanics||'_Journal vide._')+'\n';
+  download('Rufus-Notes-Session.md',body,'text/markdown');
+  logEvent('Export Markdown','Notes de session et journal mécanique exportés.');save();renderJournal();
+}
+function exportInventory(){
+  download('Rufus-Inventaire-V3.json',JSON.stringify({format:'rufus-inventory-v3',schema:1,items:S.inventory},null,2));
+}
+function importInventory(file){
+  if(!file)return;const r=new FileReader();r.onload=()=>{
+    try{
+      const x=JSON.parse(r.result),items=x?.format==='rufus-inventory-v3'?x.items:x?.items;
+      if(!Array.isArray(items))throw Error('items');
+      localStorage.setItem(BACKUP,JSON.stringify(S));S.inventory=items.slice(0,200).map(sanitizeItem);logEvent('Inventaire importé',S.inventory.length+' objets.');save();render();
+      toast('Inventaire importé.');
+    }catch{toast('Import inventaire refusé : fichier incompatible.');}
+  };r.readAsText(file);
+}
 function importData(file){
   if(!file)return;const r=new FileReader();r.onload=()=>{
     try{
@@ -555,7 +590,7 @@ function switchView(id){
 }
 function render(){
   const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
-  $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;
+  $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage+' dégâts';
   $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
   const conc=S.concentration;$('#turnConcentration').classList.toggle('none',!conc);$('#turnConcText').textContent=conc?conc.name:'Aucune';
   $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
@@ -599,7 +634,7 @@ function bind(){
   $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
   $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
   $('#clearJournalBtn').onclick=()=>{if(confirm('Vider le journal mécanique ?')){S.journal=[];save();renderJournal();}};
-  $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
+  $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
 load();bind();render();switchView(S.ui.view||'combat');
