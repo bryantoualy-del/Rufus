@@ -1,78 +1,607 @@
-/* Companion V3 shared surfaces. The character's combat engine stays authoritative. */
 (()=>{'use strict';
-const cfg=window.COMPANION_V3;if(!cfg)return;document.body.dataset.v3Character=cfg.id;
-const key='companion-v3:'+cfg.id+':'+location.pathname.replace(/index\.html$/,'');
-const backup=key+':backup';const base=()=>({schema:1,items:[],notes:'',preview:true,npcs:[]});
-let data=base(),blocked=false;
-try{let raw=localStorage.getItem(key);if(raw)data=validate(JSON.parse(raw));else data.items=structuredClone(cfg.defaultItems||[]);}catch(e){blocked=true;data=base();}
-function validate(x){if(!x||x.schema!==1||!Array.isArray(x.items)||!Array.isArray(x.npcs)||typeof x.notes!=='string'||typeof x.preview!=='boolean')throw Error('Format de sauvegarde V3 incompatible.');if(x.items.length>300||x.npcs.length>200||x.notes.length>150000)throw Error('Sauvegarde trop volumineuse.');for(const i of x.items){if(!i||typeof i.name!=='string'||i.name.length>160||!Number.isInteger(i.qty)||i.qty<0||i.qty>9999||typeof i.note!=='string'||i.note.length>5000||typeof i.image!=='string'||i.image.length>400000)throw Error('Objet invalide.');}for(const p of x.npcs){if(!p||typeof p.name!=='string'||typeof p.note!=='string'||typeof p.image!=='string'||p.image.length>400000)throw Error('PNJ invalide.');}return x;}
-function persist(){if(blocked){warn('Sauvegarde illisible conservée : exporte-la avant de remplacer.');return false;}try{localStorage.setItem(key,JSON.stringify(data));return true;}catch{warn('Stockage indisponible. Exporte ta partie.');return false;}}
+
+const KEY='rufus-companion-v3:3';
+const BACKUP=KEY+':backup';
+const OLD_COMBAT='rufus-combat-v3';
+const MAX_JOURNAL=250;
+const MAX_HISTORY=24;
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)||0));
+const die=n=>Math.floor(Math.random()*n)+1;
+const dice=(count,sides)=>Array.from({length:count},()=>die(sides));
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const fmt=n=>n>=0?'+'+n:String(n);
+const now=()=>new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const clone=x=>JSON.parse(JSON.stringify(x));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const $=s=>document.querySelector(s);
-const nav=$('nav.tabs');if(!nav)return;
-const host=document.createElement('div');host.id='v3-root';host.innerHTML=`<section class="v3-panel" id="v3-social" hidden></section><section class="v3-panel" id="v3-inventory" hidden></section><section class="v3-panel" id="v3-notes" hidden></section><div class="v3-dock" aria-label="Navigation du compagnon"><button type="button" data-v3-go="combat">⚔<span>Combat</span></button><button type="button" data-v3-go="social">◈<span>Social</span></button><button type="button" data-v3-go="inventory">♜<span>Objets</span></button><button type="button" data-v3-go="notes">✎<span>Notes</span></button></div><p class="v3-warning" role="alert" hidden></p><input type="file" id="v3-file" accept="application/json,.json" hidden><input type="file" id="v3-image-file" accept="image/*" hidden>`;
-const main=$('main')||nav.parentElement;main.appendChild(host);
-[['social','◈ Social'],['inventory','♜ Inventaire'],['notes','✎ Notes']].forEach(([id,label])=>{const b=document.createElement('button');b.type='button';b.dataset.v3Tab=id;b.className=(nav.querySelector('button')?.className||'').replace(/\bactive\b/g,'').trim();b.textContent=label;nav.appendChild(b)});
-function warn(message){const el=$('.v3-warning');if(!el)return;el.textContent=message;el.hidden=false;}
-if(blocked)warn('Sauvegarde V3 illisible : elle est conservée. Utilise « Export brut » pour la récupérer.');
-function go(id){if(id==='combat')id=cfg.combatTab||'combat';if(['social','inventory','notes'].includes(id)){
- nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b.dataset.v3Tab===id));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));host.querySelectorAll('.v3-panel').forEach(p=>p.hidden=p.id!=='v3-'+id);
- }else{host.querySelectorAll('.v3-panel').forEach(p=>p.hidden=true);let btn=[...nav.querySelectorAll('button')].find(b=>b.dataset.tab===id);btn?.click();}
- host.querySelectorAll('[data-v3-go]').forEach(b=>b.classList.toggle('active',b.dataset.v3Go===id||id===(cfg.combatTab||'combat')&&b.dataset.v3Go==='combat'));
- if(id==='social')renderSocial();if(id==='inventory')renderItems();if(id==='notes')renderNotes();
- window.scrollTo({top:0,behavior:'instant'});
+
+const defaultItems=[
+  {name:'Dague spectrale',category:'equipment',qty:1,note:'+9 · 1d4+5 · rappel CON DD13.',image:'',equipped:true},
+  {name:'Hexen Blade',category:'equipment',qty:1,note:'+9 · 1d6+5 · 5 charges · illusions DD15.',image:'',equipped:true},
+  {name:'Arbalète légère duergar',category:'equipment',qty:1,note:'24/96 m · munitions · chargement · deux mains.',image:'',equipped:true},
+  {name:'Arc standard',category:'equipment',qty:1,note:'Carquois de 30 flèches.',image:'',equipped:false},
+  {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 15 avec DEX 18.',image:'',equipped:true},
+  {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA17 / Éveillé CA18.',image:'',equipped:false},
+  {name:'Chaussons araignée',category:'equipment',qty:1,note:'Mobilité · propriété exacte à valider.',image:'',equipped:true},
+  {name:'Amulette de résistance occulte',category:'equipment',qty:1,note:'Protection · effet exact selon fiche de table.',image:'',equipped:true},
+  {name:'Bague d’échange d’apparence',category:'misc',qty:1,note:'Paire liée à Kentaro · paramètres exacts à valider.',image:'',equipped:false},
+  {name:'Globe flottant',category:'misc',qty:1,note:'Objet utilitaire.',image:'',equipped:false},
+  {name:'Sac sans fond',category:'misc',qty:1,note:'Contenant extradimensionnel.',image:'',equipped:false},
+  {name:'Statuette d’éléphant',category:'misc',qty:1,note:'Objet narratif · effet non documenté ici.',image:'',equipped:false},
+  {name:'Accessoires de déguisement',category:'misc',qty:1,note:'Maîtrise.',image:'',equipped:false},
+  {name:'Matériel de contrefaçon',category:'misc',qty:1,note:'Maîtrise.',image:'',equipped:false},
+  {name:'Kit d’empoisonneur',category:'misc',qty:1,note:'Poison & infiltration.',image:'',equipped:false},
+  {name:'Sérum de vérité',category:'consumable',qty:1,note:'Consommable.',image:'',equipped:false},
+  {name:'Venin de vipère à tête noire',category:'consumable',qty:1,note:'Poison.',image:'',equipped:false},
+  {name:'Carreaux d’arbalète',category:'consumable',qty:20,note:'Munitions.',image:'',equipped:false}
+];
+
+function defaults(){
+  return {
+    schema:3,hp:53,maxHp:53,tempHp:0,turn:1,round:1,turnDamage:0,
+    economy:{action:true,bonus:true,reaction:true,move:true},
+    concentration:null,rollMode:'normal',socialMode:'normal',
+    conditions:{targetNotActed:false,surprised:false,allyAdjacent:false,agony:false},
+    sneakOwn:false,sneakReaction:false,psychicFollowup:false,sharpshooter:false,
+    lucky:3,hexCharges:5,psiDie:8,
+    fireBlade:{ready:true,armed:false},
+    woundReady:true,invisibilityReady:true,
+    vision:{active:false,target:'',uses:0,wisPenalty:0},
+    linceul:{state:'unequipped',judgment:true,lastBreath:true,ravenShadow:1,pilgrim:true},
+    ravenMemoryBonus:false,
+    pending:null,
+    inventory:clone(defaultItems),inventoryTab:'equipment',
+    notes:'',notesPreview:false,journal:[],history:[],
+    ui:{view:'combat',socialTab:'skills'}
+  };
 }
-nav.addEventListener('click',e=>{let b=e.target.closest('[data-v3-tab]');if(b)go(b.dataset.v3Tab);else if(e.target.closest('[data-tab]'))host.querySelectorAll('.v3-panel').forEach(p=>p.hidden=true);});
-host.addEventListener('click',e=>{const b=e.target.closest('[data-v3-go]');if(b)go(b.dataset.v3Go)});
-function roll(label,bonus){const n=Math.floor(Math.random()*20)+1;const msg=`${label} : d20 ${n} ${bonus<0?'−':'+'} ${Math.abs(bonus)} = ${n+bonus}${n===1?' · 1 naturel':n===20?' · 20 naturel':''}`;let out=$('#v3-roll');out.textContent=msg;out.hidden=false;try{window.CompanionV3Log?.(msg);}catch{} }
-function renderSocial(){let s=cfg.social||{}, abilities=s.abilities||{}, saves=s.saves||{}, skills=s.skills||{};$('#v3-social').innerHTML=`<h2>Social · ${esc(cfg.name)}</h2><p class="v3-sub">Jets d20 de la fiche actuelle ; les bonus propres au contexte restent à appliquer.</p><div class="v3-social-grid">${[['Caractéristiques',abilities],['Jets de sauvegarde',saves],['Compétences',skills]].map(([title,values])=>`<article class="v3-card"><h3>${title}</h3><div class="v3-roll-grid">${Object.entries(values).map(([name,bonus])=>`<button type="button" data-v3-roll="${esc(name)}" data-bonus="${Number(bonus)}">${esc(name)}${title==='Caractéristiques'&&s.scores?.[name]!==undefined?' '+esc(s.scores[name]):''} <b>${bonus>=0?'+':''}${bonus}</b></button>`).join('')||'<p>Fiche à compléter depuis la source du personnage.</p>'}</div></article>`).join('')}</div><div id="v3-roll" class="v3-result" role="status" hidden></div>`;}
-$('#v3-social').addEventListener('click',e=>{const b=e.target.closest('[data-v3-roll]');if(b)roll(b.dataset.v3Roll,Number(b.dataset.bonus));});
-const download=(name,body,type='application/json')=>{let url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)};
-function exportAll(raw=false){if(raw){download(cfg.id+'-v3-brut.json',localStorage.getItem(key)||'{}');return;}const combat=localStorage.getItem(cfg.combatKey);download(cfg.id+'-companion-v3.json',JSON.stringify({format:'companion-v3-export',schema:1,character:cfg.id,surfaces:data,combatKey:cfg.combatKey,combat},null,2));}
-function itemCard(i,index){let img=i.image&&(/^(https:\/\/|data:image\/)/).test(i.image)?`<img alt="" src="${esc(i.image)}" loading="lazy">`:`<span aria-hidden="true">${i.category==='consumable'?'◈':i.category==='equipment'?'⚔':'✦'}</span>`;return `<div class="v3-item"><div class="v3-item-icon">${img}</div><div class="v3-item-body"><b>${esc(i.name)}</b><small>${esc(i.category==='equipment'?'Équipement':i.category==='consumable'?'Consommable':'Objet divers')} · ×${i.qty}${i.attuned?' · Harmonisé':''}${i.active?' · Équipé':''}</small>${i.note?`<p>${esc(i.note)}</p>`:''}</div><button type="button" data-v3-edit="${index}" aria-label="Modifier ${esc(i.name)}">Modifier</button></div>`;}
-function renderItems(){const el=$('#v3-inventory');el.innerHTML=`<div class="v3-heading"><div><h2>Inventaire · ${esc(cfg.name)}</h2><p class="v3-sub">${data.items.filter(i=>i.attuned).length}/3 harmonisations</p></div><button type="button" data-v3-add>+ Objet</button></div><div class="v3-switch"><button type="button" data-v3-category="equipment">Équipement</button><button type="button" data-v3-category="misc">Objets et consommables</button></div><div id="v3-item-list"></div><form id="v3-item-form" class="v3-card" hidden><h3>Objet</h3><label>Nom <input name="name" required maxlength="160"></label><label>Catégorie <select name="category"><option value="equipment">Équipement</option><option value="misc">Objet divers</option><option value="consumable">Consommable</option></select></label><label>Quantité <input name="qty" type="number" min="0" max="9999" value="1" required></label><label>Image HTTPS <input name="image" type="url" placeholder="https://…"></label><button type="button" data-v3-image>Choisir une image locale</button><label>Notes <textarea name="note" rows="3" maxlength="5000"></textarea></label><label class="v3-check"><input name="active" type="checkbox"> Équipé ou actif</label><label class="v3-check"><input name="attuned" type="checkbox"> Harmonisé</label><div class="v3-actions"><button type="submit">Enregistrer</button><button type="button" data-v3-delete>Supprimer</button><button type="button" data-v3-cancel>Fermer</button></div></form><div class="v3-actions"><button type="button" data-v3-export>Exporter JSON</button><button type="button" data-v3-import>Importer JSON</button><button type="button" data-v3-restore>Restaurer copie</button>${blocked?'<button type="button" data-v3-raw>Export brut</button>':''}</div>`;showCategory(el.dataset.category||'equipment');}
-function showCategory(category){let panel=$('#v3-inventory');panel.dataset.category=category;panel.querySelectorAll('[data-v3-category]').forEach(b=>b.classList.toggle('active',b.dataset.v3Category===category));let rows=data.items.map((i,n)=>({i,n})).filter(({i})=>category==='equipment'?i.category==='equipment':i.category!=='equipment');$('#v3-item-list').innerHTML=rows.length?rows.map(({i,n})=>itemCard(i,n)).join(''):'<p class="v3-empty">Aucun objet dans cette catégorie.</p>';}
-let editIndex=-1,pendingImage='';$('#v3-inventory').addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.dataset.v3Category){showCategory(b.dataset.v3Category);return;}if(b.hasAttribute('data-v3-export'))exportAll();if(b.hasAttribute('data-v3-raw'))exportAll(true);if(b.hasAttribute('data-v3-import'))$('#v3-file').click();if(b.hasAttribute('data-v3-restore'))restore();if(b.hasAttribute('data-v3-image'))$('#v3-image-file').click();if(b.hasAttribute('data-v3-cancel'))$('#v3-item-form').hidden=true;
- if(b.hasAttribute('data-v3-add')||b.hasAttribute('data-v3-edit')){editIndex=b.hasAttribute('data-v3-edit')?Number(b.dataset.v3Edit):-1;const i=data.items[editIndex]||{name:'',category:$('#v3-inventory').dataset.category,qty:1,image:'',note:'',active:false,attuned:false};let f=$('#v3-item-form');f.reset();for(let k of ['name','category','qty','note'])f.elements[k].value=i[k];f.elements.image.value=i.image.startsWith('data:')?'':i.image;pendingImage=i.image;f.elements.active.checked=!!i.active;f.elements.attuned.checked=!!i.attuned;f.querySelector('[data-v3-delete]').hidden=editIndex<0;f.hidden=false;f.scrollIntoView({block:'nearest'});}
- if(b.hasAttribute('data-v3-delete')&&editIndex>=0&&confirm('Supprimer cet objet ?')){data.items.splice(editIndex,1);persist();renderItems();}});
-$('#v3-inventory').addEventListener('submit',e=>{e.preventDefault();let f=e.target,i={name:f.elements.name.value.trim(),category:f.elements.category.value,qty:Number(f.elements.qty.value),image:f.elements.image.value.trim()||pendingImage,note:f.elements.note.value,active:f.elements.active.checked,attuned:f.elements.attuned.checked};if(!i.name)return;if(i.attuned&&!data.items[editIndex]?.attuned&&data.items.filter(x=>x.attuned).length>=3){warn('Trois objets déjà harmonisés.');return;}if(!i.image.startsWith('https://')&&!i.image.startsWith('data:image/'))i.image='';if(editIndex<0)data.items.push(i);else data.items[editIndex]=i;persist();renderItems();});
-$('#v3-image-file').addEventListener('change',e=>{let file=e.target.files[0];if(!file)return;if(!file.type.startsWith('image/')||file.size>250000){warn('Choisis une image de moins de 250 Ko.');return;}let reader=new FileReader();reader.onload=()=>{pendingImage=String(reader.result);warn('Image ajoutée. Enregistre l’objet.');};reader.readAsDataURL(file);e.target.value='';});
-function renderNotes(){let el=$('#v3-notes');el.innerHTML=`<h2>Notes de session · ${esc(cfg.name)}</h2><p class="v3-sub">Ces notes appartiennent exclusivement à ce personnage.</p><label class="v3-note-label">Carnet personnel <textarea id="v3-note-text" placeholder="Écrire les événements de la session…"></textarea></label><button type="button" data-v3-preview>${data.preview?'Replier':'Déplier'} l’aperçu</button><div id="v3-preview" class="v3-card v3-preview" ${data.preview?'':'hidden'}>${esc(data.notes)||'<em>L’aperçu apparaîtra ici.</em>'}</div><div class="v3-heading"><h3>Personnages rencontrés</h3><button type="button" data-v3-npc-add>+ PNJ</button></div><div id="v3-npcs">${data.npcs.map((p,n)=>`<article class="v3-card v3-npc">${p.image&&/^https:\/\//.test(p.image)?`<img src="${esc(p.image)}" alt="">`:''}<div><b>${esc(p.name)}</b><p>${esc(p.note)}</p></div><button type="button" data-v3-npc="${n}">Modifier</button></article>`).join('')}</div><div class="v3-actions"><button type="button" data-v3-export>Exporter la partie</button><button type="button" data-v3-import>Importer une partie</button></div>`;$('#v3-note-text').value=data.notes;}
-$('#v3-notes').addEventListener('input',e=>{if(e.target.id==='v3-note-text'){data.notes=e.target.value;persist();let preview=$('#v3-preview');preview.textContent=data.notes||'L’aperçu apparaîtra ici.';}});
-$('#v3-notes').addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-v3-preview')){data.preview=!data.preview;persist();$('#v3-preview').hidden=!data.preview;b.textContent=(data.preview?'Replier':'Déplier')+' l’aperçu';}if(b.hasAttribute('data-v3-export'))exportAll();if(b.hasAttribute('data-v3-import'))$('#v3-file').click();if(b.hasAttribute('data-v3-npc-add')||b.hasAttribute('data-v3-npc')){let n=b.hasAttribute('data-v3-npc')?Number(b.dataset.v3Npc):-1,old=data.npcs[n]||{name:'',note:'',image:''};let name=prompt('Nom du PNJ',old.name);if(name===null||!name.trim())return;let note=prompt('Informations et notes',old.note);if(note===null)return;let image=prompt('URL HTTPS de l’image (facultatif)',old.image);if(image===null)return;let npc={name:name.trim().slice(0,160),note:note.slice(0,5000),image:image.startsWith('https://')?image.slice(0,2000):''};if(n<0)data.npcs.push(npc);else data.npcs[n]=npc;persist();renderNotes();}});
-function readCombat(raw){if(raw===null)return;let x=JSON.parse(raw);if(!x||typeof x!=='object'||Array.isArray(x))throw Error('État de combat invalide.');
- let s=cfg.id==='nans'||cfg.id==='rufus'?x.state:x;
- if(cfg.id==='rufus'&&x.schema!==1||cfg.id==='samoth'&&x.schema!==3)throw Error('Schéma de combat incompatible.');
- if(!s||typeof s!=='object'||!Number.isFinite(s.hp)||s.hp<0||s.hp>1000||(!s.eco&&cfg.id!=='brackmard')||(cfg.id==='brackmard'&&!s.used))throw Error('Ressources de combat invalides.');
- if(cfg.id==='samoth'&&(!s.slots||!Array.isArray(s.journal)))throw Error('Emplacements ou journal invalides.');
- if(cfg.id==='brackmard'&&(!Array.isArray(s.log)||!Number.isFinite(s.sup)))throw Error('Supériorité ou journal invalides.');
- if(cfg.id==='nans'&&typeof x.journal!=='string')throw Error('Journal de combat invalide.');
- if(cfg.id==='rufus'&&!Array.isArray(x.log))throw Error('Journal de combat invalide.');} 
-function restore(){let raw=localStorage.getItem(backup);if(!raw){warn('Aucune copie précédente.');return;}try{let x=JSON.parse(raw);validate(x.surfaces);readCombat(x.combat);if(!confirm('Restaurer la sauvegarde précédente et recharger ?'))return;replace(x);}catch(e){warn(e.message)}}
-function replace(x){const previous={surfaces:data,combat:localStorage.getItem(cfg.combatKey)};try{localStorage.setItem(backup,JSON.stringify(previous));localStorage.setItem(key,JSON.stringify(x.surfaces));if(x.combat!==null)localStorage.setItem(cfg.combatKey,x.combat);else localStorage.removeItem(cfg.combatKey);blocked=false;location.reload();}catch{warn('Remplacement impossible. La copie précédente est conservée.');}}
-$('#v3-file').addEventListener('change',async e=>{let file=e.target.files[0];if(!file)return;try{if(file.size>1500000)throw Error('Fichier trop volumineux.');let x=JSON.parse(await file.text());if(x.format!=='companion-v3-export'||x.schema!==1||x.character!==cfg.id||x.combatKey!==cfg.combatKey)throw Error('Ce fichier ne correspond pas à ce compagnon.');validate(x.surfaces);readCombat(x.combat);if(confirm('Remplacer la partie actuelle par cet import ? Une copie sera conservée.'))replace(x);}catch(err){warn(err.message)}e.target.value='';});
-// The availability indicator is derived from the engine's current turn state.
-function syncEconomy(){let st=window.CompanionV3State?.();if(!st)return;const eco=st.eco||st.used||{};
- const turn=st.round||st.turn||1;
- if(cfg.id!=='samoth'){
-  let marker=$('#v3-movement');if(!marker){let bar=$('.turnbar');if(bar){marker=document.createElement('button');marker.type='button';marker.id='v3-movement';marker.className='v3-movement';marker.addEventListener('click',()=>{data.movement={turn,used:!(data.movement?.used&&data.movement.turn===turn)};persist();syncEconomy()});bar.appendChild(marker)}}
-  if(marker){if(data.movement?.turn!==turn)data.movement={turn,used:false};marker.textContent=data.movement.used?'⟶ Mouvement utilisé':'⟶ Mouvement libre';marker.classList.toggle('used',data.movement.used);marker.setAttribute('aria-pressed',String(data.movement.used));}
- }
- let buttons=[];
- if(cfg.id==='samoth')buttons=[...document.querySelectorAll('.cast')].map(b=>[b,b.dataset.spell==='shield'||b.dataset.spell==='absorb'||b.dataset.spell==='counter'?'reaction':st.meta==='Accéléré'&&b.dataset.spell!=='shield'?'bonus':'action']);
- if(cfg.id==='brackmard')buttons=[...document.querySelectorAll('button[onclick]')].map(b=>{let c=b.getAttribute('onclick');let k=/secondWind|actionSurge|startBonusAttack|commandersStrike/.test(c)?'bonus':/reactionAttack|riposte/.test(c)?'reaction':/forgeBreath|dwarvenFortitude|dodgeOnly/.test(c)?'action':null;return[b,k]});
- if(cfg.id==='nans'||cfg.id==='rufus')buttons=[...document.querySelectorAll('button[onclick]')].map(b=>{let c=b.getAttribute('onclick');let k=/reaction\(|useCape\(/.test(c)?'reaction':/cunning\(|psiTeleport\(|reconstitute\(|attackKind\('psi2'/.test(c)?'bonus':/attackKind\(|daily\(|whispers\(/.test(c)?'action':null;return[b,k]});
- for(const [b,k] of buttons){if(!k||!b.isConnected)continue;let used=!!eco[k];if(cfg.id==='brackmard'&&k==='action'&&st.extraAction)used=false;if(cfg.id==='samoth'&&st.phase==='dragon'&&k!=='reaction')used=true;if(used)b.disabled=true;else if(b.classList.contains('v3-unavailable'))b.disabled=false;b.classList.toggle('v3-unavailable',used);b.setAttribute('aria-disabled',String(used));}
+let S=defaults();
+let storageBlocked=false;
+let migrated=false;
+
+function sanitizeItem(i){
+  return {
+    name:String(i?.name||'Objet').slice(0,120),
+    category:['equipment','misc','consumable'].includes(i?.category)?i.category:'misc',
+    qty:clamp(parseInt(i?.qty??1,10),0,999),
+    note:String(i?.note||'').slice(0,3000),
+    image:/^(https:\/\/|data:image\/)/.test(String(i?.image||''))?String(i.image).slice(0,350000):'',
+    equipped:!!(i?.equipped??i?.active)
+  };
 }
-const undoAdapter=window.CompanionV3UndoAdapter;
-let transactionStart=null,lastTransaction=null;
-if(undoAdapter){let bar=$('.turnbar');if(bar){let u=document.createElement('button');u.type='button';u.id='v3-undo';u.textContent='↶ Annuler';u.disabled=true;u.setAttribute('aria-label','Annuler la dernière opération mécanique');bar.appendChild(u);u.addEventListener('click',()=>{if(!lastTransaction)return;try{undoAdapter.restore(lastTransaction);lastTransaction=null;transactionStart=null;u.disabled=true;syncEconomy();}catch(e){warn('Annulation impossible : '+e.message)}})}
- document.addEventListener('click',e=>{if(e.target.closest('#v3-root,#v3-undo,nav.tabs'))return;const target=e.target.closest('button,input,select');if(!target)return;
- if(transactionStart===null)transactionStart=undoAdapter.snapshot();
- setTimeout(()=>{if(transactionStart===null||undoAdapter.pending())return;let after=undoAdapter.snapshot();if(after!==transactionStart){lastTransaction=transactionStart;$('#v3-undo').disabled=false;}transactionStart=null;syncEconomy()},70);
- },true);
- document.addEventListener('change',e=>{if(e.target.closest('#v3-root'))return;let before=undoAdapter.snapshot();setTimeout(()=>{if(undoAdapter.pending())return;let after=undoAdapter.snapshot();if(after!==before){lastTransaction=before;$('#v3-undo').disabled=false;}syncEconomy()},70)},true);
+function normalize(x){
+  const d=defaults();
+  if(!x||typeof x!=='object')return d;
+  const o={...d,...x};
+  o.schema=3;o.maxHp=53;o.hp=clamp(o.hp,0,53);o.tempHp=clamp(o.tempHp,0,999);
+  o.turn=Math.max(1,parseInt(o.turn,10)||1);o.round=Math.max(1,parseInt(o.round,10)||1);o.turnDamage=Math.max(0,Number(o.turnDamage)||0);
+  o.economy={...d.economy,...(o.economy||{})};
+  o.conditions={...d.conditions,...(o.conditions||{})};
+  o.fireBlade={...d.fireBlade,...(o.fireBlade||{})};
+  o.vision={...d.vision,...(o.vision||{})};
+  o.linceul={...d.linceul,...(o.linceul||{})};
+  if(!['unequipped','dormant','awakened'].includes(o.linceul.state))o.linceul.state='unequipped';
+  if(!['normal','adv','dis'].includes(o.rollMode))o.rollMode='normal';
+  if(!['normal','adv','dis'].includes(o.socialMode))o.socialMode='normal';
+  if(!['equipment','misc','consumable'].includes(o.inventoryTab))o.inventoryTab='equipment';
+  o.lucky=clamp(o.lucky,0,3);o.hexCharges=clamp(o.hexCharges,0,5);
+  o.psiDie=[0,4,6,8].includes(Number(o.psiDie))?Number(o.psiDie):8;
+  o.inventory=Array.isArray(o.inventory)?o.inventory.slice(0,200).map(sanitizeItem):clone(defaultItems);
+  o.notes=String(o.notes||'').slice(0,150000);
+  o.journal=Array.isArray(o.journal)?o.journal.slice(0,MAX_JOURNAL):[];
+  o.history=Array.isArray(o.history)?o.history.slice(-MAX_HISTORY):[];
+  o.ui={...d.ui,...(o.ui||{})};
+  return o;
 }
-document.addEventListener('click',()=>setTimeout(syncEconomy,0));document.addEventListener('change',()=>setTimeout(syncEconomy,0));
-window.CompanionV3={key,exportAll,go,syncEconomy,clearAll(){localStorage.removeItem(key);localStorage.removeItem(backup)}};go(cfg.combatTab||'combat');syncEconomy();
+function migrateLegacy(){
+  const n=defaults();
+  try{
+    const raw=localStorage.getItem(OLD_COMBAT);
+    if(raw){
+      const old=JSON.parse(raw);const s=old?.state||old;
+      if(s&&typeof s==='object'){
+        n.hp=clamp(s.hp??53,0,53);n.tempHp=clamp(s.tempHp??0,0,999);
+        n.lucky=clamp(s.luck??3,0,3);n.hexCharges=clamp(s.hex??5,0,5);
+        n.woundReady=s.wound!==false;n.invisibilityReady=s.invis!==false;
+        n.psiDie=[0,4,6,8].includes(Number(s.psi))?Number(s.psi):8;
+        if(['awakened','dormant'].includes(s.linceul))n.linceul.state=s.linceul;
+        if(Array.isArray(old.log))n.journal=old.log.slice(0,80).map((t,i)=>({id:'legacy-'+i,time:'—',title:'Ancien journal',detail:String(t).slice(0,1200)}));
+      }
+    }
+  }catch{}
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith('companion-v3:rufus:')){
+        const x=JSON.parse(localStorage.getItem(k)||'{}');
+        if(Array.isArray(x.items)&&x.items.length)n.inventory=x.items.map(sanitizeItem);
+        if(typeof x.notes==='string'&&x.notes)n.notes=x.notes.slice(0,150000);
+        break;
+      }
+    }
+  }catch{}
+  migrated=true;return n;
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    S=raw?normalize(JSON.parse(raw)):migrateLegacy();
+    if(!raw&&migrated)save();
+  }catch(e){storageBlocked=true;S=defaults();console.warn('Rufus save unreadable; preserving existing storage.',e);}
+}
+function save(){
+  if(storageBlocked)return false;
+  try{localStorage.setItem(KEY,JSON.stringify(S));$('#saveStatus')&&($('#saveStatus').textContent='Sauvegardé · '+now());return true;}
+  catch(e){storageBlocked=true;$('#saveStatus')&&($('#saveStatus').textContent='Stockage indisponible');toast('Stockage local indisponible — exportez les données.');return false;}
+}
+function combatSnapshot(){
+  return {
+    hp:S.hp,tempHp:S.tempHp,turn:S.turn,round:S.round,turnDamage:S.turnDamage,economy:clone(S.economy),
+    concentration:S.concentration?clone(S.concentration):null,rollMode:S.rollMode,conditions:clone(S.conditions),
+    sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
+    lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
+    invisibilityReady:S.invisibilityReady,vision:clone(S.vision),linceul:clone(S.linceul),ravenMemoryBonus:S.ravenMemoryBonus,
+    pending:S.pending?clone(S.pending):null,journalLength:S.journal.length
+  };
+}
+function pushHistory(){
+  S.history.push(combatSnapshot());
+  if(S.history.length>MAX_HISTORY)S.history.shift();
+}
+function logEvent(title,detail=''){
+  S.journal.unshift({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),time:now(),title:String(title).slice(0,120),detail:String(detail).slice(0,1200)});
+  if(S.journal.length>MAX_JOURNAL)S.journal.length=MAX_JOURNAL;
+}
+function commit(title,detail,mutate,fx){
+  pushHistory();mutate();logEvent(title,detail);save();render();if(fx)playFx(fx,title);
+}
+function undo(){
+  const snap=S.history.pop();
+  if(!snap)return toast('Aucune action mécanique à annuler.');
+  const remaining=S.history;
+  Object.assign(S,{
+    hp:snap.hp,tempHp:snap.tempHp,turn:snap.turn,round:snap.round,turnDamage:snap.turnDamage,economy:snap.economy,
+    concentration:snap.concentration,rollMode:snap.rollMode,conditions:snap.conditions,sneakOwn:snap.sneakOwn,
+    sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
+    hexCharges:snap.hexCharges,psiDie:snap.psiDie,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
+    invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
+    pending:snap.pending
+  });
+  S.journal=S.journal.slice(Math.max(0,S.journal.length-snap.journalLength));
+  if(S.journal.length>snap.journalLength)S.journal.length=snap.journalLength;
+  S.history=remaining;save();render();toast('Dernière action restaurée.');
+}
+
+function toast(msg){
+  const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+function playFx(kind,label){
+  const stage=$('#fxStage');if(!stage||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  stage.className='fx-stage '+kind;$('#fxLabel').textContent=label||'Rufus';
+  const p=$('#fxParticles');p.innerHTML='';
+  for(let i=0;i<12;i++){const n=document.createElement('i');n.className='fx-particle';const a=Math.random()*Math.PI*2,r=80+Math.random()*220;n.style.setProperty('--x',Math.cos(a)*r+'px');n.style.setProperty('--y',Math.sin(a)*r+'px');n.style.setProperty('--delay',(Math.random()*.12)+'s');p.appendChild(n);}
+  void stage.offsetWidth;stage.classList.add('play');setTimeout(()=>stage.classList.remove('play'),900);
+}
+
+function acInfo(){
+  if(S.linceul.state==='awakened')return {ac:18,label:'Linceul éveillé'};
+  if(S.linceul.state==='dormant')return {ac:17,label:'Linceul dormant'};
+  return {ac:15,label:'Cuir'};
+}
+function setConcentration(name,source=''){
+  if(S.concentration&&S.concentration.name!==name){
+    const ok=confirm('Mettre fin à « '+S.concentration.name+' » pour maintenir « '+name+' » ?');
+    if(!ok)return false;
+  }
+  S.concentration={name,source};
+  S.vision.active=name==='Vision de la Vérité';
+  return true;
+}
+function endConcentration(reason=''){
+  if(!S.concentration)return;
+  const old=S.concentration.name;
+  commit('Concentration terminée',old+(reason?' · '+reason:''),()=>{S.concentration=null;S.vision.active=false;});
+}
+function concentrationCheck(damage){
+  if(!S.concentration)return;
+  const dc=Math.max(10,Math.floor(Number(damage)/2));const r=die(20),total=r;
+  commit('Concentration · '+S.concentration.name,'JdS CON : '+r+' +0 = '+total+' contre DD '+dc+(total>=dc?' · réussite':' · échec'),()=>{
+    if(total<dc){S.concentration=null;S.vision.active=false;}
+  },total<dc?'raven':null);
+}
+
+function changeHp(kind){
+  const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));
+  if(!Number.isFinite(n)||n<=0)return;
+  if(kind==='damage'){
+    const before=S.concentration?.name||null;
+    commit('Dégâts reçus',n+' dégâts',()=>{
+      let remaining=n;const absorbed=Math.min(S.tempHp,remaining);S.tempHp-=absorbed;remaining-=absorbed;S.hp=clamp(S.hp-remaining,0,S.maxHp);
+    },'raven');
+    if(before) setTimeout(()=>{if(confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?'))concentrationCheck(n);},50);
+    if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
+  }else commit('Soins',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
+}
+function bindHpInputs(){
+  $('#hpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,53);commit('PV ajustés',S.hp+' → '+v,()=>{S.hp=v;});});
+  $('#tempHpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,999);commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});});
+}
+
+const attacks={
+  psychic:{name:'Dague psychique',bonus:8,count:1,sides:6,mod:4,type:'psychiques',cost:'action',finesse:true,psychic:true},
+  psychic2:{name:'Seconde dague psychique',bonus:8,count:1,sides:6,mod:4,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
+  spectral:{name:'Dague spectrale',bonus:9,count:1,sides:4,mod:5,type:'perforants',cost:'action',finesse:true},
+  hexen:{name:'Hexen Blade',bonus:9,count:1,sides:6,mod:5,type:'perforants',cost:'action',finesse:true},
+  crossbow:{name:'Arbalète légère',bonus:8,count:1,sides:8,mod:4,type:'perforants',cost:'action',ranged:true}
+};
+function effectiveRollMode(){
+  const situAdv=S.conditions.targetNotActed||S.vision.active||(S.conditions.agony&&S.linceul.state==='awakened');
+  const adv=S.rollMode==='adv'||situAdv,dis=S.rollMode==='dis';
+  return adv&&dis?'normal':adv?'adv':dis?'dis':'normal';
+}
+function rollAttackD20(mode){
+  const manual=clamp($('#manualRoll').value,0,20);
+  if(manual>=1&&manual<=20)return {rolls:[manual],nat:manual,manual:true};
+  const a=die(20);if(mode==='normal')return {rolls:[a],nat:a};
+  const b=die(20);return {rolls:[a,b],nat:mode==='adv'?Math.max(a,b):Math.min(a,b)};
+}
+function sneakEligible(spec,context){
+  if(!(spec.finesse||spec.ranged||spec.psychic))return false;
+  if(effectiveRollMode()==='dis')return false;
+  const used=context==='reaction'?S.sneakReaction:S.sneakOwn;
+  if(used)return false;
+  const advantage=effectiveRollMode()==='adv';
+  return advantage||S.conditions.allyAdjacent;
+}
+function breakInvisibilityForAttack(){
+  if(S.concentration?.name==='Invisibilité'){
+    S.concentration=null;S.vision.active=false;logEvent('Invisibilité terminée','Rufus attaque.');
+  }
+}
+function startAttack(key,context='own'){
+  const spec=attacks[key];if(!spec)return;
+  const cost=context==='reaction'?'reaction':spec.cost;
+  if(cost==='action'&&!S.economy.action)return toast('Action déjà utilisée.');
+  if(cost==='bonus'&&!S.economy.bonus)return toast('Action bonus déjà utilisée.');
+  if(cost==='reaction'&&!S.economy.reaction)return toast('Réaction déjà utilisée.');
+  if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Dague psychique.');
+  const mode=effectiveRollMode();const rr=rollAttackD20(mode);
+  const bonus=spec.bonus+(key==='crossbow'&&S.sharpshooter?-5:0);
+  const total=rr.nat+bonus;
+  commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
+    breakInvisibilityForAttack();
+    S.economy[cost]=false;
+    if(key==='psychic')S.psychicFollowup=true;
+    if(key==='psychic2')S.psychicFollowup=false;
+    S.pending={kind:'attack',key,context:context==='reaction'?'reaction':'own',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,luckyRoll:null,ravenRoll:null};
+  });
+}
+function spendLuckyPending(){
+  if(!S.pending||S.pending.kind!=='attack')return;
+  if(S.lucky<=0)return toast('Plus de points de Chance.');
+  const r=die(20),old=S.pending.nat;
+  pushHistory();S.lucky--;S.pending.luckyRoll=r;logEvent('Chanceux','Nouveau d20 : '+r+' · jet initial '+old);save();render();
+  if(confirm('Chanceux a donné '+r+'. Utiliser ce d20 à la place de '+old+' ?')){
+    S.pending.nat=r;S.pending.total=r+S.pending.bonus;save();render();
+  }
+}
+function useRavenPending(){
+  if(!S.pending||S.pending.kind!=='attack'||!S.ravenMemoryBonus)return;
+  const r=die(8);commit('Ombre du Corbeau','+'+r+' au jet d’attaque',()=>{S.pending.ravenRoll=r;S.pending.total+=r;S.ravenMemoryBonus=false;},'raven');
+}
+function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:sum(arr)};}
+function resolveAttack(hit,useSneak=false){
+  const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
+  if(!hit){
+    commit('Attaque ratée · '+spec.name,'Jet '+p.total,()=>{S.pending=null;});
+    return;
+  }
+  const visionCrit=S.vision.active&&p.nat>=17;
+  const crit=p.nat===20||S.conditions.surprised||visionCrit;
+  const multiplier=crit?2:1;
+  const base=rollDamage(spec.count*multiplier,spec.sides);
+  const sharp=p.key==='crossbow'&&S.sharpshooter?10:0;
+  const parts=[base.total+spec.mod+sharp+' '+spec.type];
+  let total=base.total+spec.mod+sharp;
+  let sneakText='',fireText='';
+  const eligible=sneakEligible(spec,p.context);
+  if(useSneak&&eligible){
+    const sneak=rollDamage(5*multiplier,6);total+=sneak.total;sneakText=sneak.total+' Sournoise';
+    if(p.context==='reaction')S.sneakReaction=true;else S.sneakOwn=true;
+    if(S.fireBlade.armed&&S.fireBlade.ready){
+      const fire=rollDamage(2*multiplier,6);total+=fire.total;fireText=fire.total+' feu';
+      S.fireBlade.ready=false;S.fireBlade.armed=false;
+    }
+  }
+  if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
+  const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'');
+  pushHistory();S.turnDamage+=total;S.pending=null;logEvent('Touché · '+spec.name,detail);save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
+  toast(detail);
+}
+function renderPending(){
+  const el=$('#pendingAttack');const p=S.pending;
+  if(!p){el.hidden=true;el.innerHTML='';return;}
+  el.hidden=false;
+  if(p.kind==='wound'){
+    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">Blessure · attaque de sort à résoudre</div><b>Bonus d’attaque selon validation MJ</b></div></div><div class="pending-details">Une fois le résultat d’attaque connu, confirmez l’issue.</div><div class="pending-actions"><button class="primary" data-special-hit="wound">Touché · lancer 3d10</button><button class="ability" data-special-miss="wound">Raté</button></div>';
+    return;
+  }
+  const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=S.vision.active?'17–20':'20';
+  const rolls=p.rolls.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat);
+  el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
+    '<div class="pending-details">Critique : '+critRange+(S.conditions.surprised?' · cible surprise = critique sur touche':'')+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
+    '<div class="pending-actions">'+
+      (eligible?'<button class="primary" data-hit-sneak>Touché + Sournoise 5d6</button>':'')+
+      '<button class="ability" data-hit>Touché'+(p.nat===20||S.conditions.surprised?' · critique':'')+'</button>'+
+      '<button class="ability dangerish" data-miss>Raté</button>'+
+      (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
+      (S.ravenMemoryBonus?'<button class="ability" data-raven-pending>Ombre · +1d8</button>':'')+
+    '</div>';
+}
+
+function useWound(){
+  if(!S.woundReady)return toast('Blessure déjà utilisée aujourd’hui.');
+  if(!S.economy.action)return toast('Action déjà utilisée.');
+  commit('Blessure','1/jour · attaque de sort au contact',()=>{S.economy.action=false;S.woundReady=false;S.pending={kind:'wound'};});
+}
+function resolveWound(hit){
+  if(!S.pending||S.pending.kind!=='wound')return;
+  if(!hit)return commit('Blessure ratée','Aucun dégât.',()=>{S.pending=null;});
+  const r=rollDamage(3,10);commit('Blessure · touché',r.total+' dégâts nécrotiques ('+r.arr.join('+')+')',()=>{S.turnDamage+=r.total;S.pending=null;},'raven');
+}
+function useInvisibility(){
+  if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
+  if(!S.economy.action)return toast('Action déjà utilisée.');
+  if(S.concentration&&S.concentration.name!=='Invisibilité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  commit('Invisibilité','Concentration jusqu’à 1 h.',()=>{S.economy.action=false;S.invisibilityReady=false;S.concentration={name:'Invisibilité',source:'quotidien'};S.vision.active=false;},'raven');
+}
+function useVision(){
+  if(!S.economy.action)return toast('Action déjà utilisée.');
+  const target=$('#visionTarget').value.trim()||'cible';
+  if(S.concentration&&S.concentration.name!=='Vision de la Vérité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  const previous=S.vision.uses,dc=10+previous,r=die(20),total=r+1,failed=total<dc;
+  commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+r+' +1 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
+    S.economy.action=false;S.vision.active=true;S.vision.target=target;S.vision.uses++;if(failed)S.vision.wisPenalty++;
+    S.concentration={name:'Vision de la Vérité',source:'pouvoir maison'};
+  },'raven');
+}
+function castHex(name,cost,concentration){
+  if(S.hexCharges<cost)return toast('Pas assez de charges Hexen Blade.');
+  if(!S.economy.action)return toast('Action déjà utilisée.');
+  if(concentration&&S.concentration&&S.concentration.name!==name&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  commit('Hexen Blade · '+name,cost+' charge'+(cost>1?'s':''),()=>{
+    S.hexCharges-=cost;S.economy.action=false;
+    if(concentration){S.concentration={name,source:'Hexen Blade'};S.vision.active=false;}
+  },'raven');
+}
+function hexDawn(logTitle='Aube · Hexen Blade'){
+  const gain=die(4)+1,before=S.hexCharges;
+  S.hexCharges=clamp(S.hexCharges+gain,0,5);logEvent(logTitle,'1d4+1 = '+gain+' · '+before+' → '+S.hexCharges);
+  return gain;
+}
+function useCunning(name){
+  if(!S.economy.bonus)return toast('Action bonus déjà utilisée.');
+  commit('Ruse · '+name,'Action bonus',()=>{S.economy.bonus=false;});
+}
+function useReaction(name='Esquive instinctive'){
+  if(!S.economy.reaction)return toast('Réaction déjà utilisée.');
+  commit(name,'Réaction consommée.',()=>{S.economy.reaction=false;});
+}
+function toggleFireBlade(){
+  if(!S.fireBlade.ready)return toast('Lame du Feu Caché déjà dépensée aujourd’hui.');
+  commit(S.fireBlade.armed?'Lame du Feu Caché désarmée':'Lame du Feu Caché armée','La prochaine Sournoise réussie '+(S.fireBlade.armed?'ne consommera pas':'consommera')+' le pouvoir.',()=>{S.fireBlade.armed=!S.fireBlade.armed;},S.fireBlade.armed?null:'fire');
+}
+function spendLucky(){
+  if(S.lucky<=0)return toast('Plus de points de Chance.');
+  const r=die(20);commit('Chanceux','d20 supplémentaire : '+r,()=>{S.lucky--;});
+  toast('Chanceux : '+r+' — choisissez le d20 à utiliser selon la situation.');
+}
+function useLinceul(kind){
+  if(S.linceul.state==='unequipped')return toast('Le Linceul n’est pas équipé.');
+  if(['ravenShadow','pilgrim'].includes(kind)&&S.linceul.state!=='awakened')return toast('Pouvoir disponible uniquement à l’état Éveillé.');
+  const labels={judgment:'Jugement différé',lastBreath:'Langue du Dernier Souffle',ravenShadow:'Ombre du Corbeau',pilgrim:'Corbeau Pèlerin'};
+  if(kind==='judgment'&&!S.linceul.judgment)return toast('Jugement différé déjà dépensé.');
+  if(kind==='lastBreath'&&!S.linceul.lastBreath)return toast('Langue du Dernier Souffle déjà utilisée aujourd’hui.');
+  if(kind==='ravenShadow'&&S.linceul.ravenShadow<=0)return toast('Ombre du Corbeau déjà dépensée.');
+  if(kind==='pilgrim'&&!S.linceul.pilgrim)return toast('Corbeau Pèlerin déjà utilisé.');
+  commit(labels[kind],kind==='ravenShadow'?'+1d8 au prochain jet d’attaque ou sauvegarde.':'Pouvoir du Linceul consommé.',()=>{
+    if(kind==='judgment')S.linceul.judgment=false;
+    if(kind==='lastBreath')S.linceul.lastBreath=false;
+    if(kind==='ravenShadow'){S.linceul.ravenShadow=0;S.ravenMemoryBonus=true;}
+    if(kind==='pilgrim')S.linceul.pilgrim=false;
+  },'raven');
+}
+function shortRest(){
+  commit('Repos court','Aucune ressource de classe principale restaurée automatiquement.',()=>{
+    S.economy={action:true,bonus:true,reaction:true,move:true};S.turnDamage=0;S.pending=null;S.psychicFollowup=false;
+    if(S.concentration){S.concentration=null;S.vision.active=false;}
+  });
+}
+function longRest(){
+  if(!confirm('Effectuer un repos long ? Les ressources / repos long seront restaurées.'))return;
+  commit('Repos long','PV, Chanceux, Vision, Lame du Feu Caché et ressources / repos long restaurés.',()=>{
+    S.hp=53;S.tempHp=0;S.lucky=3;S.fireBlade={ready:true,armed:false};S.vision={active:false,target:'',uses:0,wisPenalty:0};
+    S.linceul.judgment=true;S.linceul.ravenShadow=1;S.linceul.pilgrim=true;S.ravenMemoryBonus=false;
+    S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.turnDamage=0;S.concentration=null;S.pending=null;
+  },'raven');
+}
+function newDay(){
+  commit('Nouveau jour','Blessure, Invisibilité, Langue du Dernier Souffle et recharge Hexen.',()=>{
+    S.woundReady=true;S.invisibilityReady=true;S.linceul.lastBreath=true;hexDawn('Recharge Hexen Blade');
+  });
+}
+function nextTurn(){
+  commit('Tour suivant','Économie du tour restaurée.',()=>{
+    S.turn++;if((S.turn-1)%4===0)S.round++;
+    S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.targetNotActed=false;S.conditions.surprised=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
+  });
+  if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment){
+    commit('Jugement différé','Rufus revient automatiquement à 1 PV au début de son tour.',()=>{S.hp=1;S.linceul.judgment=false;},'raven');
+  }
+}
+
+const abilities=[
+  {name:'Force',abbr:'FOR',score:8,mod:-1,save:-1,prof:false},
+  {name:'Dextérité',abbr:'DEX',score:18,mod:4,save:8,prof:true},
+  {name:'Constitution',abbr:'CON',score:10,mod:0,save:0,prof:false},
+  {name:'Intelligence',abbr:'INT',score:13,mod:1,save:5,prof:true},
+  {name:'Sagesse',abbr:'SAG',score:13,mod:1,save:1,prof:false},
+  {name:'Charisme',abbr:'CHA',score:15,mod:2,save:2,prof:false}
+];
+const skills=[
+  ['Athlétisme','FOR',-1,''],['Acrobaties','DEX',8,'Maîtrise'],['Discrétion','DEX',12,'Expertise'],['Escamotage','DEX',8,'Maîtrise'],
+  ['Arcanes','INT',1,''],['Histoire','INT',1,''],['Investigation','INT',5,'Maîtrise'],['Nature','INT',1,''],['Religion','INT',1,''],
+  ['Dressage','SAG',1,''],['Intuition','SAG',1,''],['Médecine','SAG',1,''],['Perception','SAG',5,'Maîtrise'],['Survie','SAG',1,''],
+  ['Intimidation','CHA',6,'Maîtrise'],['Persuasion','CHA',10,'Expertise'],['Représentation','CHA',2,''],['Tromperie','CHA',6,'Maîtrise']
+];
+function socialRoll(label,bonus,isSave=false){
+  const mode=S.socialMode,a=die(20),b=mode==='normal'?null:die(20),chosen=mode==='adv'?Math.max(a,b):mode==='dis'?Math.min(a,b):a;
+  let raven=0;if(isSave&&S.ravenMemoryBonus&&confirm('Utiliser le +1d8 d’Ombre du Corbeau sur ce JdS ?')){raven=die(8);pushHistory();S.ravenMemoryBonus=false;}
+  const total=chosen+bonus+raven,details=(b===null?'d20 '+a:'d20 '+a+' / '+b+' → '+chosen)+' '+fmt(bonus)+(raven?' + Ombre '+raven:'')+' = '+total;
+  logEvent('Social · '+label,details);save();renderSocial();const out=$('#socialResult');out.hidden=false;out.textContent=label+' : '+details;
+}
+function renderSocial(){
+  const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
+  $$('.social-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.socialTab===tab));
+  $$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
+  if(tab==='skills'){
+    c.innerHTML='<div class="social-passives"><span>Perception passive <b>15</b></span><span>Intuition passive <b>11</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
+    $$('[data-skill]',c).forEach(b=>b.onclick=()=>{const s=skills[Number(b.dataset.skill)];socialRoll(s[0],s[2],false);});
+  }else if(tab==='abilities'){
+    c.innerHTML='<div class="social-passives"><span>JdS maîtrisés <b>DEX, INT</b></span><span>DEX <b>18</b></span><span>CHA <b>15</b></span></div><div class="abilities-grid">'+abilities.map((a,i)=>'<div class="ability-card"><div class="ability-card-head"><div><span>'+a.abbr+'</span><h3>'+a.name+'</h3></div><strong>'+a.score+'</strong></div><div class="ability-values"><span>Mod.<b>'+fmt(a.mod)+'</b></span><span>Test<b>'+fmt(a.mod)+'</b></span><span class="'+(a.prof?'proficient':'')+'">JdS<b>'+fmt(a.save)+'</b></span></div><div class="ability-actions"><button class="ability" data-check="'+i+'">Tester</button><button class="ability" data-save="'+i+'">JdS</button></div></div>').join('')+'</div>';
+    $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false);});
+    $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true);});
+  }else{
+    c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Assassin</b><span>Fausse identité crédible : 7 jours et 25 po.</span></div><div class="rp-box"><b>Résistance</b><span>Amulette de résistance occulte : type exact selon la fiche de table.</span></div></div>';
+  }
+}
+
+function renderInventory(){
+  const grid=$('#inventoryGrid');if(!grid)return;
+  $$('.inventory-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.inventoryTab===S.inventoryTab));
+  const rows=S.inventory.map((i,index)=>({i,index})).filter(x=>x.i.category===S.inventoryTab);
+  grid.innerHTML=rows.length?rows.map(({i,index})=>{
+    const img=i.image?'<img alt="" src="'+esc(i.image)+'" loading="lazy">':'<span aria-hidden="true">'+(i.category==='equipment'?'⚔':i.category==='consumable'?'◈':'✦')+'</span>';
+    return '<div class="inventory-item '+(i.equipped?'active':'')+'"><div class="item-icon">'+img+'</div><div class="item-body"><b>'+esc(i.name)+'</b><small>×'+i.qty+(i.equipped?' · équipé/actif':'')+'</small><p>'+esc(i.note)+'</p></div><button class="item-edit" data-edit-item="'+index+'">Modifier</button></div>';
+  }).join(''):'<p class="meta">Aucun objet dans cette catégorie.</p>';
+  $$('[data-edit-item]',grid).forEach(b=>b.onclick=()=>openItemEditor(Number(b.dataset.editItem)));
+}
+function openItemEditor(index=-1){
+  const f=$('#itemEditor');f.hidden=false;f.reset();f.elements.index.value=index;
+  const i=index>=0?S.inventory[index]:{name:'',category:S.inventoryTab,qty:1,note:'',image:'',equipped:false};
+  f.elements.name.value=i.name;f.elements.category.value=i.category;f.elements.qty.value=i.qty;f.elements.note.value=i.note;f.elements.image.value=i.image;f.elements.equipped.checked=i.equipped;
+  $('#deleteItemBtn').hidden=index<0;f.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closeItemEditor(){$('#itemEditor').hidden=true;}
+function saveItem(e){
+  e.preventDefault();const f=e.currentTarget,index=Number(f.elements.index.value);
+  const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,equipped:f.elements.equipped.checked});
+  if(!item.name.trim())return;
+  if(index>=0)S.inventory[index]=item;else S.inventory.push(item);
+  logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();
+}
+function deleteItem(){
+  const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!confirm('Supprimer cet objet ?'))return;
+  const name=S.inventory[index]?.name||'Objet';S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();
+}
+function pickImage(){
+  $('#imageFile').click();
+}
+function handleImage(file){
+  if(!file||!file.type.startsWith('image/'))return;if(file.size>260000)return toast('Image trop lourde : 260 ko max pour protéger localStorage.');
+  const r=new FileReader();r.onload=()=>{$('#itemEditor').elements.image.value=String(r.result||'').slice(0,350000);toast('Image ajoutée à l’objet.');};r.readAsDataURL(file);
+}
+
+function renderJournal(){
+  const list=$('#journalList');if(!list)return;
+  list.innerHTML=S.journal.length?S.journal.map(e=>'<div class="journal-entry"><small>'+esc(e.time)+'</small><b>'+esc(e.title)+'</b><p>'+esc(e.detail||'')+'</p></div>').join(''):'<p class="meta">Le journal mécanique est vide.</p>';
+  $('#notesInput').value=S.notes;
+  $('#notesInput').hidden=!!S.notesPreview;$('#notesPreview').hidden=!S.notesPreview;$('#togglePreviewBtn').textContent=S.notesPreview?'Éditer':'Aperçu';
+  if(S.notesPreview)$('#notesPreview').innerHTML=renderNotePreview(S.notes);
+}
+function renderNotePreview(text){
+  return esc(text).split('\n').map(line=>{
+    if(/^###\s/.test(line))return '<b>'+line.replace(/^###\s/,'')+'</b>';
+    if(/^##\s/.test(line))return '<h3>'+line.replace(/^##\s/,'')+'</h3>';
+    if(/^#\s/.test(line))return '<h2>'+line.replace(/^#\s/,'')+'</h2>';
+    if(/^[-*]\s/.test(line))return '• '+line.replace(/^[-*]\s/,'');
+    return line||'&nbsp;';
+  }).join('<br>');
+}
+function download(name,body,type='application/json'){
+  const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function exportData(){download('Rufus-Companion-V3.json',JSON.stringify({format:'rufus-companion-v3',schema:3,exportedAt:new Date().toISOString(),state:S},null,2));logEvent('Export JSON','Sauvegarde complète exportée.');save();renderJournal();}
+function importData(file){
+  if(!file)return;const r=new FileReader();r.onload=()=>{
+    try{
+      const x=JSON.parse(r.result);const incoming=x?.format==='rufus-companion-v3'?x.state:x;
+      localStorage.setItem(BACKUP,JSON.stringify(S));S=normalize(incoming);S.pending=null;save();render();toast('Import terminé. Une copie précédente est disponible.');
+    }catch(e){toast('Import refusé : fichier incompatible.');}
+  };r.readAsText(file);
+}
+function restoreBackup(){
+  try{const raw=localStorage.getItem(BACKUP);if(!raw)return toast('Aucune copie disponible.');const current=JSON.stringify(S);S=normalize(JSON.parse(raw));localStorage.setItem(BACKUP,current);save();render();toast('Copie restaurée.');}catch{toast('Copie illisible.');}
+}
+function resetAll(){
+  if(!confirm('Remettre Rufus à zéro ? Un backup de l’état actuel sera conservé.'))return;
+  try{localStorage.setItem(BACKUP,JSON.stringify(S));}catch{}S=defaults();save();render();toast('État initial restauré.');
+}
+
+function switchView(id){
+  S.ui.view=id;$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
+  if(id==='social')renderSocial();if(id==='inventory')renderInventory();if(id==='journal')renderJournal();window.scrollTo({top:0,behavior:'instant'});
+}
+function render(){
+  const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
+  $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;
+  $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
+  const conc=S.concentration;$('#turnConcentration').classList.toggle('none',!conc);$('#turnConcText').textContent=conc?conc.name:'Aucune';
+  $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
+  $$('[data-roll-mode]').forEach(b=>b.classList.toggle('on',b.dataset.rollMode===S.rollMode));
+  $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
+  $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+3 · 1d8+14 perforants':'+8 · 1d8+4 perforants');
+  const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Sournoise dépensée';$('#sneakStatus').textContent=sneakAvailable?'Sournoise disponible · avantage ou allié adjacent sans désavantage.':'Sournoise utilisée sur le tour de Rufus · réaction adverse suivie séparément.';
+  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];b.disabled=(a.cost==='action'&&!S.economy.action)||(a.cost==='bonus'&&(!S.economy.bonus||b.dataset.attack==='psychic2'&&!S.psychicFollowup));});
+  $$('.reaction-attack,.reaction-action').forEach(b=>b.disabled=!S.economy.reaction);$$('.bonus-action').forEach(b=>b.disabled=!S.economy.bonus);
+  $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=S.fireBlade.armed?'Désarmer':'Armer Lame du Feu Caché';$('#fireBladeStatus').className='status-line '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui.':S.fireBlade.armed?'ARMÉE · la prochaine Sournoise réussie déclenchera +2d6 feu.':'Disponible · non armée.';
+  $('#visionTarget').value=S.vision.target||'';$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
+  $('#woundBtn').disabled=!S.woundReady||!S.economy.action;$('#woundBtn').textContent=S.woundReady?'Utiliser':'Dépensé aujourd’hui';$('#invisibilityBtn').disabled=!S.invisibilityReady||!S.economy.action;$('#invisibilityBtn').textContent=S.invisibilityReady?'Lancer':'Dépensée aujourd’hui';
+  $('#hexCharges').textContent=S.hexCharges;$$('.hex-spell').forEach(b=>b.disabled=!S.economy.action||S.hexCharges<Number(b.dataset.cost));
+  $('#linceulState').value=S.linceul.state;const li=acInfo();$('#linceulSummary').innerHTML='<div><small>CA actuelle</small><b>'+li.ac+' · '+esc(li.label)+'</b></div><div><small>Jugement différé</small><b>'+(S.linceul.judgment?'prêt':'dépensé')+'</b></div><div><small>Ombre du Corbeau</small><b>'+(S.linceul.state==='awakened'?(S.linceul.ravenShadow?'prête':'dépensée'):'verrouillée')+'</b></div>';
+  $$('.awakened-only').forEach(x=>x.classList.toggle('locked',S.linceul.state!=='awakened'));
+  $$('.linceul-use').forEach(b=>{const k=b.dataset.linceulUse;let disabled=S.linceul.state==='unequipped';if(k==='judgment')disabled||=!S.linceul.judgment;if(k==='lastBreath')disabled||=!S.linceul.lastBreath;if(k==='ravenShadow')disabled||=S.linceul.state!=='awakened'||S.linceul.ravenShadow<=0;if(k==='pilgrim')disabled||=S.linceul.state!=='awakened'||!S.linceul.pilgrim;b.disabled=disabled;});
+  $('#luckValue').textContent=S.lucky+' / 3';$('#luckPips').innerHTML=[0,1,2].map(i=>'<button class="pip '+(i<S.lucky?'':'off')+'" aria-label="Point de Chance '+(i+1)+'"></button>').join('');$('#luckSpendBtn').disabled=S.lucky<=0;
+  $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
+  renderPending();renderSocial();renderInventory();renderJournal();
+}
+
+function bind(){
+  $$('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
+  $('#damageBtn').onclick=$('#turnDamageBtn').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#turnHealBtn').onclick=()=>changeHp('heal');bindHpInputs();
+  $('#nextTurn').onclick=nextTurn;$('#turnConcentration').onclick=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};
+  $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{S.rollMode=b.dataset.rollMode;save();render();});
+  $$('[data-cond]').forEach(b=>b.onclick=()=>{const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();});
+  $('#sharpshooterToggle').onclick=()=>{S.sharpshooter=!S.sharpshooter;save();render();};
+  $$('[data-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.attack,'own'));$$('[data-reaction-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.reactionAttack,'reaction'));
+  $('#pendingAttack').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))spendLuckyPending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
+  $$('[data-cunning]').forEach(b=>b.onclick=()=>useCunning(b.dataset.cunning));$$('.reaction-action').forEach(b=>b.onclick=()=>useReaction(b.textContent.trim().split('·')[0].trim()));
+  $('#fireBladeBtn').onclick=toggleFireBlade;$('#visionBtn').onclick=useVision;$('#woundBtn').onclick=useWound;$('#invisibilityBtn').onclick=useInvisibility;
+  $$('.hex-spell').forEach(b=>b.onclick=()=>castHex(b.dataset.hexSpell,Number(b.dataset.cost),b.dataset.concentration==='true'));
+  $('#hexDawnBtn').onclick=()=>commit('Aube · Hexen Blade','Recharge 1d4+1.',()=>{hexDawn();});
+  $('#linceulState').onchange=e=>commit('Linceul · état','État : '+e.target.value,()=>{S.linceul.state=e.target.value;if(e.target.value!=='awakened')S.conditions.agony=false;});
+  $$('.linceul-use').forEach(b=>b.onclick=()=>useLinceul(b.dataset.linceulUse));$('#luckSpendBtn').onclick=spendLucky;
+  $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
+  $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
+  $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
+  $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
+  $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
+  $('#clearJournalBtn').onclick=()=>{if(confirm('Vider le journal mécanique ?')){S.journal=[];save();renderJournal();}};
+  $('#exportBtn').onclick=exportData;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
+}
+
+load();bind();render();switchView(S.ui.view||'combat');
+if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
 })();
