@@ -276,7 +276,7 @@ function startAttack(key,context='own'){
   if(cost==='bonus'&&!S.economy.bonus)return toast('Action bonus déjà utilisée.');
   if(cost==='reaction'&&!S.economy.reaction)return toast('Réaction déjà utilisée.');
   if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Dague psychique.');
-  const mode=effectiveRollMode();const rr=rollAttackD20(mode);
+  const mode=effectiveRollMode();const rr=rollAttackD20(mode);$('#manualRoll').value='';
   const bonus=spec.bonus+(key==='crossbow'&&S.sharpshooter?-5:0);
   const total=rr.nat+bonus;
   commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
@@ -376,8 +376,9 @@ function useVision(){
   if(!S.economy.action)return toast('Action déjà utilisée.');
   const target=$('#visionTarget').value.trim()||'cible';
   if(S.concentration&&S.concentration.name!=='Vision de la Vérité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
-  const previous=S.vision.uses,dc=10+previous,r=die(20),total=r+1,failed=total<dc;
-  commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+r+' +1 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
+  const previous=S.vision.uses,dc=10+previous,r1=die(20),r2=S.vision.wisPenalty>0?die(20):null,r=r2===null?r1:Math.min(r1,r2),total=r+1,failed=total<dc;
+  const rollText=r2===null?String(r1):(r1+' / '+r2+' → '+r+' · désavantage Vision');
+  commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+rollText+' +1 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
     S.economy.action=false;S.vision.active=true;S.vision.target=target;S.vision.uses++;if(failed)S.vision.wisPenalty++;
     S.concentration={name:'Vision de la Vérité',source:'pouvoir maison'};
   },'raven');
@@ -471,10 +472,12 @@ const skills=[
   ['Dressage','SAG',1,''],['Intuition','SAG',1,''],['Médecine','SAG',1,''],['Perception','SAG',5,'Maîtrise'],['Survie','SAG',1,''],
   ['Intimidation','CHA',6,'Maîtrise'],['Persuasion','CHA',10,'Expertise'],['Représentation','CHA',2,''],['Tromperie','CHA',6,'Maîtrise']
 ];
-function socialRoll(label,bonus,isSave=false){
-  const mode=S.socialMode,a=die(20),b=mode==='normal'?null:die(20),chosen=mode==='adv'?Math.max(a,b):mode==='dis'?Math.min(a,b):a;
+function socialRoll(label,bonus,isSave=false,ability=''){
+  const visionDis=ability==='SAG'&&S.vision.wisPenalty>0;
+  const mode=visionDis?(S.socialMode==='adv'?'normal':'dis'):S.socialMode;
+  const a=die(20),b=mode==='normal'?null:die(20),chosen=mode==='adv'?Math.max(a,b):mode==='dis'?Math.min(a,b):a;
   let raven=0;if(isSave&&S.ravenMemoryBonus&&confirm('Utiliser le +1d8 d’Ombre du Corbeau sur ce JdS ?')){raven=die(8);pushHistory();S.ravenMemoryBonus=false;}
-  const total=chosen+bonus+raven,details=(b===null?'d20 '+a:'d20 '+a+' / '+b+' → '+chosen)+' '+fmt(bonus)+(raven?' + Ombre '+raven:'')+' = '+total;
+  const total=chosen+bonus+raven,details=(b===null?'d20 '+a:'d20 '+a+' / '+b+' → '+chosen)+' '+fmt(bonus)+(raven?' + Ombre '+raven:'')+' = '+total+(visionDis?' · Vision : désavantage SAG ('+S.vision.wisPenalty+')':'');
   logEvent('Social · '+label,details);save();renderSocial();const out=$('#socialResult');out.hidden=false;out.textContent=label+' : '+details;
 }
 function renderSocial(){
@@ -483,11 +486,11 @@ function renderSocial(){
   $$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
   if(tab==='skills'){
     c.innerHTML='<div class="social-passives"><span>Perception passive <b>15</b></span><span>Intuition passive <b>11</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
-    $$('[data-skill]',c).forEach(b=>b.onclick=()=>{const s=skills[Number(b.dataset.skill)];socialRoll(s[0],s[2],false);});
+    $$('[data-skill]',c).forEach(b=>b.onclick=()=>{const s=skills[Number(b.dataset.skill)];socialRoll(s[0],s[2],false,s[1]);});
   }else if(tab==='abilities'){
     c.innerHTML='<div class="social-passives"><span>JdS maîtrisés <b>DEX, INT</b></span><span>DEX <b>18</b></span><span>CHA <b>15</b></span></div><div class="abilities-grid">'+abilities.map((a,i)=>'<div class="ability-card"><div class="ability-card-head"><div><span>'+a.abbr+'</span><h3>'+a.name+'</h3></div><strong>'+a.score+'</strong></div><div class="ability-values"><span>Mod.<b>'+fmt(a.mod)+'</b></span><span>Test<b>'+fmt(a.mod)+'</b></span><span class="'+(a.prof?'proficient':'')+'">JdS<b>'+fmt(a.save)+'</b></span></div><div class="ability-actions"><button class="ability" data-check="'+i+'">Tester</button><button class="ability" data-save="'+i+'">JdS</button></div></div>').join('')+'</div>';
-    $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false);});
-    $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true);});
+    $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false,a.abbr);});
+    $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true,a.abbr);});
   }else{
     c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Assassin</b><span>Fausse identité crédible : 7 jours et 25 po.</span></div><div class="rp-box"><b>Résistance</b><span>Amulette de résistance occulte : type exact selon la fiche de table.</span></div></div>';
   }
@@ -598,8 +601,8 @@ function render(){
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
   $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+3 · 1d8+14 perforants':'+8 · 1d8+4 perforants');
   const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Sournoise dépensée';$('#sneakStatus').textContent=sneakAvailable?'Sournoise disponible · avantage ou allié adjacent sans désavantage.':'Sournoise utilisée sur le tour de Rufus · réaction adverse suivie séparément.';
-  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];b.disabled=(a.cost==='action'&&!S.economy.action)||(a.cost==='bonus'&&(!S.economy.bonus||b.dataset.attack==='psychic2'&&!S.psychicFollowup));});
-  $$('.reaction-attack,.reaction-action').forEach(b=>b.disabled=!S.economy.reaction);$$('.bonus-action').forEach(b=>b.disabled=!S.economy.bonus);
+  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Dague psychique':'';});
+  $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=S.fireBlade.armed?'Désarmer':'Armer Lame du Feu Caché';$('#fireBladeStatus').className='status-line '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui.':S.fireBlade.armed?'ARMÉE · la prochaine Sournoise réussie déclenchera +2d6 feu.':'Disponible · non armée.';
   $('#visionTarget').value=S.vision.target||'';$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
   $('#woundBtn').disabled=!S.woundReady||!S.economy.action;$('#woundBtn').textContent=S.woundReady?'Utiliser':'Dépensé aujourd’hui';$('#invisibilityBtn').disabled=!S.invisibilityReady||!S.economy.action;$('#invisibilityBtn').textContent=S.invisibilityReady?'Lancer':'Dépensée aujourd’hui';
