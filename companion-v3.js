@@ -17,25 +17,27 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const defaultItems=[
-  {name:'Dague spectrale',category:'equipment',qty:1,note:'+9 · 1d4+5 · rappel CON DD13.',image:'',equipped:true},
-  {name:'Hexen Blade',category:'equipment',qty:1,note:'+9 · 1d6+5 · 5 charges · illusions DD15.',image:'',equipped:true},
-  {name:'Arbalète légère duergar',category:'equipment',qty:1,note:'24/96 m · munitions · chargement · deux mains.',image:'',equipped:true},
-  {name:'Arc standard',category:'equipment',qty:1,note:'Carquois de 30 flèches.',image:'',equipped:false},
-  {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 15 avec DEX 18.',image:'',equipped:true},
-  {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA17 / Éveillé CA18.',image:'',equipped:false},
-  {name:'Chaussons araignée',category:'equipment',qty:1,note:'Mobilité · propriété exacte à valider.',image:'',equipped:true},
-  {name:'Amulette de résistance occulte',category:'equipment',qty:1,note:'Protection · effet exact selon fiche de table.',image:'',equipped:true},
-  {name:'Bague d’échange d’apparence',category:'misc',qty:1,note:'Paire liée à Kentaro · paramètres exacts à valider.',image:'',equipped:false},
-  {name:'Globe flottant',category:'misc',qty:1,note:'Objet utilitaire.',image:'',equipped:false},
-  {name:'Sac sans fond',category:'misc',qty:1,note:'Contenant extradimensionnel.',image:'',equipped:false},
-  {name:'Statuette d’éléphant',category:'misc',qty:1,note:'Objet narratif · effet non documenté ici.',image:'',equipped:false},
-  {name:'Accessoires de déguisement',category:'misc',qty:1,note:'Maîtrise.',image:'',equipped:false},
-  {name:'Matériel de contrefaçon',category:'misc',qty:1,note:'Maîtrise.',image:'',equipped:false},
-  {name:'Kit d’empoisonneur',category:'misc',qty:1,note:'Poison & infiltration.',image:'',equipped:false},
-  {name:'Sérum de vérité',category:'consumable',qty:1,note:'Consommable.',image:'',equipped:false},
-  {name:'Venin de vipère à tête noire',category:'consumable',qty:1,note:'Poison.',image:'',equipped:false},
-  {name:'Carreaux d’arbalète',category:'consumable',qty:20,note:'Munitions.',image:'',equipped:false}
+  {name:'Dague spectrale',category:'equipment',qty:1,note:'+9 · 1d4+5 · rappel CON DD13.',image:'',icon:'blade',equipped:true},
+  {name:'Hexen Blade',category:'equipment',qty:1,note:'+9 · 1d6+5 · 5 charges · illusions DD15.',image:'',icon:'blade',equipped:true},
+  {name:'Arbalète légère duergar',category:'equipment',qty:1,note:'24/96 m · munitions · chargement · deux mains.',image:'',icon:'bow',equipped:true},
+  {name:'Arc standard',category:'equipment',qty:1,note:'Carquois de 30 flèches.',image:'',icon:'bow',equipped:false},
+  {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 15 avec DEX 18.',image:'',icon:'armor',equipped:true},
+  {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA17 / Éveillé CA18.',image:'',icon:'raven',equipped:false},
+  {name:'Chaussons araignée',category:'equipment',qty:1,note:'Mobilité · propriété exacte à valider.',image:'',icon:'boots',equipped:true},
+  {name:'Amulette de résistance occulte',category:'equipment',qty:1,note:'Protection · effet exact selon fiche de table.',image:'',icon:'amulet',equipped:true},
+  {name:'Bague d’échange d’apparence',category:'misc',qty:1,note:'Paire liée à Kentaro · paramètres exacts à valider.',image:'',icon:'ring',equipped:false},
+  {name:'Globe flottant',category:'misc',qty:1,note:'Objet utilitaire.',image:'',icon:'globe',equipped:false},
+  {name:'Sac sans fond',category:'misc',qty:1,note:'Contenant extradimensionnel.',image:'',icon:'bag',equipped:false},
+  {name:'Statuette d’éléphant',category:'misc',qty:1,note:'Objet narratif · effet non documenté ici.',image:'',icon:'elephant',equipped:false},
+  {name:'Accessoires de déguisement',category:'misc',qty:1,note:'Maîtrise.',image:'',icon:'disguise',equipped:false},
+  {name:'Matériel de contrefaçon',category:'misc',qty:1,note:'Maîtrise.',image:'',icon:'disguise',equipped:false},
+  {name:'Kit d’empoisonneur',category:'misc',qty:1,note:'Poison & infiltration.',image:'',icon:'poison',equipped:false},
+  {name:'Sérum de vérité',category:'consumable',qty:1,note:'Consommable.',image:'',icon:'poison',equipped:false},
+  {name:'Venin de vipère à tête noire',category:'consumable',qty:1,note:'Poison.',image:'',icon:'poison',equipped:false},
+  {name:'Carreaux d’arbalète',category:'consumable',qty:20,note:'Munitions.',image:'',icon:'ammo',equipped:false}
 ];
+const inventoryIcons={auto:'✦',blade:'🗡',raven:'◆',armor:'◈',bow:'➶',poison:'☠',ring:'◉',boots:'⌁',amulet:'◇',bag:'▣',globe:'◌',elephant:'♜',disguise:'◐',ammo:'⋙',misc:'✦'};
+const inventoryCategoryLabels={equipment:'Équipement',misc:'Objet',consumable:'Consommable'};
 
 function defaults(){
   return {
@@ -67,6 +69,7 @@ function sanitizeItem(i){
     qty:clamp(parseInt(i?.qty??1,10),0,999),
     note:String(i?.note||'').slice(0,3000),
     image:/^(https:\/\/|data:image\/)/.test(String(i?.image||''))?String(i.image).slice(0,350000):'',
+    icon:Object.prototype.hasOwnProperty.call(inventoryIcons,String(i?.icon||'auto'))?String(i?.icon||'auto'):'auto',
     equipped:!!(i?.equipped??i?.active)
   };
 }
@@ -149,9 +152,21 @@ function pushHistory(){
   S.history.push(combatSnapshot());
   if(S.history.length>MAX_HISTORY)S.history.shift();
 }
+let lastRibbonEventId='';
 function logEvent(title,detail=''){
   S.journal.unshift({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),time:now(),title:String(title).slice(0,120),detail:String(detail).slice(0,1200)});
   if(S.journal.length>MAX_JOURNAL)S.journal.length=MAX_JOURNAL;
+}
+function renderResultRibbon(){
+  const ribbon=$('#resultRibbon');if(!ribbon)return;
+  const e=S.journal[0];
+  $('#resultRibbonTitle').textContent=e?e.title:'Dernier résultat';
+  $('#resultRibbonText').textContent=e?(e.detail||e.time):'Prêt · les détails complets sont dans Journal / Notes.';
+  $('#ribbonUndo').disabled=!S.history.length;
+  if(e&&e.id!==lastRibbonEventId){
+    lastRibbonEventId=e.id;ribbon.classList.remove('pop');void ribbon.offsetWidth;ribbon.classList.add('pop');
+    setTimeout(()=>ribbon.classList.remove('pop'),420);
+  }
 }
 function commit(title,detail,mutate,fx){
   pushHistory();mutate();logEvent(title,detail);save();render();if(fx)playFx(fx,title);
@@ -498,37 +513,77 @@ function renderSocial(){
   }
 }
 
+function inferItemIcon(i){
+  if(i.icon&&i.icon!=='auto'&&inventoryIcons[i.icon])return i.icon;
+  const n=(i.name||'').toLowerCase();
+  if(/linceul|corbeau/.test(n))return 'raven';
+  if(/dague|hexen|lame/.test(n))return 'blade';
+  if(/arbal|arc/.test(n))return 'bow';
+  if(/armure|cuir/.test(n))return 'armor';
+  if(/venin|poison|sérum/.test(n))return 'poison';
+  if(/bague/.test(n))return 'ring';
+  if(/chausson|botte/.test(n))return 'boots';
+  if(/amulette/.test(n))return 'amulet';
+  if(/sac/.test(n))return 'bag';
+  if(/globe/.test(n))return 'globe';
+  if(/éléphant|elephant/.test(n))return 'elephant';
+  if(/déguis|contrefa/.test(n))return 'disguise';
+  if(/carreau|flèche|munition/.test(n))return 'ammo';
+  return i.category==='equipment'?'blade':i.category==='consumable'?'poison':'misc';
+}
+function itemVisual(i){
+  if(i.image)return '<img alt="" src="'+esc(i.image)+'" loading="lazy">';
+  return '<span aria-hidden="true">'+esc(inventoryIcons[inferItemIcon(i)]||'✦')+'</span>';
+}
 function renderInventory(){
   const grid=$('#inventoryGrid');if(!grid)return;
   $$('.inventory-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.inventoryTab===S.inventoryTab));
-  const rows=S.inventory.map((i,index)=>({i,index})).filter(x=>x.i.category===S.inventoryTab);
-  grid.innerHTML=rows.length?rows.map(({i,index})=>{
-    const img=i.image?'<img alt="" src="'+esc(i.image)+'" loading="lazy">':'<span aria-hidden="true">'+(i.category==='equipment'?'⚔':i.category==='consumable'?'◈':'✦')+'</span>';
-    return '<div class="inventory-item '+(i.equipped?'active':'')+'"><div class="item-icon">'+img+'</div><div class="item-body"><b>'+esc(i.name)+'</b><small>×'+i.qty+(i.equipped?' · équipé/actif':'')+'</small><p>'+esc(i.note)+'</p></div><button class="item-edit" data-edit-item="'+index+'">Modifier</button></div>';
-  }).join(''):'<p class="meta">Aucun objet dans cette catégorie.</p>';
-  $$('[data-edit-item]',grid).forEach(b=>b.onclick=()=>openItemEditor(Number(b.dataset.editItem)));
+  const term=($('#inventorySearch')?.value||'').trim().toLowerCase();
+  const rows=S.inventory.map((i,index)=>({i,index})).filter(x=>x.i.category===S.inventoryTab&&(!term||(x.i.name+' '+x.i.note).toLowerCase().includes(term)));
+  const count=$('#inventoryCount');if(count)count.textContent=rows.length+' objet'+(rows.length>1?'s':'');
+  grid.innerHTML=rows.length?rows.map(({i,index})=>
+    '<details class="inventory-object '+(i.equipped?'active':'')+'">'+
+      '<summary><span class="inventory-object-icon">'+itemVisual(i)+'</span>'+
+      '<span class="inventory-object-name"><b>'+esc(i.name)+'</b><small>'+esc(inventoryCategoryLabels[i.category]||'Objet')+'</small>'+(i.equipped?'<span class="equipped-mark">ACTIF</span>':'')+'</span>'+
+      '<span class="inventory-qty">× '+i.qty+'</span><span class="inventory-chevron">⌄</span></summary>'+
+      '<div class="inventory-object-body"><p>'+esc(i.note||'Aucune note.')+'</p><div class="inventory-object-actions"><span class="qty-label">Quantité : <b>'+i.qty+'</b></span><button class="ability" data-item-dec="'+index+'">−</button><button class="ability" data-item-inc="'+index+'">＋</button><button class="ability" data-edit-item="'+index+'">Modifier</button></div></div>'+
+    '</details>'
+  ).join(''):'<p class="meta">Aucun objet dans cette catégorie.</p>';
+  $$('[data-edit-item]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();openItemEditor(Number(b.dataset.editItem));});
+  $$('[data-item-dec]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemDec),i=S.inventory[index];if(!i)return;i.qty=Math.max(0,i.qty-1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
+  $$('[data-item-inc]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemInc),i=S.inventory[index];if(!i)return;i.qty=Math.min(999,i.qty+1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
+  const loadout=$('#inventoryLoadout');if(loadout){
+    const priority=['Dague spectrale','Hexen Blade','Linceul du Jugement Noir','Amulette de résistance occulte','Arbalète légère duergar','Chaussons araignée'];
+    const chosen=[];
+    priority.forEach(name=>{const index=S.inventory.findIndex(i=>i.name===name);if(index>=0&&!chosen.some(x=>x.index===index))chosen.push({i:S.inventory[index],index});});
+    S.inventory.forEach((i,index)=>{if(i.equipped&&!chosen.some(x=>x.index===index))chosen.push({i,index});});
+    loadout.innerHTML=chosen.slice(0,4).map(({i,index})=>
+      '<button class="loadout-item" type="button" data-loadout-item="'+index+'"><span class="loadout-icon">'+itemVisual(i)+'</span><small>'+(i.equipped?'Équipé / actif':'Signature')+'</small><b>'+esc(i.name)+'</b><p>'+esc(i.note||'')+'</p>'+(i.equipped?'<span class="active-dot">ACTIF</span>':'')+'</button>'
+    ).join('');
+    $$('[data-loadout-item]',loadout).forEach(b=>b.onclick=()=>openItemEditor(Number(b.dataset.loadoutItem)));
+  }
 }
 function openItemEditor(index=-1){
   const f=$('#itemEditor');f.hidden=false;f.reset();f.elements.index.value=index;
-  const i=index>=0?S.inventory[index]:{name:'',category:S.inventoryTab,qty:1,note:'',image:'',equipped:false};
-  f.elements.name.value=i.name;f.elements.category.value=i.category;f.elements.qty.value=i.qty;f.elements.note.value=i.note;f.elements.image.value=i.image;f.elements.equipped.checked=i.equipped;
-  $('#deleteItemBtn').hidden=index<0;f.scrollIntoView({behavior:'smooth',block:'nearest'});
+  const i=index>=0?S.inventory[index]:{name:'',category:S.inventoryTab,qty:1,note:'',image:'',icon:'auto',equipped:false};
+  f.elements.name.value=i.name;f.elements.category.value=i.category;f.elements.qty.value=i.qty;f.elements.note.value=i.note;f.elements.image.value=i.image;f.elements.icon.value=i.icon||'auto';f.elements.equipped.checked=i.equipped;
+  $('#itemEditorTitle').textContent=index>=0?'Modifier · '+i.name:'Ajouter un objet';
+  $('#deleteItemBtn').hidden=index<0;
+  setTimeout(()=>f.elements.name.focus(),30);
 }
 function closeItemEditor(){$('#itemEditor').hidden=true;}
 function saveItem(e){
   e.preventDefault();const f=e.currentTarget,index=Number(f.elements.index.value);
-  const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,equipped:f.elements.equipped.checked});
+  const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,icon:f.elements.icon.value,equipped:f.elements.equipped.checked});
   if(!item.name.trim())return;
   if(index>=0)S.inventory[index]=item;else S.inventory.push(item);
-  logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();
+  logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
 function deleteItem(){
   const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!confirm('Supprimer cet objet ?'))return;
-  const name=S.inventory[index]?.name||'Objet';S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();
+  const name=S.inventory[index]?.name||'Objet';S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
-function pickImage(){
-  $('#imageFile').click();
-}
+function pickImage(){$('#imageFile').click();}
 function handleImage(file){
   if(!file||!file.type.startsWith('image/'))return;if(file.size>260000)return toast('Image trop lourde : 260 ko max pour protéger localStorage.');
   const r=new FileReader();r.onload=()=>{$('#itemEditor').elements.image.value=String(r.result||'').slice(0,350000);toast('Image ajoutée à l’objet.');};r.readAsDataURL(file);
@@ -561,7 +616,7 @@ function exportNotes(){
   logEvent('Export Markdown','Notes de session et journal mécanique exportés.');save();renderJournal();
 }
 function exportInventory(){
-  download('Rufus-Inventaire-V3.json',JSON.stringify({format:'rufus-inventory-v3',schema:1,items:S.inventory},null,2));
+  download('Rufus-Inventaire-V3.json',JSON.stringify({format:'rufus-inventory-v3',schema:2,items:S.inventory},null,2));
 }
 function importInventory(file){
   if(!file)return;const r=new FileReader();r.onload=()=>{
@@ -595,14 +650,14 @@ function switchView(id){
 }
 function render(){
   const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
-  $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage+' dégâts';
+  $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage;
   $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
   const conc=S.concentration;$('#turnConcentration').classList.toggle('none',!conc);$('#turnConcText').textContent=conc?conc.name:'Aucune';
   $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
   $$('[data-roll-mode]').forEach(b=>b.classList.toggle('on',b.dataset.rollMode===S.rollMode));
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
   $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+3 · 1d8+14 perforants':'+8 · 1d8+4 perforants');
-  const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Sournoise dépensée';$('#sneakStatus').textContent=sneakAvailable?'Sournoise disponible · avantage ou allié adjacent sans désavantage.':'Sournoise utilisée sur le tour de Rufus · réaction adverse suivie séparément.';
+  const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
   $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Dague psychique':'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=S.fireBlade.armed?'Désarmer':'Armer Lame du Feu Caché';$('#fireBladeStatus').className='status-line '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui.':S.fireBlade.armed?'ARMÉE · la prochaine Sournoise réussie déclenchera +2d6 feu.':'Disponible · non armée.';
@@ -614,13 +669,13 @@ function render(){
   $$('.linceul-use').forEach(b=>{const k=b.dataset.linceulUse;let disabled=S.linceul.state==='unequipped';if(k==='judgment')disabled||=!S.linceul.judgment;if(k==='lastBreath')disabled||=!S.linceul.lastBreath;if(k==='ravenShadow')disabled||=S.linceul.state!=='awakened'||S.linceul.ravenShadow<=0;if(k==='pilgrim')disabled||=S.linceul.state!=='awakened'||!S.linceul.pilgrim;b.disabled=disabled;});
   $('#luckValue').textContent=S.lucky+' / 3';$('#luckPips').innerHTML=[0,1,2].map(i=>'<button class="pip '+(i<S.lucky?'':'off')+'" aria-label="Point de Chance '+(i+1)+'"></button>').join('');$('#luckSpendBtn').disabled=S.lucky<=0;
   $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
-  renderPending();renderSocial();renderInventory();renderJournal();
+  renderPending();renderSocial();renderInventory();renderJournal();renderResultRibbon();
 }
 
 function bind(){
   $$('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
   $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
-  $('#damageBtn').onclick=$('#turnDamageBtn').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#turnHealBtn').onclick=()=>changeHp('heal');bindHpInputs();
+  $('#damageBtn').onclick=()=>changeHp('damage');$('#healBtn').onclick=()=>changeHp('heal');bindHpInputs();
   $('#nextTurn').onclick=nextTurn;$('#turnConcentration').onclick=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};
   $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{S.rollMode=b.dataset.rollMode;save();render();});
   $$('[data-cond]').forEach(b=>b.onclick=()=>{const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();});
@@ -636,7 +691,9 @@ function bind(){
   $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
   $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
   $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
-  $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
+  $('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#inventorySearch').oninput=renderInventory;$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
+  $('#ribbonUndo').onclick=undo;$('#ribbonToggle').onclick=()=>$('#resultRibbon').classList.toggle('collapsed');$('#resultRibbon').addEventListener('click',e=>{if(e.target.closest('button'))return;if($('#resultRibbon').classList.contains('collapsed'))$('#resultRibbon').classList.remove('collapsed');});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#itemEditor').hidden)closeItemEditor();});
   $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
   $('#clearJournalBtn').onclick=()=>{if(confirm('Vider le journal mécanique ?')){S.journal=[];save();renderJournal();}};
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
