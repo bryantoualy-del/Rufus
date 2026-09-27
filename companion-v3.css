@@ -63,3 +63,4 @@ body[data-v3-character] .panel{min-width:0}
  body[data-v3-character=brackmard] .resources>*,body[data-v3-character=nans] .resources>*,body[data-v3-character=rufus] .resources>*{flex:0 0 164px!important;min-width:164px;max-width:164px;min-height:110px!important;scroll-snap-align:start}
  body[data-v3-character=brackmard] .resources>*:first-child{flex-basis:185px!important;min-width:185px;max-width:185px}
 }
+@media(max-width:700px){body[data-v3-character] .stats button:not(.pip),body[data-v3-character] .hpbox button,body[data-v3-character] .hpedit button,body[data-v3-character=samoth] .hpctrl button{min-width:44px!important;min-height:44px!important}body[data-v3-character] .stats input{min-width:0}}

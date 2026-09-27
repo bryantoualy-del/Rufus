@@ -74,5 +74,5 @@ if(undoAdapter){let bar=$('.turnbar');if(bar){let u=document.createElement('butt
  document.addEventListener('change',e=>{if(e.target.closest('#v3-root'))return;let before=undoAdapter.snapshot();setTimeout(()=>{if(undoAdapter.pending())return;let after=undoAdapter.snapshot();if(after!==before){lastTransaction=before;$('#v3-undo').disabled=false;}syncEconomy()},70)},true);
 }
 document.addEventListener('click',()=>setTimeout(syncEconomy,0));document.addEventListener('change',()=>setTimeout(syncEconomy,0));
-window.CompanionV3={key,exportAll,go,syncEconomy};go(cfg.combatTab||'combat');syncEconomy();
+window.CompanionV3={key,exportAll,go,syncEconomy,clearAll(){localStorage.removeItem(key);localStorage.removeItem(backup)}};go(cfg.combatTab||'combat');syncEconomy();
 })();
