@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=10">
+<link rel="stylesheet" href="companion-v3.css?v=11">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -63,6 +63,8 @@
     <button class="turn-hp heal" id="turnHealBtn"><b>Soins</b><small>récupérer</small></button>
     <button class="turn-conc none" id="turnConcentration"><small>Concentration</small><b id="turnConcText">Aucune</b></button>
     <button class="next" id="nextTurn">Fin du tour ›</button>
+    <button class="rest quick-rest" id="quickShortRestBtn" title="Repos court">☕ <b>Court</b></button>
+    <button class="rest quick-rest long" id="quickLongRestBtn" title="Repos long">☾ <b>Long</b></button>
   </section>
 
   <nav class="nav" aria-label="Sections">
@@ -141,16 +143,8 @@
         </div>
       </article>
 
-      <article class="card quick-card">
-        <div class="eyebrow">Accès rapide</div><h2>Survivre & disparaître</h2>
-        <div class="list">
-          <button class="ability bonus-action" data-cunning="Se désengager">Ruse · Se désengager</button>
-          <button class="ability bonus-action" data-cunning="Se cacher">Ruse · Se cacher</button>
-          <button class="ability reaction-action" id="uncannyBtn">Esquive instinctive · réaction</button>
-        </div>
-      </article>
     </div>
-    <div class="pending" id="pendingAttack" hidden aria-live="polite"></div>
+    <div class="pending" id="pendingAttack" hidden aria-live="polite" role="dialog" aria-modal="true" aria-label="Résolution de l’attaque"></div>
   </section>
 
   <section class="view" id="assassin">
@@ -389,6 +383,6 @@
   </section>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=10"></script>
+<script src="companion-v3.js?v=11"></script>
 </body>
 </html>
