@@ -334,7 +334,7 @@ function renderPending(){
   if(!p){el.hidden=true;el.innerHTML='';return;}
   el.hidden=false;
   if(p.kind==='wound'){
-    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">Blessure · attaque de sort à résoudre</div><b>Bonus d’attaque selon validation MJ</b></div></div><div class="pending-details">Une fois le résultat d’attaque connu, confirmez l’issue.</div><div class="pending-actions"><button class="primary" data-special-hit="wound">Touché · lancer 3d10</button><button class="ability" data-special-miss="wound">Raté</button></div>';
+    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">Blessure · attaque de sort à résoudre</div><b>Bonus d’attaque selon validation MJ</b></div></div><div class="pending-details">Une fois le résultat d’attaque connu, confirmez l’issue.</div><h3 class="pending-question">Est-ce que cette attaque touche ?</h3><div class="pending-actions"><button class="primary" data-special-hit="wound">Oui · lancer 3d10</button><button class="ability" data-special-miss="wound">Non · raté</button></div>';
     return;
   }
   const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=S.vision.active?'17–20':'20';
@@ -342,15 +342,17 @@ function renderPending(){
   if(p.nat===1){
     el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge used">1 naturel</div></div>'+
       '<div class="pending-details">Échec automatique. Chanceux peut encore fournir un autre d20 avant la résolution.</div>'+
-      '<div class="pending-actions"><button class="ability dangerish" data-miss>Confirmer l’échec</button>'+(S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+'</div>';
+      '<h3 class="pending-question">1 naturel · attaque ratée</h3>'+
+      '<div class="pending-actions"><button class="ability dangerish" data-miss>Confirmer le raté</button>'+(S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+'</div>';
     return;
   }
   el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
     '<div class="pending-details">Critique : '+critRange+(S.conditions.surprised?' · cible surprise = critique sur touche':'')+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
+    '<h3 class="pending-question">Est-ce que cette attaque touche ?</h3>'+
     '<div class="pending-actions">'+
-      (eligible?'<button class="primary" data-hit-sneak>Touché + Sournoise 5d6</button>':'')+
-      '<button class="ability" data-hit>Touché'+(p.nat===20||S.conditions.surprised||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
-      '<button class="ability dangerish" data-miss>Raté</button>'+
+      (eligible?'<button class="primary" data-hit-sneak>Oui · Sournoise 5d6</button>':'')+
+      '<button class="ability" data-hit>Oui'+(p.nat===20||S.conditions.surprised||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
+      '<button class="ability dangerish" data-miss>Non · raté</button>'+
       (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
       (S.ravenMemoryBonus?'<button class="ability" data-raven-pending>Ombre · +1d8</button>':'')+
     '</div>';
@@ -632,7 +634,7 @@ function bind(){
   $('#linceulState').onchange=e=>commit('Linceul · état','État : '+e.target.value,()=>{S.linceul.state=e.target.value;if(e.target.value!=='awakened')S.conditions.agony=false;});
   $$('.linceul-use').forEach(b=>b.onclick=()=>useLinceul(b.dataset.linceulUse));$('#luckSpendBtn').onclick=spendLucky;
   $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
-  $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
+  $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
   $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
   $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
   $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
