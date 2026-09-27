@@ -54,7 +54,7 @@
   </section>
 
   <section class="turnbar" id="turnbar" aria-label="Économie du tour">
-    <div class="round"><b>Tour <span id="turnNo">1</span></b><small>Round <span id="roundNo">1</span> · Rufus</small></div>
+    <div class="round"><b>Tour <span id="turnNo">1</span></b><small>Round <span id="roundNo">1</span> · <span id="turnDamageValue">0 dégâts</span></small></div>
     <button class="economy" data-econ="action"><b>Action</b><small>disponible</small></button>
     <button class="economy" data-econ="bonus"><b>Bonus</b><small>disponible</small></button>
     <button class="economy" data-econ="reaction"><b>Réaction</b><small>disponible</small></button>
@@ -347,7 +347,7 @@
         <button class="primary compact" id="addItemBtn">+ Objet</button>
       </div>
       <div class="inventory-tabs"><button class="ability on" data-inventory-tab="equipment">Équipements</button><button class="ability" data-inventory-tab="misc">Objets divers</button><button class="ability" data-inventory-tab="consumable">Consommables</button></div>
-      <div class="inventory-grid" id="inventoryGrid"></div>
+      <div class="inventory-grid" id="inventoryGrid"></div><div class="footer-actions"><button class="ability" id="inventoryExportBtn">Exporter inventaire JSON</button><button class="ability" id="inventoryImportBtn">Importer inventaire JSON</button></div><input type="file" id="inventoryImportFile" accept="application/json,.json" hidden>
       <form class="item-editor" id="itemEditor" hidden>
         <input type="hidden" name="index">
         <div class="item-editor-grid">
@@ -379,7 +379,7 @@
     <article class="card backup-card">
       <div class="section-head"><div><div class="eyebrow">Sauvegarde</div><h2>Données Companion V3</h2></div><span class="meta" id="saveStatus">localStorage actif</span></div>
       <div class="footer-actions">
-        <button class="ability" id="exportBtn">Exporter JSON</button>
+        <button class="ability" id="exportBtn">Exporter JSON</button><button class="ability" id="exportNotesBtn">Exporter notes Markdown</button>
         <button class="ability" id="importBtn">Importer JSON</button>
         <button class="ability" id="restoreBackupBtn">Restaurer copie</button>
         <button class="ability dangerish" id="resetBtn">Remise à zéro</button>
