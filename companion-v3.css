@@ -52,3 +52,14 @@ body[data-v3-character] button:disabled{opacity:.42;cursor:not-allowed}
 body[data-v3-character] input,body[data-v3-character] select,body[data-v3-character] textarea{max-width:100%}
 body[data-v3-character] .panel{min-width:0}
 @media(max-width:700px){body[data-v3-character=samoth] .quick-res{grid-template-columns:minmax(0,1fr)!important}body[data-v3-character=samoth] .quick-res>*{min-width:0;max-width:100%}body[data-v3-character=samoth] .res-head{min-width:0;flex-wrap:wrap}body[data-v3-character=samoth] #slotsSummary{min-width:0;overflow-wrap:anywhere}}
+@media(max-width:700px){
+ body[data-v3-character] nav.tabs{flex-wrap:nowrap!important;scrollbar-width:none;white-space:nowrap}
+ body[data-v3-character] nav.tabs::-webkit-scrollbar,body[data-v3-character] .turnbar::-webkit-scrollbar,body[data-v3-character] .resources::-webkit-scrollbar,body[data-v3-character=samoth] .meta-row::-webkit-scrollbar{display:none}
+ body[data-v3-character=samoth] .meta-row{scrollbar-width:none}body[data-v3-character=samoth] .meta-row button{min-height:44px;font-size:11px;flex:0 0 auto}
+ body[data-v3-character=samoth] .turnbar .eco{min-width:85px!important;font-size:11px!important}body[data-v3-character=samoth] .turnbar .conc{min-width:115px}
+ body[data-v3-character=brackmard] .stats,body[data-v3-character=nans] .stats,body[data-v3-character=rufus] .stats{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:7px;scrollbar-width:none;scroll-snap-type:x proximity}
+ body[data-v3-character=brackmard] .stats>*,body[data-v3-character=nans] .stats>*,body[data-v3-character=rufus] .stats>*{flex:0 0 170px!important;min-width:170px;scroll-snap-align:start}
+ body[data-v3-character=brackmard] .resources,body[data-v3-character=nans] .resources,body[data-v3-character=rufus] .resources{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;gap:8px;scrollbar-width:none;scroll-snap-type:x proximity}
+ body[data-v3-character=brackmard] .resources>*,body[data-v3-character=nans] .resources>*,body[data-v3-character=rufus] .resources>*{flex:0 0 164px!important;min-width:164px;max-width:164px;min-height:110px!important;scroll-snap-align:start}
+ body[data-v3-character=brackmard] .resources>*:first-child{flex-basis:185px!important;min-width:185px;max-width:185px}
+}
