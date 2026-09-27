@@ -51,3 +51,4 @@ body[data-v3-character] nav.tabs button{border-radius:11px;touch-action:manipula
 body[data-v3-character] button:disabled{opacity:.42;cursor:not-allowed}
 body[data-v3-character] input,body[data-v3-character] select,body[data-v3-character] textarea{max-width:100%}
 body[data-v3-character] .panel{min-width:0}
+@media(max-width:700px){body[data-v3-character=samoth] .quick-res{grid-template-columns:minmax(0,1fr)!important}body[data-v3-character=samoth] .quick-res>*{min-width:0;max-width:100%}body[data-v3-character=samoth] .res-head{min-width:0;flex-wrap:wrap}body[data-v3-character=samoth] #slotsSummary{min-width:0;overflow-wrap:anywhere}}
