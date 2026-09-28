@@ -141,7 +141,7 @@ function load(){
 }
 function save(){
   if(storageBlocked)return false;
-  try{localStorage.setItem(KEY,JSON.stringify(S));$('#saveStatus')&&($('#saveStatus').textContent='Sauvegardé · '+now());return true;}
+  try{localStorage.setItem(KEY,JSON.stringify(S));queueMicrotask(()=>window.CompanionAPI?.sync());$('#saveStatus')&&($('#saveStatus').textContent='Sauvegardé · '+now());return true;}
   catch(e){storageBlocked=true;$('#saveStatus')&&($('#saveStatus').textContent='Stockage indisponible');toast('Stockage local indisponible — exportez les données.');return false;}
 }
 function combatSnapshot(){
@@ -151,7 +151,7 @@ function combatSnapshot(){
     sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
     lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,psiReconstitutionReady:S.psiReconstitutionReady,psiKnackLast:S.psiKnackLast,psiWhispersLast:S.psiWhispersLast,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
     invisibilityReady:S.invisibilityReady,vision:clone(S.vision),linceul:clone(S.linceul),ravenMemoryBonus:S.ravenMemoryBonus,
-    pending:S.pending?clone(S.pending):null,journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
+    pending:S.pending?clone(S.pending):null,inventory:clone(S.inventory),journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
   };
 }
 function pushHistory(){
@@ -187,7 +187,7 @@ function undo(){
     sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
     hexCharges:snap.hexCharges,psiDie:snap.psiDie,psiReconstitutionReady:snap.psiReconstitutionReady,psiKnackLast:snap.psiKnackLast,psiWhispersLast:snap.psiWhispersLast,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
-    pending:snap.pending
+    pending:snap.pending,inventory:snap.inventory||S.inventory
   });
   if(snap.journalLength===0)S.journal=[];
   else if(snap.journalHeadId){
@@ -243,8 +243,7 @@ function concentrationCheck(damage){
   },total<dc?'raven':null);
 }
 
-function changeHp(kind){
-  const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));
+function applyHp(kind,n){
   if(!Number.isFinite(n)||n<=0)return;
   if(kind==='damage'){
     const before=S.concentration?.name||null;
@@ -255,6 +254,7 @@ function changeHp(kind){
     if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
   }else commit('Soins',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
 }
+function changeHp(kind){const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));applyHp(kind,n)}
 function bindHpInputs(){
   $('#hpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,53);commit('PV ajustés',S.hp+' → '+v,()=>{S.hp=v;});});
   const setTemp=e=>{const v=clamp(e.target.value,0,999);if(v===S.tempHp){render();return;}commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});};
@@ -358,7 +358,7 @@ function useGuidedStrikePending(){
   const r=die(S.psiDie);pushHistory();p.guidedPsiRoll=r;p.total+=r;logEvent('Frappes autoguidées','+'+r+' au jet d’attaque · si cela transforme le raté en touche, le dé diminuera.');save();render();
 }
 function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:sum(arr)};}
-function resolveAttack(hit,useSneak=false){
+function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
   if(!hit){
     commit('Attaque ratée · '+spec.name,'Jet '+p.total,()=>{S.pending=null;});
@@ -761,6 +761,7 @@ function bind(){
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
+window.__CompanionBridge={id:'rufus',name:'Rufus',maxHp:53,read:()=>S,used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),nextTurn,clearConcentration:()=>commit('Concentration terminée','',()=>{S.concentration=null}),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,false),undo}};
 load();bind();render();switchView(S.ui.view||'combat');
 if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
 })();
