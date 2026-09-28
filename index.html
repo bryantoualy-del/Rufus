@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=12">
+<link rel="stylesheet" href="companion-v3.css?v=13">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -17,7 +17,7 @@
     <div class="identity">
       <div class="eyebrow">Compagnie Créole · Champion du Jugement Noir</div>
       <h1>Rufus</h1>
-      <p>« Le Renard » · Ruvius D. Medani · Humain · Roublard 10 · Assassin</p>
+      <p>« Le Renard » · Ruvius D. Medani · Humain · Roublard 10 · Âme Acérée</p>
       <div class="signature-icon" aria-hidden="true">
         <svg viewBox="0 0 82 82" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -36,17 +36,16 @@
     <div class="vitals">
       <div class="stat hpstat">
         <small>Points de vie</small>
-        <div class="hpbox">
-          <label><span class="sr">PV actuels</span><input id="hpInput" class="num" type="number" min="0" max="53" value="53"></label>
-          <label><span class="sr">PV temporaires</span><input id="tempHpInput" class="num" type="number" min="0" value="0" placeholder="Temp."></label>
-        </div>
-        <div class="hp-actions">
-          <button class="mini dangerish" id="damageBtn">Dégâts</button>
-          <button class="mini healish" id="healBtn">Soins</button>
-        </div>
+        <div class="hp-current"><input id="hpInput" class="num" type="number" min="0" max="53" value="53"><b>/ <span id="maxHpValue">53</span></b></div>
+        <div class="hp-actions"><button class="mini dangerish" id="damageBtn">Dégâts</button><button class="mini healish" id="healBtn">Soins</button></div>
       </div>
-      <div class="stat"><small>CA</small><b id="acValue">15</b><span id="acLabel">Cuir</span></div>
-      <div class="stat"><small>Initiative</small><b>+4</b><span>DEX 18</span></div>
+      <div class="stat temp-hpstat">
+        <small>PV temporaires</small>
+        <div class="temp-module"><button class="mini" id="tempHpMinus" aria-label="Retirer 1 PV temporaire">−</button><input id="tempHpInput" class="num" type="number" min="0" value="0"><button class="mini" id="tempHpPlus" aria-label="Ajouter 1 PV temporaire">＋</button></div>
+        <span>Module indépendant</span>
+      </div>
+      <div class="stat"><small>CA</small><b id="acValue">14</b><span id="acLabel">Cuir</span></div>
+      <div class="stat"><small>Initiative</small><b>+3</b><span>DEX 16</span></div>
       <div class="stat"><small>Vitesse</small><b>9 m</b><span>30 ft</span></div>
       <div class="stat"><small>Maîtrise</small><b>+4</b><span>Niveau 10</span></div>
       <div class="stat"><small>Sournoise</small><b>5d6</b><span>1 fois / tour</span></div>
@@ -65,174 +64,123 @@
     <button class="restquick" id="quickShortRestBtn" title="Repos court">↻ Court</button>
     <button class="restquick long" id="quickLongRestBtn" title="Repos long">☾ Long</button>
   </section>
+  <section class="mobile-hud" id="mobileHud" aria-label="HUD mobile Rufus">
+    <div class="mobile-hudtop">
+      <div class="mobile-reststack"><button class="mobile-restbtn" id="mobileShortRest" type="button">☕ Court</button><button class="mobile-restbtn long" id="mobileLongRest" type="button">☾ Long</button></div>
+      <button class="mobile-conc none" id="mobileConcentration" type="button"><span><small>Concentration</small><b id="mobileConcText">Aucune</b></span><i>×</i></button>
+    </div>
+    <div class="mobile-hudrow">
+      <div class="mobile-chip hp"><small>PV</small><b id="mobileHp">53/53</b></div>
+      <div class="mobile-chip temp"><small>PV temp</small><b id="mobileTempHp">0</b></div>
+      <div class="mobile-chip"><small>CA</small><b id="mobileAc">14</b></div>
+      <div class="mobile-chip"><small>Tour</small><b id="mobileTurn">1</b></div>
+    </div>
+    <div class="mobile-vitalsbar">
+      <div class="mobile-vitalctl"><button id="mobileDamage" type="button">−</button><span>PV <b id="mobileTurnDamage">0</b> dmg/tour</span><button id="mobileHeal" type="button">＋</button></div>
+      <div class="mobile-vitalctl tempctl"><button id="mobileTempMinus" type="button">−</button><span>PV temporaires</span><button id="mobileTempPlus" type="button">＋</button></div>
+    </div>
+    <div class="mobile-turnline">
+      <button class="mobile-econ free" data-mobile-econ="action" type="button">Action</button>
+      <button class="mobile-econ free" data-mobile-econ="bonus" type="button">Bonus</button>
+      <button class="mobile-econ free" data-mobile-econ="reaction" type="button">Réaction</button>
+      <button class="mobile-econ free" data-mobile-econ="move" type="button">Mvt</button>
+      <button class="mobile-next" id="mobileNextTurn" type="button">Suivant ›</button>
+    </div>
+  </section>
 
-  <nav class="nav" aria-label="Sections">
-    <button class="active" data-view="combat">Combat</button>
-    <button data-view="assassin">Assassin</button>
-    <button data-view="powers">Pouvoirs</button>
-    <button data-view="linceul">Linceul</button>
-    <button data-view="resources">Ressources</button>
-    <button data-view="social">Social</button>
-    <button data-view="inventory">Inventaire</button>
-    <button data-view="journal">Journal / Notes</button>
+  <nav class="nav main-nav" aria-label="Navigation principale">
+    <button class="active" data-view="combat"><span class="nav-ico">⚔</span><span>Combat</span></button>
+    <button data-view="arsenal"><span class="nav-ico">✦</span><span>Sorts & pouvoirs</span></button>
+    <button data-view="social"><span class="nav-ico">◇</span><span>Social</span></button>
+    <button data-view="journal"><span class="nav-ico">☷</span><span>Journal</span></button>
   </nav>
 
   <section class="view active" id="combat">
-    <div class="grid">
-      <article class="card full combat-console" id="attackStage">
-        <div class="combat-console-main">
-          <div class="combat-console-title"><div class="eyebrow">Conditions d’attaque</div><div class="sneak-line"><b>Sournoise</b><span class="sneak-badge" id="sneakBadge">5d6 prêts</span></div><small id="sneakStatus">Disponible · avantage ou allié adjacent.</small></div>
-          <div class="condition-grid">
-            <button class="toggle" data-cond="targetNotActed"><b>Pas joué</b><small>Avantage</small></button>
-            <button class="toggle" data-cond="surprised"><b>Surprise</b><small>Critique</small></button>
-            <button class="toggle" data-cond="allyAdjacent"><b>Allié proche</b><small>Sournoise</small></button>
-            <button class="toggle" data-cond="agony"><b>Agonie</b><small>Avantage</small></button>
+    <div class="subtabs" data-subtabs="combat"><button class="subtab active" data-subtab="attacks">Attaques</button><button class="subtab" data-subtab="defense">Défense</button><button class="subtab" data-subtab="resources">Ressources</button></div>
+    <div class="subpane active" data-subpane="attacks">
+      <div class="grid">
+        <article class="card full combat-console" id="attackStage">
+          <div class="combat-console-main">
+            <div class="combat-console-title"><div class="eyebrow">Attaque sournoise</div><div class="sneak-line"><b>Sournoise</b><span class="sneak-badge" id="sneakBadge">5d6 prêts</span></div><small id="sneakStatus">Disponible · avantage ou allié adjacent.</small></div>
+            <div class="condition-grid soulknife-conditions"><button class="toggle" data-cond="allyAdjacent"><b>Allié proche</b><small>autorise Sournoise</small></button><button class="toggle" data-cond="agony"><b>Agonie</b><small>Œil du Destin</small></button></div>
           </div>
-        </div>
-        <div class="roll-modes compact-rolls" aria-label="Mode de jet">
-          <button class="toggle on" data-roll-mode="normal">Normal</button>
-          <button class="toggle" data-roll-mode="adv">Avantage</button>
-          <button class="toggle" data-roll-mode="dis">Désavantage</button>
-          <label class="manual">d20 <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="—"></label>
-        </div>
-      </article>
-
-      <article class="card wide weapon psychic">
-        <div class="attack-head"><div><div class="eyebrow">Pouvoir autonome · action</div><h2>Dague psychique</h2></div><div class="attack-dice">+8 · 1d6+4 psy</div></div>
-        <p class="meta">Finesse · lancer 18 m · pas de portée longue. La seconde dague devient disponible en bonus après la première attaque.</p>
-        <div class="weapon-actions">
-          <button class="primary attack-btn" data-attack="psychic">Attaquer — Dague psychique</button>
-          <button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde dague · bonus</button>
-        </div>
-      </article>
-
-      <article class="card weapon">
-        <div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale</h2>
-        <div class="attack-dice">+9 · 1d4+5 perforants</div>
-        <details class="rules-mini"><summary>Détails</summary><p>Rappel fiche : JdS CON DD 13 → désavantage à la prochaine attaque. Le déclencheur exact reste à valider avec le MJ.</p></details>
-        <button class="primary attack-btn" data-attack="spectral">Attaquer</button>
-      </article>
-
-      <article class="card weapon">
-        <div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2>
-        <div class="attack-dice">+9 · 1d6+5 perforants</div>
-        <p class="meta">Arme magique · 5 charges séparées pour ses illusions.</p>
-        <button class="primary attack-btn" data-attack="hexen">Attaquer</button>
-      </article>
-
-      <article class="card weapon ranged">
-        <div class="eyebrow">Distance · action</div><h2>Arbalète légère</h2>
-        <div class="attack-dice" id="crossbowDice">+8 · 1d8+4 perforants</div>
-        <p class="meta">24/96 m · chargement · deux mains.</p>
-        <details class="rules-mini"><summary>Tireur d’élite</summary><p>Ignore la pénalité de longue portée et les abris concernés ; option −5 au jet / +10 dégâts.</p></details>
-        <button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button>
-        <button class="primary attack-btn" data-attack="crossbow">Tirer</button>
-      </article>
-
-      <article class="card reaction-card">
-        <div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2>
-        <details class="rules-mini"><summary>Pourquoi une nouvelle Sournoise ?</summary><p>La Sournoise est limitée à une fois par tour, pas une fois par round : une réaction pendant le tour d’un autre peut donc la déclencher à nouveau.</p></details>
-        <div class="two-actions">
-          <button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button>
-          <button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button>
-        </div>
-      </article>
-
+          <div class="roll-modes compact-rolls" aria-label="Mode de jet"><button class="toggle on" data-roll-mode="normal">Normal</button><button class="toggle" data-roll-mode="adv">Avantage</button><button class="toggle" data-roll-mode="dis">Désavantage</button><label class="manual">d20 <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="—"></label></div>
+        </article>
+        <article class="card wide weapon psychic"><div class="attack-head"><div><div class="eyebrow">Âme Acérée · action</div><h2>Lame psychique</h2></div><div class="attack-dice">+7 · 1d6+3 psy</div></div><p class="meta">Finesse · lancer 18 m · main libre. Une seconde lame peut suivre avec l’autre main libre.</p><div class="weapon-actions"><button class="primary attack-btn" data-attack="psychic">Attaquer — Lame psychique</button><button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde lame · bonus · 1d6+3</button></div></article>
+        <article class="card weapon"><div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale +1</h2><div class="attack-dice">+8 · 1d4+4 perforants</div><details class="rules-mini"><summary>Détails</summary><p>Sur une créature vivante touchée : JdS CON DD 13 ou désavantage à sa prochaine attaque.</p></details><button class="primary attack-btn" data-attack="spectral">Attaquer</button></article>
+        <article class="card weapon"><div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2><div class="attack-dice">+8 · 1d6+4 perforants</div><p class="meta">Épée courte +1 · 5 charges pour ses illusions.</p><button class="primary attack-btn" data-attack="hexen">Attaquer</button></article>
+        <article class="card weapon ranged"><div class="eyebrow">Distance · action</div><h2>Arbalète légère duergar</h2><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div><p class="meta">24/96 m · chargement · deux mains.</p><details class="rules-mini"><summary>Tireur d’élite</summary><p>Pas de désavantage à longue portée, ignore les abris concernés ; option −5 attaque / +10 dégâts.</p></details><button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button><button class="primary attack-btn" data-attack="crossbow">Tirer</button></article>
+        <article class="card reaction-card"><div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2><details class="rules-mini"><summary>Sournoise sur réaction</summary><p>Une réaction pendant le tour d’un autre peut déclencher une nouvelle Sournoise.</p></details><div class="two-actions"><button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button><button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button></div></article>
+      </div>
+      <div class="pending" id="pendingAttack" hidden aria-live="polite" role="dialog" aria-modal="true" aria-label="Résolution de l’attaque"></div>
     </div>
-    <div class="pending" id="pendingAttack" hidden aria-live="polite" role="dialog" aria-modal="true" aria-label="Résolution de l’attaque"></div>
-  </section>
-
-  <section class="view" id="assassin">
+    <div class="subpane" data-subpane="defense"><div class="grid">
+      <article class="card"><div class="eyebrow">Action bonus</div><h2>Ruse</h2><div class="list"><button class="ability bonus-action" data-cunning="Foncer">Foncer</button><button class="ability bonus-action" data-cunning="Se désengager">Se désengager</button><button class="ability bonus-action" data-cunning="Se cacher">Se cacher</button></div></article>
+      <article class="card"><div class="eyebrow">Réaction</div><h2>Esquive instinctive</h2><p class="meta">Réduire de moitié les dégâts d’une attaque visible qui vous touche.</p><button class="ability reaction-action">Utiliser la réaction</button></article>
+      <article class="card"><div class="eyebrow">Défense passive</div><h2>Esquive totale</h2><p class="meta">Sur un JdS DEX qui permet moitié : réussite = 0 dégât, échec = moitié.</p></article>
+      <article class="card"><div class="eyebrow">Résistance</div><h2>Collier nécrotique</h2><p class="meta">Résistance aux dégâts nécrotiques tant que le collier est porté.</p></article>
+    </div></div>
+    <div class="subpane" data-subpane="resources">
     <div class="grid">
-      <article class="card wide signature-card">
-        <div class="eyebrow">Archétype actif</div><h2>Assassinat</h2>
-        <p>Vous avez avantage aux jets d’attaque contre une créature qui n’a pas encore joué son tour dans le combat. Toute attaque qui touche une créature surprise devient un critique.</p>
-        <div class="pillrow"><span class="pill">Initiative +4</span><span class="pill">Discrétion +12</span><span class="pill">Sournoise 5d6</span></div>
+      <article class="card resource-card">
+        <div class="resource-title"><div><div class="eyebrow">Don · repos long</div><h2>Chanceux</h2></div><b id="luckValue">3 / 3</b></div>
+        <div class="pips" id="luckPips"></div>
+        <button class="ability" id="luckSpendBtn">Dépenser 1 point</button>
       </article>
-      <article class="card">
-        <div class="eyebrow">Niveau 9 · hors combat</div><h2>Expertise de l’infiltration</h2>
-        <p class="meta">7 jours et 25 po pour établir une fausse identité crédible avec histoire, profession et affiliations.</p>
+      <article class="card resource-card">
+        <div class="resource-title"><div><div class="eyebrow">Âme Acérée · suivi manuel</div><h2>Talent psionique · dé</h2></div><b id="psiDieValue">d8</b></div>
+        <p class="meta">Archétype actif : le dé alimente Truc de psi, Murmures psychiques, Frappes autoguidées et Téléportation psychique. Les boutons ici permettent aussi une correction manuelle de sa taille.</p>
+        <div class="psi-buttons"><button class="ability" data-psi="8">d8</button><button class="ability" data-psi="6">d6</button><button class="ability" data-psi="4">d4</button><button class="ability" data-psi="0">Épuisé</button></div>
       </article>
-      <article class="card">
-        <div class="eyebrow">Action bonus</div><h2>Ruse</h2>
-        <div class="list">
-          <button class="ability bonus-action" data-cunning="Foncer">Foncer</button>
-          <button class="ability bonus-action" data-cunning="Se désengager">Se désengager</button>
-          <button class="ability bonus-action" data-cunning="Se cacher">Se cacher</button>
-        </div>
+      <article class="card resource-card">
+        <div class="eyebrow">Repos court</div><h2>Récupération</h2>
+        <p class="meta">Le repos court restaure l’économie du tour, mais ne restaure ni le dé psionique ni Reconstitution du psi.</p>
+        <button class="ability" id="shortRestBtn">☕ Repos court</button>
       </article>
-      <article class="card">
-        <div class="eyebrow">Réaction</div><h2>Esquive instinctive</h2>
-        <p class="meta">Réduire de moitié les dégâts d’une attaque visible qui vous touche.</p>
-        <button class="ability reaction-action">Utiliser la réaction</button>
+      <article class="card resource-card">
+        <div class="eyebrow">Repos long</div><h2>Récupération</h2>
+        <p class="meta">PV, Chanceux, dé psionique d8, Reconstitution du psi, Lame du Feu Caché, Vision et pouvoirs / repos long du Linceul.</p>
+        <button class="ability" id="longRestBtn">🌙 Repos long</button>
       </article>
-      <article class="card">
-        <div class="eyebrow">Défense passive</div><h2>Esquive totale</h2>
-        <p class="meta">Quand un effet autorise un JdS DEX pour moitié : réussite = 0 dégâts, échec = moitié.</p>
+      <article class="card resource-card">
+        <div class="eyebrow">Nouveau jour / aube</div><h2>Ressources quotidiennes</h2>
+        <p class="meta">Blessure, Invisibilité, Langue du Dernier Souffle et recharge 1d4+1 de la Hexen Blade.</p>
+        <button class="ability" id="newDayBtn">☀ Nouveau jour</button>
       </article>
-      <article class="card wide fire-blade">
-        <div class="eyebrow">1 / jour · se consomme sur la prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2>
-        <p>La prochaine Attaque sournoise réussie inflige <b>+2d6 feu</b>. La cible fait un JdS CON DD 16 ou est aveuglée jusqu’à la fin de son prochain tour. Sur critique, les dés de feu sont doublés.</p>
-        <button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button>
-        <div class="status-line" id="fireBladeStatus"></div>
+      <article class="card resource-card">
+        <div class="eyebrow">Historique d’état</div><h2>Annulation</h2>
+        <p class="meta">Restaure atomiquement la dernière modification de combat / ressource et son journal associé.</p>
+        <button class="ability" id="undoBtn">↶ Annuler dernière action</button>
       </article>
     </div>
+  </div>
   </section>
 
-  <section class="view" id="powers">
-    <div class="grid">
-      <article class="card wide vision-card">
-        <div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2>
-        <p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p>
-        <div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div>
-        <details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details>
-        <div class="status-line" id="visionStatus"></div>
-      </article>
-
-      <article class="card">
-        <div class="eyebrow">1 / jour · action</div><h2>Blessure</h2>
-        <div class="attack-dice">attaque de sort · 3d10 nécrotiques</div>
-        <p class="meta">Contact. Le bonus d’attaque dépend de la source de l’objet ; le compagnon ne l’invente pas.</p>
-        <button class="primary" id="woundBtn">Utiliser</button>
-      </article>
-
-      <article class="card">
-        <div class="eyebrow">1 / jour · action · concentration</div><h2>Invisibilité</h2>
-        <p class="meta">Contact · jusqu’à 1 heure. Prend fin pour la cible si elle attaque ou lance un sort.</p>
-        <button class="primary" id="invisibilityBtn">Lancer</button>
-      </article>
-
-      <article class="card full">
-        <div class="section-head">
-          <div><div class="eyebrow">Objet magique · DD 15</div><h2>Hexen Blade · Illusions</h2></div>
-          <div class="resource-big"><span id="hexCharges">5</span><small>/ 5 charges</small></div>
-        </div>
-        <div class="spell-grid">
-          <div class="spell">
-            <div class="spell-head"><b>Déguisement</b><span>1 charge</span></div>
-            <p class="meta">Action · personnelle · 1 h · illusion de l’apparence.</p>
-            <details><summary>Détails</summary><p>Modifie l’apparence visible, vêtements et équipement apparent. L’effet ne change pas physiquement le corps.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Déguisement" data-cost="1">Lancer</button>
+  <section class="view" id="arsenal">
+    <div class="subtabs" data-subtabs="arsenal"><button class="subtab active" data-subtab="psi">Âme Acérée</button><button class="subtab" data-subtab="hexen">Hexen</button><button class="subtab" data-subtab="linceul">Linceul</button><button class="subtab" data-subtab="powers">Pouvoirs</button></div>
+    <div class="subpane active" data-subpane="psi"><div class="grid">
+      <article class="card full psi-hero"><div class="section-head"><div><div class="eyebrow">Archétype actif · Âme Acérée</div><h2>Talent psionique</h2><p class="meta">Sur le maximum du dé, il diminue d’une taille ; sur 1, il augmente d’une taille, sans dépasser d8.</p></div><div class="resource-big"><span id="psiDieHeroValue">d8</span><small>dé psionique</small></div></div></article>
+      <article class="card"><div class="eyebrow">Après un test maîtrisé raté</div><h2>Truc de psi</h2><p class="meta">Lancer le dé psionique et l’ajouter au test.</p><button class="primary" id="psiKnackBtn">Lancer le dé psi</button><div class="status-line" id="psiKnackResult">Prêt.</div></article>
+      <article class="card"><div class="eyebrow">Action</div><h2>Murmures psychiques</h2><p class="meta">Lancer le dé psi : jusqu’à ce nombre de créatures visibles, télépathie 1 h à 1,5 km.</p><button class="primary" id="psiWhispersBtn">Créer le lien</button><div class="status-line" id="psiWhispersResult">Prêt.</div></article>
+      <article class="card"><div class="eyebrow">Action bonus · 1 / repos long</div><h2>Reconstitution du psi</h2><p class="meta">Ramène le dé psionique à d8.</p><button class="primary" id="psiRestoreBtn">Restaurer d8</button><div class="status-line" id="psiRestoreStatus"></div></article>
+      <article class="card"><div class="eyebrow">Lames de l’âme</div><h2>Frappes autoguidées</h2><p class="meta">Après un raté avec une Lame psychique, utilisez le bouton dans la fenêtre de résolution. Si le bonus transforme le raté en touche, le dé diminue d’une taille.</p></article>
+      <article class="card"><div class="eyebrow">Action bonus</div><h2>Téléportation psychique</h2><p class="meta">Espace libre visible à 12 m maximum, puis le dé psionique diminue d’une taille.</p><button class="primary" id="psiTeleportBtn">Se téléporter · 12 m</button></article>
+      <article class="card wide"><div class="eyebrow">Arme signature</div><h2>Lames psychiques</h2><div class="pillrow"><span class="pill">+7</span><span class="pill">1d6+3 psy</span><span class="pill">18 m</span><span class="pill">finesse</span><span class="pill">seconde lame bonus</span></div></article>
+    </div></div>
+    <div class="subpane" data-subpane="hexen">
+      <div class="grid">
+        <article class="card full">
+          <div class="section-head"><div><div class="eyebrow">Objet magique · DD 15</div><h2>Hexen Blade · Illusions</h2></div><div class="resource-big"><span id="hexCharges">5</span><small>/ 5 charges</small></div></div>
+          <div class="spell-grid">
+            <div class="spell"><div class="spell-head"><b>Déguisement</b><span>1 charge</span></div><p class="meta">Action · personnelle · 1 h.</p><details><summary>Détails</summary><p>Modifie l’apparence visible, vêtements et équipement apparent sans transformation physique.</p></details><button class="ability hex-spell" data-hex-spell="Déguisement" data-cost="1">Lancer</button></div>
+            <div class="spell"><div class="spell-head"><b>Image miroir</b><span>2 charges</span></div><p class="meta">Action · personnelle · 1 min · trois doubles illusoires.</p><details><summary>Détails</summary><p>Les doubles peuvent détourner les attaques selon les règles du sort.</p></details><button class="ability hex-spell" data-hex-spell="Image miroir" data-cost="2">Lancer</button></div>
+            <div class="spell"><div class="spell-head"><b>Motif hypnotique</b><span>3 charges</span></div><p class="meta">Action · 36 m · cube 9 m · concentration 1 min · SAG DD 15.</p><details><summary>Détails</summary><p>Échec : charmé, incapable d’agir, vitesse 0. L’effet cesse sur dégâts ou si quelqu’un secoue la cible avec une action.</p></details><button class="ability hex-spell" data-hex-spell="Motif hypnotique" data-cost="3" data-concentration="true">Lancer</button></div>
           </div>
-          <div class="spell">
-            <div class="spell-head"><b>Image miroir</b><span>2 charges</span></div>
-            <p class="meta">Action · personnelle · 1 min · trois doubles illusoires.</p>
-            <details><summary>Détails</summary><p>Les doubles peuvent détourner les attaques. Utilisez les règles validées de l’objet à la table.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Image miroir" data-cost="2">Lancer</button>
-          </div>
-          <div class="spell">
-            <div class="spell-head"><b>Motif hypnotique</b><span>3 charges</span></div>
-            <p class="meta">Action · 36 m · cube 9 m · concentration 1 min · SAG DD 15.</p>
-            <details><summary>Détails</summary><p>Échec : charmé, incapable d’agir, vitesse 0. L’effet cesse si la cible subit des dégâts ou si quelqu’un la secoue avec une action.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Motif hypnotique" data-cost="3" data-concentration="true">Lancer</button>
-          </div>
-        </div>
-        <div class="aube-row"><button class="ability" id="hexDawnBtn">☀ Aube · récupérer 1d4 + 1 charges</button></div>
-      </article>
+          <div class="aube-row"><button class="ability" id="hexDawnBtn">☀ Aube · récupérer 1d4 + 1 charges</button></div>
+        </article>
+      </div>
     </div>
-  </section>
-
-  <section class="view" id="linceul">
+    <div class="subpane" data-subpane="linceul">
     <div class="grid">
       <article class="card full linceul-hero">
         <div class="linceul-head">
@@ -259,7 +207,7 @@
 
       <article class="card linceul-card awakened-only">
         <div class="eyebrow">Éveillé · 1 / repos long</div><h2>Ombre du Corbeau</h2>
-        <p class="meta">Quand vous réduisez une créature à 0 PV : souvenir bref +1d8 à votre prochain jet d’attaque ou de sauvegarde. Maximum 1 utilisation avec SAG +1.</p>
+        <p class="meta">Quand vous réduisez une créature à 0 PV : souvenir bref +1d8 à votre prochain jet d’attaque ou de sauvegarde. Maximum 2 utilisations avec SAG +2.</p>
         <button class="ability linceul-use" data-linceul-use="ravenShadow">Absorber la trace</button>
       </article>
       <article class="card linceul-card awakened-only">
@@ -272,64 +220,21 @@
         <p class="meta">Connaître l’état vital d’une créature visible. Si elle est en agonie finale, vos attaques ont avantage.</p>
       </article>
     </div>
-  </section>
-
-  <section class="view" id="resources">
-    <div class="grid">
-      <article class="card resource-card">
-        <div class="resource-title"><div><div class="eyebrow">Don · repos long</div><h2>Chanceux</h2></div><b id="luckValue">3 / 3</b></div>
-        <div class="pips" id="luckPips"></div>
-        <button class="ability" id="luckSpendBtn">Dépenser 1 point</button>
-      </article>
-      <article class="card resource-card">
-        <div class="resource-title"><div><div class="eyebrow">Pouvoir conservé · suivi manuel</div><h2>Dague psychique · dé</h2></div><b id="psiDieValue">d8</b></div>
-        <p class="meta">Le dossier actuel conserve les dagues psychiques mais pas le kit complet Âme Acérée. Le dé est donc suivi sans réintroduire Téléportation, Murmures ou Frappes autoguidées.</p>
-        <div class="psi-buttons"><button class="ability" data-psi="8">d8</button><button class="ability" data-psi="6">d6</button><button class="ability" data-psi="4">d4</button><button class="ability" data-psi="0">Épuisé</button></div>
-      </article>
-      <article class="card resource-card">
-        <div class="eyebrow">Repos court</div><h2>Récupération</h2>
-        <p class="meta">Rufus n’a pas de ressource de classe principale à régénérer automatiquement au repos court. Le compagnon ne fait donc pas de reset générique.</p>
-        <button class="ability" id="shortRestBtn">☕ Repos court</button>
-      </article>
-      <article class="card resource-card">
-        <div class="eyebrow">Repos long</div><h2>Récupération</h2>
-        <p class="meta">PV, Chanceux, Lame du Feu Caché, pénalités de Vision et pouvoirs / repos long du Linceul.</p>
-        <button class="ability" id="longRestBtn">🌙 Repos long</button>
-      </article>
-      <article class="card resource-card">
-        <div class="eyebrow">Nouveau jour / aube</div><h2>Ressources quotidiennes</h2>
-        <p class="meta">Blessure, Invisibilité, Langue du Dernier Souffle et recharge 1d4+1 de la Hexen Blade.</p>
-        <button class="ability" id="newDayBtn">☀ Nouveau jour</button>
-      </article>
-      <article class="card resource-card">
-        <div class="eyebrow">Historique d’état</div><h2>Annulation</h2>
-        <p class="meta">Restaure atomiquement la dernière modification de combat / ressource et son journal associé.</p>
-        <button class="ability" id="undoBtn">↶ Annuler dernière action</button>
-      </article>
+  </div>
+    <div class="subpane" data-subpane="powers">
+      <div class="grid">
+        <article class="card wide vision-card"><div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2><p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p><div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div><details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details><div class="status-line" id="visionStatus"></div></article>
+        <article class="card"><div class="eyebrow">1 / jour · action</div><h2>Blessure</h2><div class="attack-dice">attaque de sort · 3d10 nécrotiques</div><p class="meta">Contact. Le bonus d’attaque dépend de la source de l’effet et reste à valider à la table.</p><button class="primary" id="woundBtn">Utiliser</button></article>
+        <article class="card"><div class="eyebrow">1 / jour · action · concentration</div><h2>Invisibilité</h2><p class="meta">Contact · jusqu’à 1 heure. Prend fin pour la cible si elle attaque ou lance un sort.</p><button class="primary" id="invisibilityBtn">Lancer</button></article>
+        <article class="card wide fire-blade"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
+      </div>
     </div>
   </section>
 
   <section class="view" id="social">
-    <article class="card full social-shell">
-      <div class="social-head">
-        <div><div class="eyebrow">Hors combat</div><h2>Social & compétences</h2><p class="meta">Fiche niveau 10 consolidée · maîtrise +4.</p></div>
-        <div class="roll-modes social-roll-modes">
-          <button class="toggle on" data-social-mode="normal">Normal</button>
-          <button class="toggle" data-social-mode="adv">Avantage</button>
-          <button class="toggle" data-social-mode="dis">Désavantage</button>
-        </div>
-      </div>
-      <div class="social-tabs">
-        <button class="ability on" data-social-tab="skills">Compétences</button>
-        <button class="ability" data-social-tab="abilities">Carac. & JdS</button>
-        <button class="ability" data-social-tab="rp">Infos utiles</button>
-      </div>
-      <div id="socialContent"></div>
-      <div class="result" id="socialResult" hidden></div>
-    </article>
-  </section>
-
-  <section class="view" id="inventory">
+    <div class="subtabs social-main-tabs"><button class="subtab active" data-social-tab="skills">Compétences</button><button class="subtab" data-social-tab="abilities">Carac. & JdS</button><button class="subtab" data-social-tab="inventory">Inventaire</button><button class="subtab" data-social-tab="rp">Infos utiles</button></div>
+    <article class="card full social-shell" id="socialSheetPane"><div class="social-head"><div><div class="eyebrow">Hors combat</div><h2>Social & compétences</h2><p class="meta">Rufus niveau 10 · maîtrise +4.</p></div><div class="roll-modes social-roll-modes"><button class="toggle on" data-social-mode="normal">Normal</button><button class="toggle" data-social-mode="adv">Avantage</button><button class="toggle" data-social-mode="dis">Désavantage</button></div></div><div id="socialContent"></div><div class="result" id="socialResult" hidden></div></article>
+    <div id="socialInventoryPane" hidden>
     <article class="card full inventory-shell">
       <div class="inventory-hero">
         <div><div class="eyebrow">Équipement lié</div><h2>Arsenal & reliques de Rufus</h2><p class="meta">Les pièces actives restent visibles en tête ; tout le reste est filtrable et éditable.</p></div>
@@ -361,30 +266,14 @@
       </form>
       <input type="file" id="imageFile" accept="image/*" hidden>
     </article>
+  </div>
   </section>
 
   <section class="view" id="journal">
-    <div class="journal-layout">
-      <article class="card">
-        <div class="section-head"><div><div class="eyebrow">Automatique</div><h2>Journal mécanique</h2></div><button class="ability compact" id="clearJournalBtn">Vider</button></div>
-        <div class="journal-list" id="journalList"></div>
-      </article>
-      <article class="card notes-card">
-        <div class="section-head"><div><div class="eyebrow">Persistant</div><h2>Notes de session</h2></div><button class="ability compact" id="togglePreviewBtn">Aperçu</button></div>
-        <textarea id="notesInput" rows="16" maxlength="150000" placeholder="# Session&#10;&#10;- Indices&#10;- PNJ&#10;- À retenir"></textarea>
-        <div class="notes-preview" id="notesPreview" hidden></div>
-      </article>
-    </div>
-    <article class="card backup-card">
-      <div class="section-head"><div><div class="eyebrow">Sauvegarde</div><h2>Données Companion V3</h2></div><span class="meta" id="saveStatus">localStorage actif</span></div>
-      <div class="footer-actions">
-        <button class="ability" id="exportBtn">Exporter JSON</button><button class="ability" id="exportNotesBtn">Exporter notes Markdown</button>
-        <button class="ability" id="importBtn">Importer JSON</button>
-        <button class="ability" id="restoreBackupBtn">Restaurer copie</button>
-        <button class="ability dangerish" id="resetBtn">Remise à zéro</button>
-      </div>
-      <input type="file" id="importFile" accept="application/json,.json" hidden>
-    </article>
+    <div class="subtabs" data-subtabs="journal"><button class="subtab active" data-subtab="mechanics">Mécanique</button><button class="subtab" data-subtab="notes">Notes</button><button class="subtab" data-subtab="backup">Sauvegarde</button></div>
+    <div class="subpane active" data-subpane="mechanics"><article class="card full"><div class="section-head"><div><div class="eyebrow">Automatique</div><h2>Journal mécanique</h2></div><button class="ability compact" id="clearJournalBtn">Vider</button></div><div class="journal-list" id="journalList"></div></article></div>
+    <div class="subpane" data-subpane="notes"><article class="card full notes-card"><div class="section-head"><div><div class="eyebrow">Persistant</div><h2>Notes de session</h2></div><button class="ability compact" id="togglePreviewBtn">Aperçu</button></div><textarea id="notesInput" rows="16" maxlength="150000" placeholder="# Session&#10;&#10;- Indices&#10;- PNJ&#10;- À retenir"></textarea><div class="notes-preview" id="notesPreview" hidden></div></article></div>
+    <div class="subpane" data-subpane="backup"><article class="card full backup-card"><div class="section-head"><div><div class="eyebrow">Sauvegarde</div><h2>Données Companion V3</h2></div><span class="meta" id="saveStatus">localStorage actif</span></div><div class="footer-actions"><button class="ability" id="exportBtn">Exporter JSON</button><button class="ability" id="exportNotesBtn">Exporter notes Markdown</button><button class="ability" id="importBtn">Importer JSON</button><button class="ability" id="restoreBackupBtn">Restaurer copie</button><button class="ability dangerish" id="resetBtn">Remise à zéro</button></div><input type="file" id="importFile" accept="application/json,.json" hidden></article></div>
   </section>
 </main>
 <aside class="result-ribbon collapsed" id="resultRibbon" aria-live="polite">
@@ -396,6 +285,6 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=12"></script>
+<script src="companion-v3.js?v=13"></script>
 </body>
 </html>
