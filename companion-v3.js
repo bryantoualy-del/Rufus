@@ -92,6 +92,11 @@ function normalize(x){
   o.psiDie=[0,4,6,8].includes(Number(o.psiDie))?Number(o.psiDie):8;
   o.psiReconstitutionReady=o.psiReconstitutionReady!==false;o.psiKnackLast=String(o.psiKnackLast||'').slice(0,180);o.psiWhispersLast=String(o.psiWhispersLast||'').slice(0,180);
   o.ui={...d.ui,...(o.ui||{}),subtabs:{...d.ui.subtabs,...(o.ui?.subtabs||{})}};
+  if(!['combat','arsenal','social','journal'].includes(o.ui.view))o.ui.view='combat';
+  if(!['skills','abilities','inventory','rp'].includes(o.ui.socialTab))o.ui.socialTab='skills';
+  if(!['attacks','defense','resources'].includes(o.ui.subtabs.combat))o.ui.subtabs.combat='attacks';
+  if(!['psi','hexen','linceul','powers'].includes(o.ui.subtabs.arsenal))o.ui.subtabs.arsenal='psi';
+  if(!['mechanics','notes','backup'].includes(o.ui.subtabs.journal))o.ui.subtabs.journal='mechanics';
   o.inventory=Array.isArray(o.inventory)?o.inventory.slice(0,200).map(sanitizeItem):clone(defaultItems);
   o.notes=String(o.notes||'').slice(0,150000);
   o.journal=Array.isArray(o.journal)?o.journal.slice(0,MAX_JOURNAL):[];
@@ -404,7 +409,7 @@ function renderPending(){
     '<h3 class="pending-question">Est-ce que cette attaque touche ?</h3>'+
     '<div class="pending-actions">'+
       (eligible?'<button class="primary" data-hit-sneak>Oui · Sournoise 5d6</button>':'')+
-      '<button class="ability" data-hit>Oui'+(p.nat===20||S.conditions.surprised||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
+      '<button class="ability" data-hit>Oui'+(p.nat===20||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
       '<button class="ability dangerish" data-miss>Non · raté</button>'+
       (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
       (spec.psychic&&S.psiDie&&!p.guidedPsiRoll?'<button class="ability" data-guided-psi>Frappes autoguidées · d'+S.psiDie+'</button>':'')+
