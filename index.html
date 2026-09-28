@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=15">
+<link rel="stylesheet" href="companion-v3.css?v=16">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -88,7 +88,7 @@
     </div>
   </section>
 
-  <nav class="nav main-nav" aria-label="Navigation principale">
+  <nav class="nav main-nav desktop-main-nav" aria-label="Navigation principale">
     <button class="active" data-view="combat"><span class="nav-ico">⚔</span><span>Combat</span></button>
     <button data-view="arsenal"><span class="nav-ico">✦</span><span>Sorts & pouvoirs</span></button>
     <button data-view="social"><span class="nav-ico">◇</span><span>Social</span></button>
@@ -276,6 +276,12 @@
     <div class="subpane" data-subpane="backup"><article class="card full backup-card"><div class="section-head"><div><div class="eyebrow">Sauvegarde</div><h2>Données Companion V3</h2></div><span class="meta" id="saveStatus">localStorage actif</span></div><div class="footer-actions"><button class="ability" id="exportBtn">Exporter JSON</button><button class="ability" id="exportNotesBtn">Exporter notes Markdown</button><button class="ability" id="importBtn">Importer JSON</button><button class="ability" id="restoreBackupBtn">Restaurer copie</button><button class="ability dangerish" id="resetBtn">Remise à zéro</button></div><input type="file" id="importFile" accept="application/json,.json" hidden></article></div>
   </section>
 </main>
+<nav class="nav mobile-main-nav" aria-label="Navigation mobile">
+  <button class="active" data-view="combat" type="button"><span class="nav-ico">⚔</span><span>Combat</span></button>
+  <button data-view="arsenal" type="button"><span class="nav-ico">✦</span><span>Sorts & pouvoirs</span></button>
+  <button data-view="social" type="button"><span class="nav-ico">◇</span><span>Social</span></button>
+  <button data-view="journal" type="button"><span class="nav-ico">☷</span><span>Journal</span></button>
+</nav>
 <aside class="result-ribbon collapsed" id="resultRibbon" aria-live="polite">
   <b id="resultRibbonTitle">Dernier résultat</b>
   <div id="resultRibbonText">Prêt · les détails complets sont dans Journal / Notes.</div>
@@ -285,6 +291,6 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=15"></script>
+<script src="companion-v3.js?v=16"></script>
 </body>
 </html>
