@@ -24,7 +24,7 @@ const defaultItems=[
   {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 14 avec DEX 16.',image:'',icon:'armor',equipped:true},
   {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA16 / Éveillé CA17.',image:'',icon:'raven',equipped:false},
   {name:'Chaussons araignée',category:'equipment',qty:1,note:'Mobilité · propriété exacte à valider.',image:'',icon:'boots',equipped:true},
-  {name:'Amulette de résistance occulte',category:'equipment',qty:1,note:'Protection · effet exact selon fiche de table.',image:'',icon:'amulet',equipped:true},
+  {name:'Collier de résistance nécrotique',category:'equipment',qty:1,note:'Résistance aux dégâts nécrotiques.',image:'',icon:'amulet',equipped:true},
   {name:'Bague d’échange d’apparence',category:'misc',qty:1,note:'Paire liée à Kentaro · paramètres exacts à valider.',image:'',icon:'ring',equipped:false},
   {name:'Globe flottant',category:'misc',qty:1,note:'Objet utilitaire.',image:'',icon:'globe',equipped:false},
   {name:'Sac sans fond',category:'misc',qty:1,note:'Contenant extradimensionnel.',image:'',icon:'bag',equipped:false},
@@ -300,7 +300,7 @@ function startAttack(key,context='own'){
   if(cost==='action'&&!S.economy.action)return toast('Action déjà utilisée.');
   if(cost==='bonus'&&!S.economy.bonus)return toast('Action bonus déjà utilisée.');
   if(cost==='reaction'&&!S.economy.reaction)return toast('Réaction déjà utilisée.');
-  if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Dague psychique.');
+  if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Lame psychique.');
   const mode=effectiveRollMode();const rr=rollAttackD20(mode);$('#manualRoll').value='';
   const bonus=spec.bonus+(key==='crossbow'&&S.sharpshooter?-5:0);
   const total=rr.nat+bonus;
@@ -714,7 +714,7 @@ function render(){
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
   $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+2 · 1d8+13 perforants':'+7 · 1d8+3 perforants');
   const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
-  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Dague psychique':'';});
+  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Lame psychique':'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=S.fireBlade.armed?'Désarmer':'Armer Lame du Feu Caché';$('#fireBladeStatus').className='status-line '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui.':S.fireBlade.armed?'ARMÉE · la prochaine Sournoise réussie déclenchera +2d6 feu.':'Disponible · non armée.';
   $('#visionTarget').value=S.vision.target||'';$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
