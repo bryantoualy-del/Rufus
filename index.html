@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=16">
+<link rel="stylesheet" href="companion-v3.css?v=17">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -106,11 +106,12 @@
           </div>
           <div class="roll-modes compact-rolls" aria-label="Mode de jet"><button class="toggle on" data-roll-mode="normal">Normal</button><button class="toggle" data-roll-mode="adv">Avantage</button><button class="toggle" data-roll-mode="dis">Désavantage</button><label class="manual">d20 <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="—"></label></div>
         </article>
-        <article class="card wide weapon psychic"><div class="attack-head"><div><div class="eyebrow">Âme Acérée · action</div><h2>Lame psychique</h2></div><div class="attack-dice">+7 · 1d6+3 psy</div></div><p class="meta">Finesse · lancer 18 m · main libre. Une seconde lame peut suivre avec l’autre main libre.</p><div class="weapon-actions"><button class="primary attack-btn" data-attack="psychic">Attaquer — Lame psychique</button><button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde lame · bonus · 1d6+3</button></div></article>
-        <article class="card weapon"><div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale +1</h2><div class="attack-dice">+8 · 1d4+4 perforants</div><details class="rules-mini"><summary>Détails</summary><p>Sur une créature vivante touchée : JdS CON DD 13 ou désavantage à sa prochaine attaque.</p></details><button class="primary attack-btn" data-attack="spectral">Attaquer</button></article>
-        <article class="card weapon"><div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2><div class="attack-dice">+8 · 1d6+4 perforants</div><p class="meta">Épée courte +1 · 5 charges pour ses illusions.</p><button class="primary attack-btn" data-attack="hexen">Attaquer</button></article>
-        <article class="card weapon ranged"><div class="eyebrow">Distance · action</div><h2>Arbalète légère duergar</h2><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div><p class="meta">24/96 m · chargement · deux mains.</p><details class="rules-mini"><summary>Tireur d’élite</summary><p>Pas de désavantage à longue portée, ignore les abris concernés ; option −5 attaque / +10 dégâts.</p></details><button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button><button class="primary attack-btn" data-attack="crossbow">Tirer</button></article>
-        <article class="card reaction-card"><div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2><details class="rules-mini"><summary>Sournoise sur réaction</summary><p>Une réaction pendant le tour d’un autre peut déclencher une nouvelle Sournoise.</p></details><div class="two-actions"><button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button><button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button></div></article>
+        <article class="card wide fire-blade offense-fire"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
+        <article class="card wide weapon psychic weapon-psychic"><div class="attack-head"><div><div class="eyebrow">Âme Acérée · action</div><h2>Lame psychique</h2></div><div class="attack-dice">+7 · 1d6+3 psy</div></div><p class="meta">Finesse · lancer 18 m · main libre. Une seconde lame peut suivre avec l’autre main libre.</p><div class="weapon-actions"><button class="primary attack-btn" data-attack="psychic">Attaquer — Lame psychique</button><button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde lame · bonus · 1d6+3</button></div></article>
+        <article class="card weapon weapon-spectral"><div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale +1</h2><div class="attack-dice">+8 · 1d4+4 perforants</div><details class="rules-mini"><summary>Détails</summary><p>Sur une créature vivante touchée : JdS CON DD 13 ou désavantage à sa prochaine attaque.</p></details><button class="primary attack-btn" data-attack="spectral">Attaquer</button></article>
+        <article class="card weapon weapon-hexen"><div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2><div class="attack-dice">+8 · 1d6+4 perforants</div><p class="meta">Épée courte +1 · 5 charges pour ses illusions.</p><button class="primary attack-btn" data-attack="hexen">Attaquer</button></article>
+        <article class="card weapon ranged weapon-ranged"><div class="eyebrow">Distance · action</div><h2>Arbalète légère duergar</h2><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div><p class="meta">24/96 m · chargement · deux mains.</p><details class="rules-mini"><summary>Tireur d’élite</summary><p>Pas de désavantage à longue portée, ignore les abris concernés ; option −5 attaque / +10 dégâts.</p></details><button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button><button class="primary attack-btn" data-attack="crossbow">Tirer</button></article>
+        <article class="card reaction-card weapon-reaction"><div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2><details class="rules-mini"><summary>Sournoise sur réaction</summary><p>Une réaction pendant le tour d’un autre peut déclencher une nouvelle Sournoise.</p></details><div class="two-actions"><button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button><button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button></div></article>
       </div>
       <div class="pending" id="pendingAttack" hidden aria-live="polite" role="dialog" aria-modal="true" aria-label="Résolution de l’attaque"></div>
     </div>
@@ -226,7 +227,7 @@
         <article class="card wide vision-card"><div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2><p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p><div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div><details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details><div class="status-line" id="visionStatus"></div></article>
         <article class="card"><div class="eyebrow">1 / jour · action</div><h2>Blessure</h2><div class="attack-dice">attaque de sort · 3d10 nécrotiques</div><p class="meta">Contact. Le bonus d’attaque dépend de la source de l’effet et reste à valider à la table.</p><button class="primary" id="woundBtn">Utiliser</button></article>
         <article class="card"><div class="eyebrow">1 / jour · action · concentration</div><h2>Invisibilité</h2><p class="meta">Contact · jusqu’à 1 heure. Prend fin pour la cible si elle attaque ou lance un sort.</p><button class="primary" id="invisibilityBtn">Lancer</button></article>
-        <article class="card wide fire-blade"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
+        
       </div>
     </div>
   </section>
@@ -291,6 +292,6 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=16"></script>
+<script src="companion-v3.js?v=17"></script>
 </body>
 </html>
