@@ -50,7 +50,7 @@ function defaults(){
     fireBlade:{ready:true,armed:false},
     woundReady:true,invisibilityReady:true,
     vision:{active:false,target:'',uses:0,wisPenalty:0},
-    linceul:{state:'unequipped',judgment:true,lastBreath:true,ravenShadow:1,pilgrim:true},
+    linceul:{state:'unequipped',judgment:true,lastBreath:true,ravenShadow:2,pilgrim:true},
     ravenMemoryBonus:false,
     pending:null,
     inventory:clone(defaultItems),inventoryTab:'equipment',
@@ -144,7 +144,7 @@ function combatSnapshot(){
     hp:S.hp,tempHp:S.tempHp,turn:S.turn,round:S.round,turnDamage:S.turnDamage,economy:clone(S.economy),
     concentration:S.concentration?clone(S.concentration):null,rollMode:S.rollMode,conditions:clone(S.conditions),
     sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
-    lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
+    lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,psiReconstitutionReady:S.psiReconstitutionReady,psiKnackLast:S.psiKnackLast,psiWhispersLast:S.psiWhispersLast,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
     invisibilityReady:S.invisibilityReady,vision:clone(S.vision),linceul:clone(S.linceul),ravenMemoryBonus:S.ravenMemoryBonus,
     pending:S.pending?clone(S.pending):null,journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
   };
@@ -180,7 +180,7 @@ function undo(){
     hp:snap.hp,tempHp:snap.tempHp,turn:snap.turn,round:snap.round,turnDamage:snap.turnDamage,economy:snap.economy,
     concentration:snap.concentration,rollMode:snap.rollMode,conditions:snap.conditions,sneakOwn:snap.sneakOwn,
     sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
-    hexCharges:snap.hexCharges,psiDie:snap.psiDie,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
+    hexCharges:snap.hexCharges,psiDie:snap.psiDie,psiReconstitutionReady:snap.psiReconstitutionReady,psiKnackLast:snap.psiKnackLast,psiWhispersLast:snap.psiWhispersLast,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
     pending:snap.pending
   });
@@ -432,9 +432,9 @@ function useVision(){
   if(!S.economy.action)return toast('Action déjà utilisée.');
   const target=$('#visionTarget').value.trim()||'cible';
   if(S.concentration&&S.concentration.name!=='Vision de la Vérité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
-  const previous=S.vision.uses,dc=10+previous,r1=die(20),r2=S.vision.wisPenalty>0?die(20):null,r=r2===null?r1:Math.min(r1,r2),total=r+1,failed=total<dc;
+  const previous=S.vision.uses,dc=10+previous,r1=die(20),r2=S.vision.wisPenalty>0?die(20):null,r=r2===null?r1:Math.min(r1,r2),total=r+2,failed=total<dc;
   const rollText=r2===null?String(r1):(r1+' / '+r2+' → '+r+' · désavantage Vision');
-  commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+rollText+' +1 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
+  commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+rollText+' +2 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
     S.economy.action=false;S.vision.active=true;S.vision.target=target;S.vision.uses++;if(failed)S.vision.wisPenalty++;
     S.concentration={name:'Vision de la Vérité',source:'pouvoir maison'};
   },'raven');
@@ -481,7 +481,7 @@ function useLinceul(kind){
   commit(labels[kind],kind==='ravenShadow'?'+1d8 au prochain jet d’attaque ou sauvegarde.':'Pouvoir du Linceul consommé.',()=>{
     if(kind==='judgment')S.linceul.judgment=false;
     if(kind==='lastBreath')S.linceul.lastBreath=false;
-    if(kind==='ravenShadow'){S.linceul.ravenShadow=0;S.ravenMemoryBonus=true;}
+    if(kind==='ravenShadow'){S.linceul.ravenShadow=Math.max(0,S.linceul.ravenShadow-1);S.ravenMemoryBonus=true;}
     if(kind==='pilgrim')S.linceul.pilgrim=false;
   },'raven');
 }
@@ -493,9 +493,9 @@ function shortRest(){
 }
 function longRest(){
   if(!confirm('Effectuer un repos long ? Les ressources / repos long seront restaurées.'))return;
-  commit('Repos long','PV, Chanceux, Vision, Lame du Feu Caché et ressources / repos long restaurés.',()=>{
+  commit('Repos long','PV, Chanceux, dé psionique d8, Reconstitution du psi, Vision, Lame du Feu Caché et ressources / repos long restaurés.',()=>{
     S.hp=53;S.tempHp=0;S.lucky=3;S.psiDie=8;S.psiReconstitutionReady=true;S.fireBlade={ready:true,armed:false};S.vision={active:false,target:'',uses:0,wisPenalty:0};
-    S.linceul.judgment=true;S.linceul.ravenShadow=1;S.linceul.pilgrim=true;S.ravenMemoryBonus=false;
+    S.linceul.judgment=true;S.linceul.ravenShadow=2;S.linceul.pilgrim=true;S.ravenMemoryBonus=false;
     S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.turnDamage=0;S.concentration=null;S.pending=null;
   },'raven');
 }
@@ -549,7 +549,7 @@ function renderSocial(){
     $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false,a.abbr);});
     $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true,a.abbr);});
   }else{
-    c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Âme Acérée</b><span>Talent psionique, télépathie et mobilité psychique.</span></div><div class="rp-box"><b>Résistance</b><span>Amulette de résistance occulte : type exact selon la fiche de table.</span></div></div>';
+    c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Âme Acérée</b><span>Talent psionique, télépathie et mobilité psychique.</span></div><div class="rp-box"><b>Résistance</b><span>Collier : résistance aux dégâts nécrotiques.</span></div></div>';
   }
 }
 
@@ -715,7 +715,7 @@ function render(){
   $('#visionTarget').value=S.vision.target||'';$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
   $('#woundBtn').disabled=!S.woundReady||!S.economy.action;$('#woundBtn').textContent=S.woundReady?'Utiliser':'Dépensé aujourd’hui';$('#invisibilityBtn').disabled=!S.invisibilityReady||!S.economy.action;$('#invisibilityBtn').textContent=S.invisibilityReady?'Lancer':'Dépensée aujourd’hui';
   $('#hexCharges').textContent=S.hexCharges;$$('.hex-spell').forEach(b=>b.disabled=!S.economy.action||S.hexCharges<Number(b.dataset.cost));
-  $('#linceulState').value=S.linceul.state;const li=acInfo();$('#linceulSummary').innerHTML='<div><small>CA actuelle</small><b>'+li.ac+' · '+esc(li.label)+'</b></div><div><small>Jugement différé</small><b>'+(S.linceul.judgment?'prêt':'dépensé')+'</b></div><div><small>Ombre du Corbeau</small><b>'+(S.linceul.state==='awakened'?(S.linceul.ravenShadow?'prête':'dépensée'):'verrouillée')+'</b></div>';
+  $('#linceulState').value=S.linceul.state;const li=acInfo();$('#linceulSummary').innerHTML='<div><small>CA actuelle</small><b>'+li.ac+' · '+esc(li.label)+'</b></div><div><small>Jugement différé</small><b>'+(S.linceul.judgment?'prêt':'dépensé')+'</b></div><div><small>Ombre du Corbeau</small><b>'+(S.linceul.state==='awakened'?(S.linceul.ravenShadow+' / 2'):'verrouillée')+'</b></div>';
   $$('.awakened-only').forEach(x=>x.classList.toggle('locked',S.linceul.state!=='awakened'));
   $$('.linceul-use').forEach(b=>{const k=b.dataset.linceulUse;let disabled=S.linceul.state==='unequipped';if(k==='judgment')disabled||=!S.linceul.judgment;if(k==='lastBreath')disabled||=!S.linceul.lastBreath;if(k==='ravenShadow')disabled||=S.linceul.state!=='awakened'||S.linceul.ravenShadow<=0;if(k==='pilgrim')disabled||=S.linceul.state!=='awakened'||!S.linceul.pilgrim;b.disabled=disabled;});
   $('#luckValue').textContent=S.lucky+' / 3';$('#luckPips').innerHTML=[0,1,2].map(i=>'<button class="pip '+(i<S.lucky?'':'off')+'" aria-label="Point de Chance '+(i+1)+'"></button>').join('');$('#luckSpendBtn').disabled=S.lucky<=0;
