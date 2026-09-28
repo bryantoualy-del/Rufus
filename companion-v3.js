@@ -17,8 +17,8 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 const defaultItems=[
-  {name:'Dague spectrale',category:'equipment',qty:1,note:'+9 · 1d4+5 · rappel CON DD13.',image:'',icon:'blade',equipped:true},
-  {name:'Hexen Blade',category:'equipment',qty:1,note:'+9 · 1d6+5 · 5 charges · illusions DD15.',image:'',icon:'blade',equipped:true},
+  {name:'Dague spectrale',category:'equipment',qty:1,note:'+8 · 1d4+4 · JdS CON DD13.',image:'',icon:'blade',equipped:true},
+  {name:'Hexen Blade',category:'equipment',qty:1,note:'+8 · 1d6+4 · 5 charges · illusions DD15.',image:'',icon:'blade',equipped:true},
   {name:'Arbalète légère duergar',category:'equipment',qty:1,note:'24/96 m · munitions · chargement · deux mains.',image:'',icon:'bow',equipped:true},
   {name:'Arc standard',category:'equipment',qty:1,note:'Carquois de 30 flèches.',image:'',icon:'bow',equipped:false},
   {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 14 avec DEX 16.',image:'',icon:'armor',equipped:true},
