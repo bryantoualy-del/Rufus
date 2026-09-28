@@ -558,3 +558,106 @@ textarea{resize:vertical}
     box-shadow:0 8px 22px rgba(0,0,0,.28);
   }
 }
+
+
+/* ===== Fire Blade compact attack ribbon v18 ===== */
+.fire-ribbon{
+  grid-column:1/-1;
+  min-height:62px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:12px;
+  padding:9px 11px 9px 13px;
+  border:1px solid #8d542f;
+  border-left:4px solid #d8753e;
+  border-radius:12px;
+  background:
+    linear-gradient(90deg,rgba(112,48,25,.28),rgba(27,20,20,.96) 46%,rgba(15,17,22,.98));
+  box-shadow:0 8px 22px rgba(0,0,0,.24),inset 0 0 18px rgba(255,117,55,.035);
+}
+.fire-ribbon-copy{min-width:0}
+.fire-ribbon-kicker{
+  display:block;
+  color:#d98959;
+  font-size:.58rem;
+  font-weight:900;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  margin-bottom:3px;
+}
+.fire-ribbon-main{display:flex;align-items:baseline;gap:10px;min-width:0}
+.fire-ribbon-main b{
+  flex:0 0 auto;
+  color:#ffe4d0;
+  font:900 1rem Georgia,"Times New Roman",serif;
+}
+.fire-ribbon-main span{
+  min-width:0;
+  color:#bca99d;
+  font-size:.73rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.fire-ribbon-state{
+  min-width:128px;
+  max-width:250px;
+  padding:6px 9px;
+  border:1px solid #49382f;
+  border-radius:999px;
+  background:#121116;
+  color:#a99e9a;
+  font-size:.68rem;
+  font-weight:800;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.fire-ribbon-state.hot{
+  border-color:#a75c33;
+  background:#2b160f;
+  color:#ffc18e;
+  box-shadow:0 0 14px rgba(255,111,43,.10);
+}
+.fire-ribbon-action{
+  min-width:92px;
+  min-height:38px;
+  padding:6px 12px;
+  border:1px solid #b5663b;
+  border-radius:9px;
+  background:linear-gradient(135deg,#76351f,#4a261d);
+  color:#fff0e5;
+  font-weight:900;
+}
+.fire-ribbon-action:disabled{opacity:.42}
+
+@media(max-width:767px){
+  .fire-ribbon{
+    min-height:54px;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:7px 8px;
+    padding:8px 9px 8px 10px;
+    border-radius:11px;
+  }
+  .fire-ribbon-kicker{font-size:.52rem;margin-bottom:2px}
+  .fire-ribbon-main{display:block}
+  .fire-ribbon-main b{display:block;font-size:.92rem}
+  .fire-ribbon-main span{display:block;margin-top:2px;font-size:.65rem}
+  .fire-ribbon-state{
+    grid-column:1;
+    min-width:0;
+    max-width:none;
+    justify-self:start;
+    padding:3px 7px;
+    font-size:.59rem;
+  }
+  .fire-ribbon-action{
+    grid-column:2;
+    grid-row:1/3;
+    min-width:78px;
+    min-height:42px;
+    align-self:stretch;
+  }
+}
