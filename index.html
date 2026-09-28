@@ -129,17 +129,17 @@
       </article>
       <article class="card resource-card">
         <div class="resource-title"><div><div class="eyebrow">Pouvoir conservé · suivi manuel</div><h2>Dague psychique · dé</h2></div><b id="psiDieValue">d8</b></div>
-        <p class="meta">Le dossier actuel conserve les dagues psychiques mais pas le kit complet Âme Acérée. Le dé est donc suivi sans réintroduire Téléportation, Murmures ou Frappes autoguidées.</p>
+        <p class="meta">Archétype actif : le dé alimente Truc de psi, Murmures psychiques, Frappes autoguidées et Téléportation psychique. Les boutons ici permettent aussi une correction manuelle de sa taille.</p>
         <div class="psi-buttons"><button class="ability" data-psi="8">d8</button><button class="ability" data-psi="6">d6</button><button class="ability" data-psi="4">d4</button><button class="ability" data-psi="0">Épuisé</button></div>
       </article>
       <article class="card resource-card">
         <div class="eyebrow">Repos court</div><h2>Récupération</h2>
-        <p class="meta">Rufus n’a pas de ressource de classe principale à régénérer automatiquement au repos court. Le compagnon ne fait donc pas de reset générique.</p>
+        <p class="meta">Le repos court restaure l’économie du tour, mais ne restaure ni le dé psionique ni Reconstitution du psi.</p>
         <button class="ability" id="shortRestBtn">☕ Repos court</button>
       </article>
       <article class="card resource-card">
         <div class="eyebrow">Repos long</div><h2>Récupération</h2>
-        <p class="meta">PV, Chanceux, Lame du Feu Caché, pénalités de Vision et pouvoirs / repos long du Linceul.</p>
+        <p class="meta">PV, Chanceux, dé psionique d8, Reconstitution du psi, Lame du Feu Caché, Vision et pouvoirs / repos long du Linceul.</p>
         <button class="ability" id="longRestBtn">🌙 Repos long</button>
       </article>
       <article class="card resource-card">
@@ -167,34 +167,19 @@
       <article class="card"><div class="eyebrow">Action bonus</div><h2>Téléportation psychique</h2><p class="meta">Espace libre visible à 12 m maximum, puis le dé psionique diminue d’une taille.</p><button class="primary" id="psiTeleportBtn">Se téléporter · 12 m</button></article>
       <article class="card wide"><div class="eyebrow">Arme signature</div><h2>Lames psychiques</h2><div class="pillrow"><span class="pill">+7</span><span class="pill">1d6+3 psy</span><span class="pill">18 m</span><span class="pill">finesse</span><span class="pill">seconde lame bonus</span></div></article>
     </div></div>
-    <div class="subpane" data-subpane="hexen"><div class="grid"><article class="card full">
-        <div class="section-head">
-          <div><div class="eyebrow">Objet magique · DD 15</div><h2>Hexen Blade · Illusions</h2></div>
-          <div class="resource-big"><span id="hexCharges">5</span><small>/ 5 charges</small></div>
-        </div>
-        <div class="spell-grid">
-          <div class="spell">
-            <div class="spell-head"><b>Déguisement</b><span>1 charge</span></div>
-            <p class="meta">Action · personnelle · 1 h · illusion de l’apparence.</p>
-            <details><summary>Détails</summary><p>Modifie l’apparence visible, vêtements et équipement apparent. L’effet ne change pas physiquement le corps.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Déguisement" data-cost="1">Lancer</button>
+    <div class="subpane" data-subpane="hexen">
+      <div class="grid">
+        <article class="card full">
+          <div class="section-head"><div><div class="eyebrow">Objet magique · DD 15</div><h2>Hexen Blade · Illusions</h2></div><div class="resource-big"><span id="hexCharges">5</span><small>/ 5 charges</small></div></div>
+          <div class="spell-grid">
+            <div class="spell"><div class="spell-head"><b>Déguisement</b><span>1 charge</span></div><p class="meta">Action · personnelle · 1 h.</p><details><summary>Détails</summary><p>Modifie l’apparence visible, vêtements et équipement apparent sans transformation physique.</p></details><button class="ability hex-spell" data-hex-spell="Déguisement" data-cost="1">Lancer</button></div>
+            <div class="spell"><div class="spell-head"><b>Image miroir</b><span>2 charges</span></div><p class="meta">Action · personnelle · 1 min · trois doubles illusoires.</p><details><summary>Détails</summary><p>Les doubles peuvent détourner les attaques selon les règles du sort.</p></details><button class="ability hex-spell" data-hex-spell="Image miroir" data-cost="2">Lancer</button></div>
+            <div class="spell"><div class="spell-head"><b>Motif hypnotique</b><span>3 charges</span></div><p class="meta">Action · 36 m · cube 9 m · concentration 1 min · SAG DD 15.</p><details><summary>Détails</summary><p>Échec : charmé, incapable d’agir, vitesse 0. L’effet cesse sur dégâts ou si quelqu’un secoue la cible avec une action.</p></details><button class="ability hex-spell" data-hex-spell="Motif hypnotique" data-cost="3" data-concentration="true">Lancer</button></div>
           </div>
-          <div class="spell">
-            <div class="spell-head"><b>Image miroir</b><span>2 charges</span></div>
-            <p class="meta">Action · personnelle · 1 min · trois doubles illusoires.</p>
-            <details><summary>Détails</summary><p>Les doubles peuvent détourner les attaques. Utilisez les règles validées de l’objet à la table.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Image miroir" data-cost="2">Lancer</button>
-          </div>
-          <div class="spell">
-            <div class="spell-head"><b>Motif hypnotique</b><span>3 charges</span></div>
-            <p class="meta">Action · 36 m · cube 9 m · concentration 1 min · SAG DD 15.</p>
-            <details><summary>Détails</summary><p>Échec : charmé, incapable d’agir, vitesse 0. L’effet cesse si la cible subit des dégâts ou si quelqu’un la secoue avec une action.</p></details>
-            <button class="ability hex-spell" data-hex-spell="Motif hypnotique" data-cost="3" data-concentration="true">Lancer</button>
-          </div>
-        </div>
-        <div class="aube-row"><button class="ability" id="hexDawnBtn">☀ Aube · récupérer 1d4 + 1 charges</button></div>
-      </article>
-    </div></div></div>
+          <div class="aube-row"><button class="ability" id="hexDawnBtn">☀ Aube · récupérer 1d4 + 1 charges</button></div>
+        </article>
+      </div>
+    </div>
     <div class="subpane" data-subpane="linceul">
     <div class="grid">
       <article class="card full linceul-hero">
@@ -222,7 +207,7 @@
 
       <article class="card linceul-card awakened-only">
         <div class="eyebrow">Éveillé · 1 / repos long</div><h2>Ombre du Corbeau</h2>
-        <p class="meta">Quand vous réduisez une créature à 0 PV : souvenir bref +1d8 à votre prochain jet d’attaque ou de sauvegarde. Maximum 1 utilisation avec SAG +1.</p>
+        <p class="meta">Quand vous réduisez une créature à 0 PV : souvenir bref +1d8 à votre prochain jet d’attaque ou de sauvegarde. Maximum 2 utilisations avec SAG +2.</p>
         <button class="ability linceul-use" data-linceul-use="ravenShadow">Absorber la trace</button>
       </article>
       <article class="card linceul-card awakened-only">
@@ -236,29 +221,14 @@
       </article>
     </div>
   </div>
-    <div class="subpane" data-subpane="powers"><div class="grid"><div class="grid">
-      <article class="card wide vision-card">
-        <div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2>
-        <p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p>
-        <div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div>
-        <details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details>
-        <div class="status-line" id="visionStatus"></div>
-      </article>
-
-      <article class="card">
-        <div class="eyebrow">1 / jour · action</div><h2>Blessure</h2>
-        <div class="attack-dice">attaque de sort · 3d10 nécrotiques</div>
-        <p class="meta">Contact. Le bonus d’attaque dépend de la source de l’objet ; le compagnon ne l’invente pas.</p>
-        <button class="primary" id="woundBtn">Utiliser</button>
-      </article>
-
-      <article class="card">
-        <div class="eyebrow">1 / jour · action · concentration</div><h2>Invisibilité</h2>
-        <p class="meta">Contact · jusqu’à 1 heure. Prend fin pour la cible si elle attaque ou lance un sort.</p>
-        <button class="primary" id="invisibilityBtn">Lancer</button>
-      </article>
-      <article class="card wide fire-blade"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
-    </div></div>
+    <div class="subpane" data-subpane="powers">
+      <div class="grid">
+        <article class="card wide vision-card"><div class="eyebrow">Pouvoir maison · action · concentration</div><h2>Vision de la Vérité</h2><p>18 m · 1 minute · avantage contre la cible · critique <b>17–20</b>.</p><div class="inline-form"><label>Cible <input id="visionTarget" maxlength="80" placeholder="Nom de la cible"></label><button class="primary" id="visionBtn">Activer</button></div><details class="rules-mini"><summary>Effets & contrecoup</summary><p>Révèle une résistance, immunité ou vulnérabilité pertinente. À chaque utilisation : JdS SAG DD 10 + utilisations précédentes ; échec → désavantage aux jets de Sagesse jusqu’au repos long, cumulatif.</p></details><div class="status-line" id="visionStatus"></div></article>
+        <article class="card"><div class="eyebrow">1 / jour · action</div><h2>Blessure</h2><div class="attack-dice">attaque de sort · 3d10 nécrotiques</div><p class="meta">Contact. Le bonus d’attaque dépend de la source de l’effet et reste à valider à la table.</p><button class="primary" id="woundBtn">Utiliser</button></article>
+        <article class="card"><div class="eyebrow">1 / jour · action · concentration</div><h2>Invisibilité</h2><p class="meta">Contact · jusqu’à 1 heure. Prend fin pour la cible si elle attaque ou lance un sort.</p><button class="primary" id="invisibilityBtn">Lancer</button></article>
+        <article class="card wide fire-blade"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
+      </div>
+    </div>
   </section>
 
   <section class="view" id="social">
