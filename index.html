@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=18">
+<link rel="stylesheet" href="companion-v3.css?v=19">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -40,9 +40,8 @@
         <div class="hp-actions"><button class="mini dangerish" id="damageBtn">Dégâts</button><button class="mini healish" id="healBtn">Soins</button></div>
       </div>
       <div class="stat temp-hpstat">
-        <small>PV temporaires</small>
-        <div class="temp-module"><button class="mini" id="tempHpMinus" aria-label="Retirer 1 PV temporaire">−</button><input id="tempHpInput" class="num" type="number" min="0" value="0"><button class="mini" id="tempHpPlus" aria-label="Ajouter 1 PV temporaire">＋</button></div>
-        <span>Module indépendant</span>
+        <small>PV temp</small>
+        <input id="tempHpInput" class="num temp-hp-input" type="number" min="0" value="0" inputmode="numeric">
       </div>
       <div class="stat"><small>CA</small><b id="acValue">14</b><span id="acLabel">Cuir</span></div>
       <div class="stat"><small>Initiative</small><b>+3</b><span>DEX 16</span></div>
@@ -71,13 +70,13 @@
     </div>
     <div class="mobile-hudrow">
       <div class="mobile-chip hp"><small>PV</small><b id="mobileHp">53/53</b></div>
-      <div class="mobile-chip temp"><small>PV temp</small><b id="mobileTempHp">0</b></div>
+      <label class="mobile-chip temp mobile-temp-entry"><small>PV temp</small><input id="mobileTempHpInput" type="number" min="0" value="0" inputmode="numeric" aria-label="PV temporaires"></label>
       <div class="mobile-chip"><small>CA</small><b id="mobileAc">14</b></div>
       <div class="mobile-chip"><small>Tour</small><b id="mobileTurn">1</b></div>
     </div>
     <div class="mobile-vitalsbar">
       <div class="mobile-vitalctl"><button id="mobileDamage" type="button">−</button><span>PV <b id="mobileTurnDamage">0</b> dmg/tour</span><button id="mobileHeal" type="button">＋</button></div>
-      <div class="mobile-vitalctl tempctl"><button id="mobileTempMinus" type="button">−</button><span>PV temporaires</span><button id="mobileTempPlus" type="button">＋</button></div>
+
     </div>
     <div class="mobile-turnline">
       <button class="mobile-econ free" data-mobile-econ="action" type="button">Action</button>
@@ -299,6 +298,6 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=18"></script>
+<script src="companion-v3.js?v=19"></script>
 </body>
 </html>
