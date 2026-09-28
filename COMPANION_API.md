@@ -31,7 +31,7 @@ La commande de dégâts appelle la logique locale du personnage, notamment absor
 ```js
 {
   characterId: 'samoth', characterName: 'Samoth',
-  hp: { current: 72, max: 72, temp: 0 }, ac: 15,
+  hp: { current: 72, max: 72, temp: 0 }, ac: 14,
   turn: { number: 1, round: 1, active: 'samoth',
           action: true, bonus: true, reaction: true,
           movement: true, damage: 0 },
