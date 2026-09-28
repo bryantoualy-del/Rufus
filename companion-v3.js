@@ -543,8 +543,8 @@ function socialRoll(label,bonus,isSave=false,ability=''){
 }
 function renderSocial(){
   const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
-  $('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
-  $$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
+  $$('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
+  $$$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
   const inventoryMode=tab==='inventory';$('#socialSheetPane').hidden=inventoryMode;$('#socialInventoryPane').hidden=!inventoryMode;if(inventoryMode){renderInventory();return;}
   if(tab==='skills'){
     c.innerHTML='<div class="social-passives"><span>Perception passive <b>16</b></span><span>Intuition passive <b>12</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
@@ -582,7 +582,7 @@ function itemVisual(i){
 }
 function renderInventory(){
   const grid=$('#inventoryGrid');if(!grid)return;
-  $$('.inventory-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.inventoryTab===S.inventoryTab));
+  $$$('.inventory-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.inventoryTab===S.inventoryTab));
   const term=($('#inventorySearch')?.value||'').trim().toLowerCase();
   const rows=S.inventory.map((i,index)=>({i,index})).filter(x=>x.i.category===S.inventoryTab&&(!term||(x.i.name+' '+x.i.note).toLowerCase().includes(term)));
   const count=$('#inventoryCount');if(count)count.textContent=rows.length+' objet'+(rows.length>1?'s':'');
@@ -698,7 +698,7 @@ function setSubtab(group,id){
   S.ui.subtabs=S.ui.subtabs||{};S.ui.subtabs[group]=id;save();renderSubtabs(group);window.scrollTo({top:0,behavior:'instant'});
 }
 function switchView(id){
-  S.ui.view=id;$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
+  S.ui.view=id;$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
   if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);window.scrollTo({top:0,behavior:'instant'});
 }
 function render(){
@@ -706,10 +706,10 @@ function render(){
   $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage;
   $('#mobileHp').textContent=S.hp+'/'+S.maxHp;$('#mobileTempHp').textContent=S.tempHp;$('#mobileAc').textContent=ac.ac;$('#mobileTurn').textContent=S.turn;$('#mobileTurnDamage').textContent=S.turnDamage;
   $('#mobileConcentration').classList.toggle('none',!S.concentration);$('#mobileConcText').textContent=S.concentration?S.concentration.name:'Aucune';
-  $('[data-mobile-econ]').forEach(b=>{const k=b.dataset.mobileEcon,on=!!S.economy[k];b.classList.toggle('free',on);b.classList.toggle('used',!on);});
-  $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
+  $$('[data-mobile-econ]').forEach(b=>{const k=b.dataset.mobileEcon,on=!!S.economy[k];b.classList.toggle('free',on);b.classList.toggle('used',!on);});
+  $$$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
   const conc=S.concentration;$('#turnConcentration').classList.toggle('none',!conc);$('#turnConcText').textContent=conc?conc.name:'Aucune';
-  $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
+  $$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
   $$('[data-roll-mode]').forEach(b=>b.classList.toggle('on',b.dataset.rollMode===S.rollMode));
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
   $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+2 · 1d8+13 perforants':'+7 · 1d8+3 perforants');
@@ -724,7 +724,7 @@ function render(){
   $$('.awakened-only').forEach(x=>x.classList.toggle('locked',S.linceul.state!=='awakened'));
   $$('.linceul-use').forEach(b=>{const k=b.dataset.linceulUse;let disabled=S.linceul.state==='unequipped';if(k==='judgment')disabled||=!S.linceul.judgment;if(k==='lastBreath')disabled||=!S.linceul.lastBreath;if(k==='ravenShadow')disabled||=S.linceul.state!=='awakened'||S.linceul.ravenShadow<=0;if(k==='pilgrim')disabled||=S.linceul.state!=='awakened'||!S.linceul.pilgrim;b.disabled=disabled;});
   $('#luckValue').textContent=S.lucky+' / 3';$('#luckPips').innerHTML=[0,1,2].map(i=>'<button class="pip '+(i<S.lucky?'':'off')+'" aria-label="Point de Chance '+(i+1)+'"></button>').join('');$('#luckSpendBtn').disabled=S.lucky<=0;
-  $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';if($('#psiDieHeroValue'))$('#psiDieHeroValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
+  $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';if($('#psiDieHeroValue'))$('#psiDieHeroValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
   if($('#psiKnackResult'))$('#psiKnackResult').textContent=S.psiKnackLast||'Prêt.';if($('#psiWhispersResult'))$('#psiWhispersResult').textContent=S.psiWhispersLast||'Prêt.';
   if($('#psiRestoreBtn'))$('#psiRestoreBtn').disabled=!S.psiReconstitutionReady||!S.economy.bonus;if($('#psiRestoreStatus'))$('#psiRestoreStatus').textContent=S.psiReconstitutionReady?'Prête · 1/repos long':'Dépensée jusqu’au repos long';
   if($('#psiTeleportBtn'))$('#psiTeleportBtn').disabled=!S.economy.bonus||!S.psiDie;if($('#psiWhispersBtn'))$('#psiWhispersBtn').disabled=!S.economy.action||!S.psiDie;if($('#psiKnackBtn'))$('#psiKnackBtn').disabled=!S.psiDie;
@@ -732,10 +732,10 @@ function render(){
 }
 
 function bind(){
-  $('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
-  $('[data-subtabs]').forEach(root=>root.querySelectorAll('.subtab').forEach(b=>b.onclick=()=>setSubtab(root.dataset.subtabs,b.dataset.subtab)));
-  $('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
-  $('[data-mobile-econ]').forEach(b=>b.onclick=()=>{const k=b.dataset.mobileEcon;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});});
+  $$('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  $$('[data-subtabs]').forEach(root=>root.querySelectorAll('.subtab').forEach(b=>b.onclick=()=>setSubtab(root.dataset.subtabs,b.dataset.subtab)));
+  $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
+  $$('[data-mobile-econ]').forEach(b=>b.onclick=()=>{const k=b.dataset.mobileEcon;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});});
   $('#damageBtn').onclick=$('#mobileDamage').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#mobileHeal').onclick=()=>changeHp('heal');bindHpInputs();
   $('#tempHpMinus').onclick=$('#mobileTempMinus').onclick=()=>adjustTempHp(-1);$('#tempHpPlus').onclick=$('#mobileTempPlus').onclick=()=>adjustTempHp(1);
   $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
@@ -750,11 +750,11 @@ function bind(){
   $('#hexDawnBtn').onclick=()=>commit('Aube · Hexen Blade','Recharge 1d4+1.',()=>{hexDawn();});
   $('#linceulState').onchange=e=>commit('Linceul · état','État : '+e.target.value,()=>{S.linceul.state=e.target.value;if(e.target.value!=='awakened')S.conditions.agony=false;});
   $$('.linceul-use').forEach(b=>b.onclick=()=>useLinceul(b.dataset.linceulUse));$('#luckSpendBtn').onclick=spendLucky;
-  $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
+  $$$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
   $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#mobileShortRest').onclick=shortRest;$('#mobileLongRest').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
   $('#psiKnackBtn').onclick=usePsiKnack;$('#psiWhispersBtn').onclick=usePsiWhispers;$('#psiRestoreBtn').onclick=restorePsi;$('#psiTeleportBtn').onclick=psychicTeleport;
-  $('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
-  $('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#inventorySearch').oninput=renderInventory;$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
+  $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
+  $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#inventorySearch').oninput=renderInventory;$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
   $('#ribbonUndo').onclick=undo;$('#ribbonToggle').onclick=()=>$('#resultRibbon').classList.toggle('collapsed');$('#resultRibbon').addEventListener('click',e=>{if(e.target.closest('button'))return;if($('#resultRibbon').classList.contains('collapsed'))$('#resultRibbon').classList.remove('collapsed');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#itemEditor').hidden)closeItemEditor();});
   $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
