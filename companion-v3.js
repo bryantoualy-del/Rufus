@@ -613,8 +613,8 @@ function renderInventory(){
     '</details>'
   ).join(''):'<p class="meta">Aucun objet dans cette catégorie.</p>';
   $$('[data-edit-item]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();openItemEditor(Number(b.dataset.editItem));});
-  $$('[data-item-dec]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemDec),i=S.inventory[index];if(!i)return;i.qty=Math.max(0,i.qty-1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
-  $$('[data-item-inc]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemInc),i=S.inventory[index];if(!i)return;i.qty=Math.min(999,i.qty+1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
+  $$('[data-item-dec]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemDec),i=S.inventory[index];if(!i||i.qty<=0)return;pushHistory();i.qty=Math.max(0,i.qty-1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
+  $$('[data-item-inc]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemInc),i=S.inventory[index];if(!i||i.qty>=999)return;pushHistory();i.qty=Math.min(999,i.qty+1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
   const loadout=$('#inventoryLoadout');if(loadout){
     const priority=['Dague spectrale','Hexen Blade','Linceul du Jugement Noir','Amulette de résistance occulte','Arbalète légère duergar','Chaussons araignée'];
     const chosen=[];
@@ -639,12 +639,12 @@ function saveItem(e){
   e.preventDefault();const f=e.currentTarget,index=Number(f.elements.index.value);
   const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,icon:f.elements.icon.value,equipped:f.elements.equipped.checked});
   if(!item.name.trim())return;
-  if(index>=0)S.inventory[index]=item;else S.inventory.push(item);
+  pushHistory();if(index>=0)S.inventory[index]=item;else S.inventory.push(item);
   logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
 function deleteItem(){
   const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!confirm('Supprimer cet objet ?'))return;
-  const name=S.inventory[index]?.name||'Objet';S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
+  const name=S.inventory[index]?.name||'Objet';pushHistory();S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
 function pickImage(){$('#imageFile').click();}
 function handleImage(file){
