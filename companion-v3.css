@@ -661,3 +661,44 @@ textarea{resize:vertical}
     align-self:stretch;
   }
 }
+
+
+/* ===== Simple temp HP input v19 ===== */
+.temp-hpstat{
+  border-color:#35586d;
+  background:radial-gradient(circle at 80% 20%,rgba(94,191,231,.10),transparent 45%),#0a0d13;
+  justify-content:center;
+}
+.temp-hp-input{
+  width:100%;
+  min-width:0;
+  margin-top:7px;
+  text-align:center;
+  color:#bdeeff;
+  font-size:1.05rem;
+  font-weight:900;
+  border-color:#476f83;
+  background:#0d1921;
+}
+@media(max-width:767px){
+  .mobile-hudrow{grid-template-columns:1.05fr .82fr .65fr .65fr}
+  .mobile-temp-entry{display:flex;flex-direction:column;justify-content:center}
+  .mobile-temp-entry input{
+    width:100%;
+    min-width:0;
+    height:24px;
+    margin-top:2px;
+    padding:0 4px;
+    border:0;
+    background:transparent;
+    color:#9fe7ff;
+    text-align:center;
+    font-size:14px;
+    font-weight:900;
+    appearance:textfield;
+    -moz-appearance:textfield;
+  }
+  .mobile-temp-entry input::-webkit-outer-spin-button,
+  .mobile-temp-entry input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .mobile-vitalsbar{grid-template-columns:1fr}
+}

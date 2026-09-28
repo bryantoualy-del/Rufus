@@ -257,11 +257,9 @@ function changeHp(kind){
 }
 function bindHpInputs(){
   $('#hpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,53);commit('PV ajustés',S.hp+' → '+v,()=>{S.hp=v;});});
-  $('#tempHpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,999);commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});});
-}
-function adjustTempHp(delta){
-  const next=clamp(S.tempHp+delta,0,999);if(next===S.tempHp)return;
-  commit('PV temporaires',S.tempHp+' → '+next,()=>{S.tempHp=next;});
+  const setTemp=e=>{const v=clamp(e.target.value,0,999);if(v===S.tempHp){render();return;}commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});};
+  $('#tempHpInput').addEventListener('change',setTemp);
+  $('#mobileTempHpInput').addEventListener('change',setTemp);
 }
 
 const attacks={
@@ -705,7 +703,7 @@ function switchView(id){
 function render(){
   const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#maxHpValue').textContent=S.maxHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
   $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage;
-  $('#mobileHp').textContent=S.hp+'/'+S.maxHp;$('#mobileTempHp').textContent=S.tempHp;$('#mobileAc').textContent=ac.ac;$('#mobileTurn').textContent=S.turn;$('#mobileTurnDamage').textContent=S.turnDamage;
+  $('#mobileHp').textContent=S.hp+'/'+S.maxHp;$('#mobileTempHpInput').value=S.tempHp;$('#mobileAc').textContent=ac.ac;$('#mobileTurn').textContent=S.turn;$('#mobileTurnDamage').textContent=S.turnDamage;
   $('#mobileConcentration').classList.toggle('none',!S.concentration);$('#mobileConcText').textContent=S.concentration?S.concentration.name:'Aucune';
   $$('[data-mobile-econ]').forEach(b=>{const k=b.dataset.mobileEcon,on=!!S.economy[k];b.classList.toggle('free',on);b.classList.toggle('used',!on);});
   $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
@@ -738,7 +736,7 @@ function bind(){
   $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
   $$('[data-mobile-econ]').forEach(b=>b.onclick=()=>{const k=b.dataset.mobileEcon;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});});
   $('#damageBtn').onclick=$('#mobileDamage').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#mobileHeal').onclick=()=>changeHp('heal');bindHpInputs();
-  $('#tempHpMinus').onclick=$('#mobileTempMinus').onclick=()=>adjustTempHp(-1);$('#tempHpPlus').onclick=$('#mobileTempPlus').onclick=()=>adjustTempHp(1);
+
   $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
   $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{S.rollMode=b.dataset.rollMode;save();render();});
   $$('[data-cond]').forEach(b=>b.onclick=()=>{const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();});
