@@ -704,3 +704,6 @@ textarea{resize:vertical}
 }
 
 .signature-icon img{display:block;width:100%;height:100%;object-fit:cover;border-radius:16px}
+/* Emblème détouré, centré dans la zone d’identité. */
+.signature-icon{display:grid;place-items:center}
+.signature-icon img{object-fit:contain;border-radius:0}
