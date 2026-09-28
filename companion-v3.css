@@ -702,3 +702,5 @@ textarea{resize:vertical}
   .mobile-temp-entry input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .mobile-vitalsbar{grid-template-columns:1fr}
 }
+
+.signature-icon img{display:block;width:100%;height:100%;object-fit:cover;border-radius:16px}

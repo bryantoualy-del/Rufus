@@ -557,7 +557,7 @@ function socialRoll(label,bonus,isSave=false,ability=''){
   const a=die(20),b=mode==='normal'?null:die(20),chosen=mode==='adv'?Math.max(a,b):mode==='dis'?Math.min(a,b):a;
   let raven=0;if(isSave&&S.ravenMemoryBonus&&confirm('Utiliser le +1d8 d’Ombre du Corbeau sur ce JdS ?')){raven=die(8);pushHistory();S.ravenMemoryBonus=false;}
   const total=chosen+bonus+raven,details=(b===null?'d20 '+a:'d20 '+a+' / '+b+' → '+chosen)+' '+fmt(bonus)+(raven?' + Ombre '+raven:'')+' = '+total+(visionDis?' · Vision : désavantage SAG ('+S.vision.wisPenalty+')':'');
-  logEvent('Social · '+label,details);save();renderSocial();const out=$('#socialResult');out.hidden=false;out.textContent=label+' : '+details;
+  logEvent('Social · '+label,details);save();renderSocial();const out=$('#socialResult');out.hidden=false;out.textContent=label+' : '+details;window.CompanionSocialDice?.show({label,dice:b===null?a:[a,b],bonus:bonus+raven,total,mode});
 }
 function renderSocial(){
   const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
