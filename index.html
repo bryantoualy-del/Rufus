@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <title>Rufus — Companion V3</title>
-<link rel="stylesheet" href="companion-v3.css?v=17">
+<link rel="stylesheet" href="companion-v3.css?v=18">
 </head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
@@ -106,7 +106,14 @@
           </div>
           <div class="roll-modes compact-rolls" aria-label="Mode de jet"><button class="toggle on" data-roll-mode="normal">Normal</button><button class="toggle" data-roll-mode="adv">Avantage</button><button class="toggle" data-roll-mode="dis">Désavantage</button><label class="manual">d20 <input id="manualRoll" type="number" min="1" max="20" inputmode="numeric" placeholder="—"></label></div>
         </article>
-        <article class="card wide fire-blade offense-fire"><div class="eyebrow">1 / jour · prochaine Sournoise réussie</div><h2>Lame du Feu Caché</h2><p>+2d6 feu sur la prochaine Sournoise réussie. JdS CON DD 16 ou aveuglé jusqu’à la fin du prochain tour.</p><button class="primary" id="fireBladeBtn">Armer Lame du Feu Caché</button><div class="status-line" id="fireBladeStatus"></div></article>
+        <div class="fire-ribbon" id="fireBladeRibbon">
+          <div class="fire-ribbon-copy">
+            <span class="fire-ribbon-kicker">1 / jour · prochaine Sournoise réussie</span>
+            <div class="fire-ribbon-main"><b>Lame du Feu Caché</b><span>+2d6 feu · CON DD 16 ou aveuglé</span></div>
+          </div>
+          <div class="fire-ribbon-state" id="fireBladeStatus"></div>
+          <button class="fire-ribbon-action" id="fireBladeBtn">Armer</button>
+        </div>
         <article class="card wide weapon psychic weapon-psychic"><div class="attack-head"><div><div class="eyebrow">Âme Acérée · action</div><h2>Lame psychique</h2></div><div class="attack-dice">+7 · 1d6+3 psy</div></div><p class="meta">Finesse · lancer 18 m · main libre. Une seconde lame peut suivre avec l’autre main libre.</p><div class="weapon-actions"><button class="primary attack-btn" data-attack="psychic">Attaquer — Lame psychique</button><button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde lame · bonus · 1d6+3</button></div></article>
         <article class="card weapon weapon-spectral"><div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale +1</h2><div class="attack-dice">+8 · 1d4+4 perforants</div><details class="rules-mini"><summary>Détails</summary><p>Sur une créature vivante touchée : JdS CON DD 13 ou désavantage à sa prochaine attaque.</p></details><button class="primary attack-btn" data-attack="spectral">Attaquer</button></article>
         <article class="card weapon weapon-hexen"><div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2><div class="attack-dice">+8 · 1d6+4 perforants</div><p class="meta">Épée courte +1 · 5 charges pour ses illusions.</p><button class="primary attack-btn" data-attack="hexen">Attaquer</button></article>
@@ -292,6 +299,6 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=17"></script>
+<script src="companion-v3.js?v=18"></script>
 </body>
 </html>
