@@ -177,7 +177,22 @@ function renderResultRibbon(){
 function commit(title,detail,mutate,fx){
   pushHistory();mutate();logEvent(title,detail);save();render();if(fx)playFx(fx,title);
 }
+function beginPendingTransaction(){
+  const p=S.pending;if(!p)return;
+  p.undoBefore=clone(S.history[S.history.length-1]);
+  p.undoToken=Date.now()+'-'+Math.random().toString(36).slice(2);
+  S.history[S.history.length-1].undoToken=p.undoToken;
+  save();
+}
+function resolvePendingHistory(p){
+  const index=p.undoToken?S.history.findIndex(x=>x.undoToken===p.undoToken):S.history.findLastIndex(x=>!x.pending);
+  const before=p.undoBefore||S.history[index]||combatSnapshot();
+  if(index>=0)S.history.splice(index);
+  S.history.push(before);
+  if(S.history.length>MAX_HISTORY)S.history.shift();
+}
 function undo(){
+  if(S.pending?.undoBefore)resolvePendingHistory(S.pending);
   const snap=S.history.pop();
   if(!snap)return toast('Aucune action mécanique à annuler.');
   const remaining=S.history;
@@ -310,6 +325,7 @@ function startAttack(key,context='own'){
     if(key==='psychic2')S.psychicFollowup=false;
     S.pending={kind:'attack',key,context:context==='reaction'?'reaction':'own',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
+  beginPendingTransaction();
 }
 function spendLuckyPending(){
   if(!S.pending||S.pending.kind!=='attack')return;
@@ -361,9 +377,10 @@ function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:s
 function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
   if(!hit){
-    commit('Attaque ratée · '+spec.name,'Jet '+p.total,()=>{S.pending=null;});
+    resolvePendingHistory(p);S.pending=null;logEvent('Attaque ratée · '+spec.name,'Jet '+p.total);save();render();
     return;
   }
+  resolvePendingHistory(p);
   const visionCrit=S.vision.active&&p.nat>=17;
   const crit=p.nat===20||visionCrit;
   const multiplier=crit?2:1;
@@ -383,7 +400,7 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   }
   if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
   const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'');
-  pushHistory();S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
+  S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
   toast(detail);
 }
 function renderPending(){
@@ -420,11 +437,13 @@ function useWound(){
   if(!S.woundReady)return toast('Blessure déjà utilisée aujourd’hui.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
   commit('Blessure','1/jour · attaque de sort au contact',()=>{S.economy.action=false;S.woundReady=false;S.pending={kind:'wound'};});
+  beginPendingTransaction();
 }
 function resolveWound(hit){
-  if(!S.pending||S.pending.kind!=='wound')return;
-  if(!hit)return commit('Blessure ratée','Aucun dégât.',()=>{S.pending=null;});
-  const r=rollDamage(3,10);commit('Blessure · touché',r.total+' dégâts nécrotiques ('+r.arr.join('+')+')',()=>{S.turnDamage+=r.total;S.pending=null;},'raven');
+  const p=S.pending;if(!p||p.kind!=='wound')return;
+  resolvePendingHistory(p);S.pending=null;
+  if(!hit){logEvent('Blessure ratée','Aucun dégât.');save();render();return;}
+  const r=rollDamage(3,10);S.turnDamage+=r.total;logEvent('Blessure · touché',r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');
 }
 function useInvisibility(){
   if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
