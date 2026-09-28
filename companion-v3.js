@@ -21,8 +21,8 @@ const defaultItems=[
   {name:'Hexen Blade',category:'equipment',qty:1,note:'+9 · 1d6+5 · 5 charges · illusions DD15.',image:'',icon:'blade',equipped:true},
   {name:'Arbalète légère duergar',category:'equipment',qty:1,note:'24/96 m · munitions · chargement · deux mains.',image:'',icon:'bow',equipped:true},
   {name:'Arc standard',category:'equipment',qty:1,note:'Carquois de 30 flèches.',image:'',icon:'bow',equipped:false},
-  {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 15 avec DEX 18.',image:'',icon:'armor',equipped:true},
-  {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA17 / Éveillé CA18.',image:'',icon:'raven',equipped:false},
+  {name:'Armure de cuir',category:'equipment',qty:1,note:'CA 14 avec DEX 16.',image:'',icon:'armor',equipped:true},
+  {name:'Linceul du Jugement Noir',category:'equipment',qty:1,note:'Vestige · cuir clouté · Dormant CA16 / Éveillé CA17.',image:'',icon:'raven',equipped:false},
   {name:'Chaussons araignée',category:'equipment',qty:1,note:'Mobilité · propriété exacte à valider.',image:'',icon:'boots',equipped:true},
   {name:'Amulette de résistance occulte',category:'equipment',qty:1,note:'Protection · effet exact selon fiche de table.',image:'',icon:'amulet',equipped:true},
   {name:'Bague d’échange d’apparence',category:'misc',qty:1,note:'Paire liée à Kentaro · paramètres exacts à valider.',image:'',icon:'ring',equipped:false},
@@ -44,9 +44,9 @@ function defaults(){
     schema:3,hp:53,maxHp:53,tempHp:0,turn:1,round:1,turnDamage:0,
     economy:{action:true,bonus:true,reaction:true,move:true},
     concentration:null,rollMode:'normal',socialMode:'normal',
-    conditions:{targetNotActed:false,surprised:false,allyAdjacent:false,agony:false},
+    conditions:{allyAdjacent:false,agony:false},
     sneakOwn:false,sneakReaction:false,psychicFollowup:false,sharpshooter:false,
-    lucky:3,hexCharges:5,psiDie:8,
+    lucky:3,hexCharges:5,psiDie:8,psiReconstitutionReady:true,psiKnackLast:'',psiWhispersLast:'',
     fireBlade:{ready:true,armed:false},
     woundReady:true,invisibilityReady:true,
     vision:{active:false,target:'',uses:0,wisPenalty:0},
@@ -55,7 +55,7 @@ function defaults(){
     pending:null,
     inventory:clone(defaultItems),inventoryTab:'equipment',
     notes:'',notesPreview:false,journal:[],history:[],
-    ui:{view:'combat',socialTab:'skills'}
+    ui:{view:'combat',socialTab:'skills',subtabs:{combat:'attacks',arsenal:'psi',journal:'mechanics'}}
   };
 }
 let S=defaults();
@@ -80,7 +80,7 @@ function normalize(x){
   o.schema=3;o.maxHp=53;o.hp=clamp(o.hp,0,53);o.tempHp=clamp(o.tempHp,0,999);
   o.turn=Math.max(1,parseInt(o.turn,10)||1);o.round=Math.max(1,parseInt(o.round,10)||1);o.turnDamage=Math.max(0,Number(o.turnDamage)||0);
   o.economy={...d.economy,...(o.economy||{})};
-  o.conditions={...d.conditions,...(o.conditions||{})};
+  o.conditions={...d.conditions,...(o.conditions||{})};delete o.conditions.targetNotActed;delete o.conditions.surprised;
   o.fireBlade={...d.fireBlade,...(o.fireBlade||{})};
   o.vision={...d.vision,...(o.vision||{})};
   o.linceul={...d.linceul,...(o.linceul||{})};
@@ -90,11 +90,12 @@ function normalize(x){
   if(!['equipment','misc','consumable'].includes(o.inventoryTab))o.inventoryTab='equipment';
   o.lucky=clamp(o.lucky,0,3);o.hexCharges=clamp(o.hexCharges,0,5);
   o.psiDie=[0,4,6,8].includes(Number(o.psiDie))?Number(o.psiDie):8;
+  o.psiReconstitutionReady=o.psiReconstitutionReady!==false;o.psiKnackLast=String(o.psiKnackLast||'').slice(0,180);o.psiWhispersLast=String(o.psiWhispersLast||'').slice(0,180);
+  o.ui={...d.ui,...(o.ui||{}),subtabs:{...d.ui.subtabs,...(o.ui?.subtabs||{})}};
   o.inventory=Array.isArray(o.inventory)?o.inventory.slice(0,200).map(sanitizeItem):clone(defaultItems);
   o.notes=String(o.notes||'').slice(0,150000);
   o.journal=Array.isArray(o.journal)?o.journal.slice(0,MAX_JOURNAL):[];
   o.history=Array.isArray(o.history)?o.history.slice(-MAX_HISTORY):[];
-  o.ui={...d.ui,...(o.ui||{})};
   return o;
 }
 function migrateLegacy(){
@@ -210,9 +211,9 @@ function playFx(kind,label){
 }
 
 function acInfo(){
-  if(S.linceul.state==='awakened')return {ac:18,label:'Linceul éveillé'};
-  if(S.linceul.state==='dormant')return {ac:17,label:'Linceul dormant'};
-  return {ac:15,label:'Cuir'};
+  if(S.linceul.state==='awakened')return {ac:17,label:'Linceul éveillé'};
+  if(S.linceul.state==='dormant')return {ac:16,label:'Linceul dormant'};
+  return {ac:14,label:'Cuir'};
 }
 function setConcentration(name,source=''){
   if(S.concentration&&S.concentration.name!==name){
@@ -252,16 +253,20 @@ function bindHpInputs(){
   $('#hpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,53);commit('PV ajustés',S.hp+' → '+v,()=>{S.hp=v;});});
   $('#tempHpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,999);commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});});
 }
+function adjustTempHp(delta){
+  const next=clamp(S.tempHp+delta,0,999);if(next===S.tempHp)return;
+  commit('PV temporaires',S.tempHp+' → '+next,()=>{S.tempHp=next;});
+}
 
 const attacks={
-  psychic:{name:'Dague psychique',bonus:8,count:1,sides:6,mod:4,type:'psychiques',cost:'action',finesse:true,psychic:true},
-  psychic2:{name:'Seconde dague psychique',bonus:8,count:1,sides:6,mod:4,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
-  spectral:{name:'Dague spectrale',bonus:9,count:1,sides:4,mod:5,type:'perforants',cost:'action',finesse:true},
-  hexen:{name:'Hexen Blade',bonus:9,count:1,sides:6,mod:5,type:'perforants',cost:'action',finesse:true},
-  crossbow:{name:'Arbalète légère',bonus:8,count:1,sides:8,mod:4,type:'perforants',cost:'action',ranged:true}
+  psychic:{name:'Lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'action',finesse:true,psychic:true},
+  psychic2:{name:'Seconde lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
+  spectral:{name:'Dague spectrale',bonus:8,count:1,sides:4,mod:4,type:'perforants',cost:'action',finesse:true},
+  hexen:{name:'Hexen Blade',bonus:8,count:1,sides:6,mod:4,type:'perforants',cost:'action',finesse:true},
+  crossbow:{name:'Arbalète légère duergar',bonus:7,count:1,sides:8,mod:3,type:'perforants',cost:'action',ranged:true}
 };
 function effectiveRollMode(){
-  const situAdv=S.conditions.targetNotActed||S.vision.active||(S.conditions.agony&&S.linceul.state==='awakened');
+  const situAdv=S.vision.active||(S.conditions.agony&&S.linceul.state==='awakened');
   const adv=S.rollMode==='adv'||situAdv,dis=S.rollMode==='dis';
   return adv&&dis?'normal':adv?'adv':dis?'dis':'normal';
 }
@@ -299,7 +304,7 @@ function startAttack(key,context='own'){
     S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={kind:'attack',key,context:context==='reaction'?'reaction':'own',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,luckyRoll:null,ravenRoll:null};
+    S.pending={kind:'attack',key,context:context==='reaction'?'reaction':'own',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
 }
 function spendLuckyPending(){
@@ -315,6 +320,39 @@ function useRavenPending(){
   if(!S.pending||S.pending.kind!=='attack'||!S.ravenMemoryBonus)return;
   const r=die(8);commit('Ombre du Corbeau','+'+r+' au jet d’attaque',()=>{S.pending.ravenRoll=r;S.pending.total+=r;S.ravenMemoryBonus=false;},'raven');
 }
+function psiStepDown(size){return size>=8?6:size>=6?4:size>=4?0:0;}
+function psiStepUp(size){return size<=0?4:size<=4?6:size<=6?8:8;}
+function psiRollWithFlux(){
+  if(!S.psiDie)return null;
+  const before=S.psiDie,r=die(before);let after=before;
+  if(r===before)after=psiStepDown(before);else if(r===1)after=psiStepUp(before);
+  return {before,r,after};
+}
+function usePsiKnack(){
+  const rr=psiRollWithFlux();if(!rr)return toast('Dé psionique épuisé.');
+  commit('Truc de psi','d'+rr.before+' = '+rr.r+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.psiDie=rr.after;S.psiKnackLast='+'+rr.r+' au test maîtrisé · dé '+(rr.after?'d'+rr.after:'épuisé');},'raven');
+}
+function usePsiWhispers(){
+  if(!S.economy.action)return toast('Action déjà utilisée.');
+  const rr=psiRollWithFlux();if(!rr)return toast('Dé psionique épuisé.');
+  commit('Murmures psychiques',rr.r+' créature'+(rr.r>1?'s':'')+' · télépathie 1 h à 1,5 km'+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.economy.action=false;S.psiDie=rr.after;S.psiWhispersLast=rr.r+' créature'+(rr.r>1?'s':'')+' reliée'+(rr.r>1?'s':'');},'raven');
+}
+function restorePsi(){
+  if(!S.psiReconstitutionReady)return toast('Reconstitution du psi déjà utilisée.');
+  if(!S.economy.bonus)return toast('Action bonus déjà utilisée.');
+  commit('Reconstitution du psi','Dé psionique restauré à d8.',()=>{S.economy.bonus=false;S.psiDie=8;S.psiReconstitutionReady=false;},'raven');
+}
+function psychicTeleport(){
+  if(!S.economy.bonus)return toast('Action bonus déjà utilisée.');
+  if(!S.psiDie)return toast('Dé psionique épuisé.');
+  const before=S.psiDie,after=psiStepDown(before);
+  commit('Téléportation psychique','Jusqu’à 12 m · dé d'+before+' → '+(after?'d'+after:'épuisé'),()=>{S.economy.bonus=false;S.psiDie=after;},'raven');
+}
+function useGuidedStrikePending(){
+  const p=S.pending;if(!p||p.kind!=='attack'||!attacks[p.key]?.psychic||p.nat===1||!S.psiDie)return;
+  if(p.guidedPsiRoll)return toast('Frappes autoguidées déjà lancée sur cette attaque.');
+  const r=die(S.psiDie);pushHistory();p.guidedPsiRoll=r;p.total+=r;logEvent('Frappes autoguidées','+'+r+' au jet d’attaque · si cela transforme le raté en touche, le dé diminuera.');save();render();
+}
 function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:sum(arr)};}
 function resolveAttack(hit,useSneak=false){
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
@@ -323,7 +361,7 @@ function resolveAttack(hit,useSneak=false){
     return;
   }
   const visionCrit=S.vision.active&&p.nat>=17;
-  const crit=p.nat===20||S.conditions.surprised||visionCrit;
+  const crit=p.nat===20||visionCrit;
   const multiplier=crit?2:1;
   const base=rollDamage(spec.count*multiplier,spec.sides);
   const sharp=p.key==='crossbow'&&S.sharpshooter?10:0;
@@ -341,7 +379,7 @@ function resolveAttack(hit,useSneak=false){
   }
   if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
   const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'');
-  pushHistory();S.turnDamage+=total;S.pending=null;logEvent('Touché · '+spec.name,detail);save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
+  pushHistory();S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
   toast(detail);
 }
 function renderPending(){
@@ -362,13 +400,14 @@ function renderPending(){
     return;
   }
   el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
-    '<div class="pending-details">Critique : '+critRange+(S.conditions.surprised?' · cible surprise = critique sur touche':'')+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
+    '<div class="pending-details">Critique : '+critRange+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
     '<h3 class="pending-question">Est-ce que cette attaque touche ?</h3>'+
     '<div class="pending-actions">'+
       (eligible?'<button class="primary" data-hit-sneak>Oui · Sournoise 5d6</button>':'')+
       '<button class="ability" data-hit>Oui'+(p.nat===20||S.conditions.surprised||S.vision.active&&p.nat>=17?' · critique':'')+'</button>'+
       '<button class="ability dangerish" data-miss>Non · raté</button>'+
       (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
+      (spec.psychic&&S.psiDie&&!p.guidedPsiRoll?'<button class="ability" data-guided-psi>Frappes autoguidées · d'+S.psiDie+'</button>':'')+
       (S.ravenMemoryBonus?'<button class="ability" data-raven-pending>Ombre · +1d8</button>':'')+
     '</div>';
 }
@@ -447,7 +486,7 @@ function useLinceul(kind){
   },'raven');
 }
 function shortRest(){
-  commit('Repos court','Aucune ressource de classe principale restaurée automatiquement.',()=>{
+  commit('Repos court','Économie du tour restaurée. Le dé psionique et Reconstitution du psi ne se restaurent pas au repos court.',()=>{
     S.economy={action:true,bonus:true,reaction:true,move:true};S.turnDamage=0;S.pending=null;S.psychicFollowup=false;
     if(S.concentration){S.concentration=null;S.vision.active=false;}
   });
@@ -455,7 +494,7 @@ function shortRest(){
 function longRest(){
   if(!confirm('Effectuer un repos long ? Les ressources / repos long seront restaurées.'))return;
   commit('Repos long','PV, Chanceux, Vision, Lame du Feu Caché et ressources / repos long restaurés.',()=>{
-    S.hp=53;S.tempHp=0;S.lucky=3;S.fireBlade={ready:true,armed:false};S.vision={active:false,target:'',uses:0,wisPenalty:0};
+    S.hp=53;S.tempHp=0;S.lucky=3;S.psiDie=8;S.psiReconstitutionReady=true;S.fireBlade={ready:true,armed:false};S.vision={active:false,target:'',uses:0,wisPenalty:0};
     S.linceul.judgment=true;S.linceul.ravenShadow=1;S.linceul.pilgrim=true;S.ravenMemoryBonus=false;
     S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.turnDamage=0;S.concentration=null;S.pending=null;
   },'raven');
@@ -468,7 +507,7 @@ function newDay(){
 function nextTurn(){
   commit('Tour suivant','Économie du tour restaurée.',()=>{
     S.turn++;S.round++;
-    S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.targetNotActed=false;S.conditions.surprised=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
+    S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
   });
   if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment){
     commit('Jugement différé','Rufus revient automatiquement à 1 PV au début de son tour.',()=>{S.hp=1;S.linceul.judgment=false;},'raven');
@@ -477,17 +516,17 @@ function nextTurn(){
 
 const abilities=[
   {name:'Force',abbr:'FOR',score:8,mod:-1,save:-1,prof:false},
-  {name:'Dextérité',abbr:'DEX',score:18,mod:4,save:8,prof:true},
+  {name:'Dextérité',abbr:'DEX',score:16,mod:3,save:7,prof:true},
   {name:'Constitution',abbr:'CON',score:10,mod:0,save:0,prof:false},
   {name:'Intelligence',abbr:'INT',score:13,mod:1,save:5,prof:true},
-  {name:'Sagesse',abbr:'SAG',score:13,mod:1,save:1,prof:false},
-  {name:'Charisme',abbr:'CHA',score:15,mod:2,save:2,prof:false}
+  {name:'Sagesse',abbr:'SAG',score:14,mod:2,save:2,prof:false},
+  {name:'Charisme',abbr:'CHA',score:16,mod:3,save:3,prof:false}
 ];
 const skills=[
-  ['Athlétisme','FOR',-1,''],['Acrobaties','DEX',8,'Maîtrise'],['Discrétion','DEX',12,'Expertise'],['Escamotage','DEX',8,'Maîtrise'],
+  ['Athlétisme','FOR',-1,''],['Acrobaties','DEX',7,'Maîtrise'],['Discrétion','DEX',11,'Expertise'],['Escamotage','DEX',7,'Maîtrise'],
   ['Arcanes','INT',1,''],['Histoire','INT',1,''],['Investigation','INT',5,'Maîtrise'],['Nature','INT',1,''],['Religion','INT',1,''],
-  ['Dressage','SAG',1,''],['Intuition','SAG',1,''],['Médecine','SAG',1,''],['Perception','SAG',5,'Maîtrise'],['Survie','SAG',1,''],
-  ['Intimidation','CHA',6,'Maîtrise'],['Persuasion','CHA',10,'Expertise'],['Représentation','CHA',2,''],['Tromperie','CHA',6,'Maîtrise']
+  ['Dressage','SAG',2,''],['Intuition','SAG',2,''],['Médecine','SAG',2,''],['Perception','SAG',6,'Maîtrise'],['Survie','SAG',2,''],
+  ['Intimidation','CHA',7,'Maîtrise'],['Persuasion','CHA',11,'Expertise'],['Représentation','CHA',3,''],['Tromperie','CHA',7,'Maîtrise']
 ];
 function socialRoll(label,bonus,isSave=false,ability=''){
   const visionDis=ability==='SAG'&&S.vision.wisPenalty>0;
@@ -499,17 +538,18 @@ function socialRoll(label,bonus,isSave=false,ability=''){
 }
 function renderSocial(){
   const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
-  $$('.social-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.socialTab===tab));
+  $('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
   $$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
+  const inventoryMode=tab==='inventory';$('#socialSheetPane').hidden=inventoryMode;$('#socialInventoryPane').hidden=!inventoryMode;if(inventoryMode){renderInventory();return;}
   if(tab==='skills'){
-    c.innerHTML='<div class="social-passives"><span>Perception passive <b>15</b></span><span>Intuition passive <b>11</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
+    c.innerHTML='<div class="social-passives"><span>Perception passive <b>16</b></span><span>Intuition passive <b>12</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
     $$('[data-skill]',c).forEach(b=>b.onclick=()=>{const s=skills[Number(b.dataset.skill)];socialRoll(s[0],s[2],false,s[1]);});
   }else if(tab==='abilities'){
-    c.innerHTML='<div class="social-passives"><span>JdS maîtrisés <b>DEX, INT</b></span><span>DEX <b>18</b></span><span>CHA <b>15</b></span></div><div class="abilities-grid">'+abilities.map((a,i)=>'<div class="ability-card"><div class="ability-card-head"><div><span>'+a.abbr+'</span><h3>'+a.name+'</h3></div><strong>'+a.score+'</strong></div><div class="ability-values"><span>Mod.<b>'+fmt(a.mod)+'</b></span><span>Test<b>'+fmt(a.mod)+'</b></span><span class="'+(a.prof?'proficient':'')+'">JdS<b>'+fmt(a.save)+'</b></span></div><div class="ability-actions"><button class="ability" data-check="'+i+'">Tester</button><button class="ability" data-save="'+i+'">JdS</button></div></div>').join('')+'</div>';
+    c.innerHTML='<div class="social-passives"><span>JdS maîtrisés <b>DEX, INT</b></span><span>DEX <b>16</b></span><span>CHA <b>16</b></span></div><div class="abilities-grid">'+abilities.map((a,i)=>'<div class="ability-card"><div class="ability-card-head"><div><span>'+a.abbr+'</span><h3>'+a.name+'</h3></div><strong>'+a.score+'</strong></div><div class="ability-values"><span>Mod.<b>'+fmt(a.mod)+'</b></span><span>Test<b>'+fmt(a.mod)+'</b></span><span class="'+(a.prof?'proficient':'')+'">JdS<b>'+fmt(a.save)+'</b></span></div><div class="ability-actions"><button class="ability" data-check="'+i+'">Tester</button><button class="ability" data-save="'+i+'">JdS</button></div></div>').join('')+'</div>';
     $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false,a.abbr);});
     $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true,a.abbr);});
   }else{
-    c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Assassin</b><span>Fausse identité crédible : 7 jours et 25 po.</span></div><div class="rp-box"><b>Résistance</b><span>Amulette de résistance occulte : type exact selon la fiche de table.</span></div></div>';
+    c.innerHTML='<div class="rp-grid"><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils</b><span>Outils de voleur · déguisement · contrefaçon</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div><div class="rp-box"><b>Âme Acérée</b><span>Talent psionique, télépathie et mobilité psychique.</span></div><div class="rp-box"><b>Résistance</b><span>Amulette de résistance occulte : type exact selon la fiche de table.</span></div></div>';
   }
 }
 
@@ -608,7 +648,7 @@ function renderNotePreview(text){
 function download(name,body,type='application/json'){
   const url=URL.createObjectURL(new Blob([body],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
-function exportData(){download('Rufus-Companion-V3.json',JSON.stringify({format:'rufus-companion-v3',schema:3,exportedAt:new Date().toISOString(),state:S},null,2));logEvent('Export JSON','Sauvegarde complète exportée.');save();renderJournal();}
+function exportData(){download('Rufus-Companion-V3.json',JSON.stringify({format:'rufus-companion-v3',schema:4,exportedAt:new Date().toISOString(),state:S},null,2));logEvent('Export JSON','Sauvegarde complète exportée.');save();renderJournal();}
 function exportNotes(){
   const mechanics=S.journal.slice().reverse().map(e=>'- '+e.time+' · '+e.title+(e.detail?' — '+e.detail:'')).join('\n');
   const body='# Rufus — Notes de session\n\n'+(S.notes||'_Aucune note libre._')+'\n\n## Journal mécanique\n\n'+(mechanics||'_Journal vide._')+'\n';
@@ -644,19 +684,30 @@ function resetAll(){
   try{localStorage.setItem(BACKUP,JSON.stringify(S));}catch{}S=defaults();save();render();toast('État initial restauré.');
 }
 
+function renderSubtabs(group){
+  const root=$('[data-subtabs="'+group+'"]');if(!root)return;const selected=S.ui.subtabs?.[group]||root.querySelector('.subtab')?.dataset.subtab;
+  root.querySelectorAll('.subtab').forEach(b=>b.classList.toggle('active',b.dataset.subtab===selected));
+  const view=$('#'+group);if(view)view.querySelectorAll(':scope > .subpane').forEach(p=>p.classList.toggle('active',p.dataset.subpane===selected));
+}
+function setSubtab(group,id){
+  S.ui.subtabs=S.ui.subtabs||{};S.ui.subtabs[group]=id;save();renderSubtabs(group);window.scrollTo({top:0,behavior:'instant'});
+}
 function switchView(id){
-  S.ui.view=id;$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
-  if(id==='social')renderSocial();if(id==='inventory')renderInventory();if(id==='journal')renderJournal();window.scrollTo({top:0,behavior:'instant'});
+  S.ui.view=id;$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
+  if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);window.scrollTo({top:0,behavior:'instant'});
 }
 function render(){
-  const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
+  const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#maxHpValue').textContent=S.maxHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
   $('#turnNo').textContent=S.turn;$('#roundNo').textContent=S.round;$('#turnDamageValue').textContent=S.turnDamage;
+  $('#mobileHp').textContent=S.hp+'/'+S.maxHp;$('#mobileTempHp').textContent=S.tempHp;$('#mobileAc').textContent=ac.ac;$('#mobileTurn').textContent=S.turn;$('#mobileTurnDamage').textContent=S.turnDamage;
+  $('#mobileConcentration').classList.toggle('none',!S.concentration);$('#mobileConcText').textContent=S.concentration?S.concentration.name:'Aucune';
+  $('[data-mobile-econ]').forEach(b=>{const k=b.dataset.mobileEcon,on=!!S.economy[k];b.classList.toggle('free',on);b.classList.toggle('used',!on);});
   $$('.economy').forEach(b=>{const k=b.dataset.econ,on=!!S.economy[k];b.classList.toggle('used',!on);const sm=$('small',b);if(sm)sm.textContent=k==='move'?(on?'9 m':'utilisé'):(on?'disponible':'utilisée');});
   const conc=S.concentration;$('#turnConcentration').classList.toggle('none',!conc);$('#turnConcText').textContent=conc?conc.name:'Aucune';
   $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
   $$('[data-roll-mode]').forEach(b=>b.classList.toggle('on',b.dataset.rollMode===S.rollMode));
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
-  $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+3 · 1d8+14 perforants':'+8 · 1d8+4 perforants');
+  $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+2 · 1d8+13 perforants':'+7 · 1d8+3 perforants');
   const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'5d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
   $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Dague psychique':'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
@@ -668,20 +719,26 @@ function render(){
   $$('.awakened-only').forEach(x=>x.classList.toggle('locked',S.linceul.state!=='awakened'));
   $$('.linceul-use').forEach(b=>{const k=b.dataset.linceulUse;let disabled=S.linceul.state==='unequipped';if(k==='judgment')disabled||=!S.linceul.judgment;if(k==='lastBreath')disabled||=!S.linceul.lastBreath;if(k==='ravenShadow')disabled||=S.linceul.state!=='awakened'||S.linceul.ravenShadow<=0;if(k==='pilgrim')disabled||=S.linceul.state!=='awakened'||!S.linceul.pilgrim;b.disabled=disabled;});
   $('#luckValue').textContent=S.lucky+' / 3';$('#luckPips').innerHTML=[0,1,2].map(i=>'<button class="pip '+(i<S.lucky?'':'off')+'" aria-label="Point de Chance '+(i+1)+'"></button>').join('');$('#luckSpendBtn').disabled=S.lucky<=0;
-  $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
-  renderPending();renderSocial();renderInventory();renderJournal();renderResultRibbon();
+  $('#psiDieValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';if($('#psiDieHeroValue'))$('#psiDieHeroValue').textContent=S.psiDie?'d'+S.psiDie:'épuisé';$('[data-psi]').forEach(b=>b.classList.toggle('on',Number(b.dataset.psi)===S.psiDie));
+  if($('#psiKnackResult'))$('#psiKnackResult').textContent=S.psiKnackLast||'Prêt.';if($('#psiWhispersResult'))$('#psiWhispersResult').textContent=S.psiWhispersLast||'Prêt.';
+  if($('#psiRestoreBtn'))$('#psiRestoreBtn').disabled=!S.psiReconstitutionReady||!S.economy.bonus;if($('#psiRestoreStatus'))$('#psiRestoreStatus').textContent=S.psiReconstitutionReady?'Prête · 1/repos long':'Dépensée jusqu’au repos long';
+  if($('#psiTeleportBtn'))$('#psiTeleportBtn').disabled=!S.economy.bonus||!S.psiDie;if($('#psiWhispersBtn'))$('#psiWhispersBtn').disabled=!S.economy.action||!S.psiDie;if($('#psiKnackBtn'))$('#psiKnackBtn').disabled=!S.psiDie;
+  renderPending();renderSocial();renderInventory();renderJournal();renderResultRibbon();renderSubtabs('combat');renderSubtabs('arsenal');renderSubtabs('journal');
 }
 
 function bind(){
-  $$('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
-  $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
-  $('#damageBtn').onclick=()=>changeHp('damage');$('#healBtn').onclick=()=>changeHp('heal');bindHpInputs();
-  $('#nextTurn').onclick=nextTurn;$('#turnConcentration').onclick=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};
+  $('.nav [data-view]').forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.view)));
+  $('[data-subtabs]').forEach(root=>root.querySelectorAll('.subtab').forEach(b=>b.onclick=()=>setSubtab(root.dataset.subtabs,b.dataset.subtab)));
+  $('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
+  $('[data-mobile-econ]').forEach(b=>b.onclick=()=>{const k=b.dataset.mobileEcon;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});});
+  $('#damageBtn').onclick=$('#mobileDamage').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#mobileHeal').onclick=()=>changeHp('heal');bindHpInputs();
+  $('#tempHpMinus').onclick=$('#mobileTempMinus').onclick=()=>adjustTempHp(-1);$('#tempHpPlus').onclick=$('#mobileTempPlus').onclick=()=>adjustTempHp(1);
+  $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
   $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{S.rollMode=b.dataset.rollMode;save();render();});
   $$('[data-cond]').forEach(b=>b.onclick=()=>{const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();});
   $('#sharpshooterToggle').onclick=()=>{S.sharpshooter=!S.sharpshooter;save();render();};
   $$('[data-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.attack,'own'));$$('[data-reaction-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.reactionAttack,'reaction'));
-  $('#pendingAttack').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))spendLuckyPending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
+  $('#pendingAttack').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))spendLuckyPending();else if(b.hasAttribute('data-guided-psi'))useGuidedStrikePending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
   $$('[data-cunning]').forEach(b=>b.onclick=()=>useCunning(b.dataset.cunning));$$('.reaction-action').forEach(b=>b.onclick=()=>useReaction(b.textContent.trim().split('·')[0].trim()));
   $('#fireBladeBtn').onclick=toggleFireBlade;$('#visionBtn').onclick=useVision;$('#woundBtn').onclick=useWound;$('#invisibilityBtn').onclick=useInvisibility;
   $$('.hex-spell').forEach(b=>b.onclick=()=>castHex(b.dataset.hexSpell,Number(b.dataset.cost),b.dataset.concentration==='true'));
@@ -689,8 +746,9 @@ function bind(){
   $('#linceulState').onchange=e=>commit('Linceul · état','État : '+e.target.value,()=>{S.linceul.state=e.target.value;if(e.target.value!=='awakened')S.conditions.agony=false;});
   $$('.linceul-use').forEach(b=>b.onclick=()=>useLinceul(b.dataset.linceulUse));$('#luckSpendBtn').onclick=spendLucky;
   $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
-  $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
-  $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
+  $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#mobileShortRest').onclick=shortRest;$('#mobileLongRest').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
+  $('#psiKnackBtn').onclick=usePsiKnack;$('#psiWhispersBtn').onclick=usePsiWhispers;$('#psiRestoreBtn').onclick=restorePsi;$('#psiTeleportBtn').onclick=psychicTeleport;
+  $('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
   $('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#inventorySearch').oninput=renderInventory;$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
   $('#ribbonUndo').onclick=undo;$('#ribbonToggle').onclick=()=>$('#resultRibbon').classList.toggle('collapsed');$('#resultRibbon').addEventListener('click',e=>{if(e.target.closest('button'))return;if($('#resultRibbon').classList.contains('collapsed'))$('#resultRibbon').classList.remove('collapsed');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#itemEditor').hidden)closeItemEditor();});
