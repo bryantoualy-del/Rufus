@@ -4,7 +4,7 @@ const theme=window.CompanionDiceTheme||{id:'companion',primary:'#6f588e',rim:'#b
 const SETTINGS_KEY='ccDiceSettingsV1:'+theme.id;
 const defaults={speed:'cinematic',sound:true,haptics:true};
 let settings=loadSettings();
-let overlay=null,renderer=null,scene=null,camera=null,clockId=0;
+let overlay=null,renderer=null,scene=null,camera=null,clockId=0,webglUnavailable=false,fallbackTicker=0;
 let queue=[],busy=false,currentResolve=null,currentDice=[];
 
 function loadSettings(){
@@ -21,7 +21,7 @@ function ensureOverlay(){
   if(overlay) return overlay;
   overlay=document.createElement('div');
   overlay.id='ccDiceOverlay';
-  overlay.innerHTML='<div class="cc-dice-scene" role="dialog" aria-modal="true" aria-label="Lancer de dé"><div class="cc-dice-title"></div><div class="cc-dice-status">Lancer du d20</div><canvas class="cc-dice-canvas"></canvas><div class="cc-dice-vignette"></div><div class="cc-dice-queue"></div><div class="cc-dice-result"><div class="cc-dice-verdict"></div><div class="cc-dice-total"></div><div class="cc-dice-detail"></div><div class="cc-dice-hint">Touchez pour continuer</div></div></div>';
+  overlay.innerHTML='<div class="cc-dice-scene" role="dialog" aria-modal="true" aria-label="Lancer de dé"><div class="cc-dice-title"></div><div class="cc-dice-status">Lancer du d20</div><canvas class="cc-dice-canvas"></canvas><div class="cc-dice-fallback" aria-hidden="true"><span>20</span></div><div class="cc-dice-vignette"></div><div class="cc-dice-queue"></div><div class="cc-dice-result"><div class="cc-dice-verdict"></div><div class="cc-dice-total"></div><div class="cc-dice-detail"></div><div class="cc-dice-hint">Touchez pour continuer</div></div></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click',()=>{if(overlay.dataset.dismissable==='1') finishCurrent()});
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay?.dataset.dismissable==='1')finishCurrent()});
@@ -31,6 +31,7 @@ function ensureOverlay(){
 
 function ensureThree(){
   ensureOverlay();
+  if(webglUnavailable)return false;
   if(renderer) return true;
   try{
     const canvas=overlay.querySelector('.cc-dice-canvas');
@@ -57,6 +58,7 @@ function ensureThree(){
     return true;
   }catch(e){
     console.warn('Companion Dice WebGL indisponible',e);
+    webglUnavailable=true;
     return false;
   }
 }
@@ -265,10 +267,39 @@ function updateQueueBadge(){
 
 function finishCurrent(){
   if(!overlay)return;
-  overlay.dataset.dismissable='0';overlay.classList.remove('open','nat20','nat1','reveal','impact');
+  clearInterval(fallbackTicker);fallbackTicker=0;
+  overlay.dataset.dismissable='0';overlay.classList.remove('open','nat20','nat1','reveal','impact','fallback');
   stopLoop();clearDice();
   const r=currentResolve;currentResolve=null;
   setTimeout(()=>{r?.();busy=false;pump()},120);
+}
+
+async function performFallback(opts){
+  const o=ensureOverlay(),mode=opts.mode||'normal';
+  const rolls=Array.isArray(opts.rolls)&&opts.rolls.length?opts.rolls.slice(0,2):[opts.chosen||1];
+  const chosen=opts.chosen??rolls[0];
+  o.className='open fallback';o.dataset.dismissable='0';
+  o.querySelector('.cc-dice-result').classList.remove('show');
+  const heading=o.querySelector('.cc-dice-title'),subtitle=document.createElement('small');
+  subtitle.textContent=mode==='adv'?'Avantage · meilleur résultat':mode==='dis'?'Désavantage · résultat le plus faible':'Jet normal';
+  heading.replaceChildren(document.createTextNode(opts.label||'Jet de d20'),subtitle);
+  o.querySelector('.cc-dice-status').textContent='Lancer du d20';
+  const face=o.querySelector('.cc-dice-fallback span');
+  fallbackTicker=setInterval(()=>{face.textContent=String(1+Math.floor(Math.random()*20))},70);
+  await sleep(settings.speed==='fast'?680:1620);
+  if(currentResolve===null)return;
+  clearInterval(fallbackTicker);fallbackTicker=0;face.textContent=String(chosen);
+  o.querySelector('.cc-dice-status').textContent=rolls.length===2?'Dé retenu : '+chosen:'Face obtenue : '+chosen;
+  await sleep(settings.speed==='fast'?210:470);
+  if(currentResolve===null)return;
+  if(chosen===20)o.classList.add('nat20');if(chosen===1)o.classList.add('nat1');
+  o.querySelector('.cc-dice-verdict').textContent=chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet';
+  o.querySelector('.cc-dice-total').textContent=opts.total!=null?String(opts.total):String(chosen);
+  o.querySelector('.cc-dice-detail').textContent=opts.detail||('d20 '+chosen);
+  o.querySelector('.cc-dice-result').classList.add('show');o.classList.add('reveal');
+  if(chosen===20){tone('crit');vibrate([22,30,44])}
+  o.dataset.dismissable='1';updateQueueBadge();
+  if(queue.length){await sleep(settings.speed==='fast'?520:980);if(o.dataset.dismissable==='1')finishCurrent()}
 }
 
 async function perform(opts,resolve){
@@ -277,7 +308,7 @@ async function perform(opts,resolve){
   currentResolve=resolve;
   const o=ensureOverlay();
   const ok=ensureThree();
-  if(!ok){resolve();busy=false;pump();return}
+  if(!ok){await performFallback(opts);return}
   clearDice();
   o.className='';
   o.dataset.dismissable='0';
