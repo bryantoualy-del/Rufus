@@ -66,6 +66,7 @@
       const actions={'hp:damage':()=>api.damage(event.payload?.amount,event.payload?.options),'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
         'hp:set':()=>api.setHP(event.payload?.value),'tempHp:set':()=>api.setTemporaryHP(event.payload?.value),
         'resource:set':()=>api.setResource(event.payload?.key,event.payload?.value),'turn:next':()=>api.nextTurn(),
+        'inventory:add':()=>api.addInventoryItem(event.payload?.item),'inventory:update':()=>api.updateInventory(event.payload?.item),'inventory:remove':()=>api.removeInventoryItem(event.payload?.id),
         'attack:decision':()=>api.applyHitDecision(event.payload?.hit,event.payload?.attackId)};
       if(!actions[event.type])throw Error('Commande non prise en charge');actions[event.type]();seen.add(event.id);return true;},
     undo:()=>{if(apiUndo.length&&bridge.restore){bridge.restore(apiUndo.pop());sync();emit('undo:performed',{});return true}const result=call('undo');emit('undo:performed',{});return result},subscribe:fn=>{if(typeof fn!=='function')throw TypeError('Fonction attendue');listeners.add(fn);return()=>listeners.delete(fn)},
