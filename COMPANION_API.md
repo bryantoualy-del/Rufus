@@ -73,3 +73,9 @@ Un `attack:rolled` porte son propre `id`, réutilisé comme `payload.attackId` d
 ## Limites à valider en jeu
 
 Les actions automatiques sans décision de touche (par exemple un sort à JdS) ne produisent pas `attack:pending-hit`. Les réglages manuels de ressources et les inventaires provenant de l'ancien module V3 conservent leurs sauvegardes d'origine. Le pont ne garantit pas encore une transaction distribuée entre une décision MJ et plusieurs clients : elle appartient à la future couche RPG Connect.
+
+## RPG Connect v1 (optionnel)
+
+`rpg-connect-client.js` est chargé après `companion-api.js`. Le bouton RPG ouvre les champs adresse `wss://`, salle et invitation personnelle remis par le MJ. Aucun serveur ou jeton n'est incorporé dans le dépôt. La connexion reste facultative ; les actions locales fonctionnent sans réseau. Le client transmet les états et événements de `CompanionAPI` et applique les commandes reçues par `applyRemoteEvent`. Il ne manipule pas l'état interne ni les règles du personnage. Le serveur et l'adaptateur ENCOUNTER se trouvent dans `Biggie-Mj/Table-de-jeu` (`RPG_CONNECT.md`).
+
+À la reconnexion, l'état courant est renvoyé ; les commandes non acquittées par le compagnon sont renvoyées par le serveur. Les paramètres de connexion du joueur sont conservés uniquement dans la session du navigateur ; les notes, PNJ et données Obsidian restent locales. `inventory:add`, `inventory:update` et `inventory:remove` complètent la liste fermée des commandes locales.
