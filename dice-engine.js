@@ -280,15 +280,18 @@ async function performFallback(opts){
   const chosen=opts.chosen??rolls[0];
   o.className='open fallback';o.dataset.dismissable='0';
   o.querySelector('.cc-dice-result').classList.remove('show');
+  for(const key of ['verdict','total','detail'])o.querySelector('.cc-dice-'+key).textContent='';
   const heading=o.querySelector('.cc-dice-title'),subtitle=document.createElement('small');
   subtitle.textContent=mode==='adv'?'Avantage · meilleur résultat':mode==='dis'?'Désavantage · résultat le plus faible':'Jet normal';
   heading.replaceChildren(document.createTextNode(opts.label||'Jet de d20'),subtitle);
   o.querySelector('.cc-dice-status').textContent='Lancer du d20';
   const face=o.querySelector('.cc-dice-fallback span');
+  vibrate(14);tone('start');
   fallbackTicker=setInterval(()=>{face.textContent=String(1+Math.floor(Math.random()*20))},70);
   await sleep(settings.speed==='fast'?680:1620);
   if(currentResolve===null)return;
   clearInterval(fallbackTicker);fallbackTicker=0;face.textContent=String(chosen);
+  tone('impact');vibrate(20);
   o.querySelector('.cc-dice-status').textContent=rolls.length===2?'Dé retenu : '+chosen:'Face obtenue : '+chosen;
   await sleep(settings.speed==='fast'?210:470);
   if(currentResolve===null)return;
@@ -313,6 +316,7 @@ async function perform(opts,resolve){
   o.className='';
   o.dataset.dismissable='0';
   o.querySelector('.cc-dice-result').classList.remove('show');
+  for(const key of ['verdict','total','detail'])o.querySelector('.cc-dice-'+key).textContent='';
   const mode=opts.mode||'normal';
   const rolls=Array.isArray(opts.rolls)&&opts.rolls.length?opts.rolls.slice(0,2):[opts.chosen||1];
   const chosen=opts.chosen??rolls[0];
