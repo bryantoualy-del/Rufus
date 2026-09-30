@@ -61,7 +61,7 @@
     setHP:value=>call('setHP',positive(value)),setTemporaryHP:value=>call('setTemporaryHP',positive(value)),
     setResource:(key,value)=>call('setResource',String(key),positive(value)),changeResource:(key,delta)=>{const n=number(delta);if(n===null)throw RangeError('Variation invalide');return call('changeResource',String(key),n)},
     setRollMode:mode=>{if(!['normal','adv','dis','manual'].includes(mode))throw RangeError('Mode de jet invalide');return call('setRollMode',mode)},
-    nextTurn:()=>call('nextTurn'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
+    nextTurn:()=>call('nextTurn'),resetCombat:()=>call('resetCombat'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
     setConcentration:value=>call('setConcentration',value),clearConcentration:()=>call('clearConcentration'),
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
     applyHitDecision:(hit,attackId)=>{if(!pendingId||attackId&&attackId!==pendingId)throw Error('Aucune attaque correspondante en attente');return call('applyHitDecision',!!hit)},
