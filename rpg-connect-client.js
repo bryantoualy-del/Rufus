@@ -9,19 +9,22 @@
  let ws=null,active=false,connected=false,retry=0,timer=null,queue=[],initiativeRequest=null;
  let targets=[],selectedTargetId=null;
  const setGmAuthority=on=>{on=!!on;document.body.classList.toggle('rpg-gm-authority',on);let style=document.getElementById('rpg-gm-authority-style');if(!style){style=document.createElement('style');style.id='rpg-gm-authority-style';style.textContent='body.rpg-gm-authority #hitYes,body.rpg-gm-authority #hitNo,body.rpg-gm-authority #confirmHit,body.rpg-gm-authority #confirmMiss,body.rpg-gm-authority #confirmCancel{display:none!important}';document.head.appendChild(style)}for(const el of document.querySelectorAll('.hit-question')){if(!el.dataset.rpgOriginal)el.dataset.rpgOriginal=el.textContent||'';el.textContent=on?'Validation MJ en attente':el.dataset.rpgOriginal}window.dispatchEvent(new CustomEvent('rpg-connect:authority',{detail:{connected:on,characterId:identity.id}}));};
- try{const t=JSON.parse(localStorage.getItem(storeKey+':targets')||'{}');targets=Array.isArray(t.targets)?t.targets:[];selectedTargetId=t.selectedTargetId||null}catch{}
- const cleanTarget=t=>({id:String(t?.id??''),name:String(t?.name||'Cible'),creatureType:String(t?.creatureType||t?.type||'unknown').toLowerCase(),boss:!!t?.boss,elite:!!t?.elite,hp:t?.hp??null,ac:t?.ac??null,status:String(t?.status||'')});
+ 
+ const cleanTarget=t=>({id:String(t?.id??''),name:String(t?.name||'Cible'),creatureType:String(t?.creatureType||t?.type||'unknown').toLowerCase(),boss:!!t?.boss,elite:!!t?.elite,ac:t?.ac??null,status:String(t?.status||''),healthGauge:Number.isFinite(Number(t?.healthGauge))?Math.max(0,Math.min(100,Math.round(Number(t.healthGauge)/10)*10)):null});
+ try{const t=JSON.parse(localStorage.getItem(storeKey+':targets')||'{}');targets=Array.isArray(t.targets)?t.targets.map(cleanTarget):[];selectedTargetId=t.selectedTargetId||null}catch{}
  const selectedTarget=()=>targets.find(t=>t.id===selectedTargetId)||null;
  const syncLocalTarget=()=>{try{window.__CompanionBridge?.commands?.setTarget?.(selectedTarget())}catch(error){console.warn('Target sync',error)}};
  const saveTargets=()=>{try{localStorage.setItem(storeKey+':targets',JSON.stringify({targets,selectedTargetId}))}catch{}};
  const iconFor=t=>window.RPGConnectIcons?.creature(t.creatureType,t.boss)||'';
+ const gaugeFor=t=>t.healthGauge==null?'':`<span class="rpg-health-gauge" aria-label="État de santé approximatif"><i style="width:${t.healthGauge}%"></i></span>`;
+ if(!document.getElementById('rpg-health-gauge-style')){const st=document.createElement('style');st.id='rpg-health-gauge-style';st.textContent='.rpg-health-gauge{display:block;width:100%;height:6px;margin-top:5px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden}.rpg-health-gauge i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d94b4b 0%,#d98b42 45%,#d9bf43 65%,#57b96b 100%)}.rpg-target-card>span{min-width:0}.rpg-target-card .rpg-health-gauge{max-width:150px}.rpg-target-active .rpg-health-gauge{width:min(180px,45vw)}';document.head.appendChild(st)}
  function renderTargets(){
    if(!targets.length){targetBlock.hidden=true;activeTargetNode.hidden=true;targetList.innerHTML='';return}
    targetBlock.hidden=false;
-   targetList.innerHTML=targets.map(t=>{const sel=t.id===selectedTargetId?' selected':'';const boss=t.boss?' boss':'';const elite=t.elite?' elite':'';const icon=iconFor(t);const meta=[window.RPGConnectIcons?.label(t.creatureType)||t.creatureType,t.boss?'Boss':t.elite?'Élite':''].filter(Boolean).join(' · ');return `<button type="button" class="rpg-target-card${sel}${boss}${elite}" data-target-id="${t.id.replace(/"/g,'&quot;')}" role="option" aria-selected="${t.id===selectedTargetId}"><img src="${icon}" alt=""><span><strong>${t.name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</strong><small>${meta}</small></span>${t.boss?'<b class="rpg-boss-mark">BOSS</b>':''}</button>`}).join('');
+   targetList.innerHTML=targets.map(t=>{const sel=t.id===selectedTargetId?' selected':'';const boss=t.boss?' boss':'';const elite=t.elite?' elite':'';const icon=iconFor(t);const meta=[window.RPGConnectIcons?.label(t.creatureType)||t.creatureType,t.boss?'Boss':t.elite?'Élite':''].filter(Boolean).join(' · ');return `<button type="button" class="rpg-target-card${sel}${boss}${elite}" data-target-id="${t.id.replace(/"/g,'&quot;')}" role="option" aria-selected="${t.id===selectedTargetId}"><img src="${icon}" alt=""><span><strong>${t.name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</strong><small>${meta}</small>${gaugeFor(t)}</span>${t.boss?'<b class="rpg-boss-mark">BOSS</b>':''}</button>`}).join('');
    for(const b of targetList.querySelectorAll('[data-target-id]'))b.onclick=()=>{selectedTargetId=b.dataset.targetId;saveTargets();renderTargets();syncLocalTarget();api.emitLocal('target:selected',{targetId:selectedTargetId,target:selectedTarget()})};
    const t=selectedTarget();
-   if(t){activeTargetNode.hidden=false;activeTargetNode.innerHTML=`<img src="${iconFor(t)}" alt=""><span><small>Cible active</small><strong>${t.name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</strong></span>${t.boss?'<b>BOSS</b>':''}`;}
+   if(t){activeTargetNode.hidden=false;activeTargetNode.innerHTML=`<img src="${iconFor(t)}" alt=""><span><small>Cible active</small><strong>${t.name.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</strong>${gaugeFor(t)}</span>${t.boss?'<b>BOSS</b>':''}`;}
    else activeTargetNode.hidden=true;
  }
  function setTargets(list,requestedSelected){
@@ -66,9 +69,9 @@
  }
  api.subscribe(event=>{if(!active||event.type==='companion:ready')return;
    const target=selectedTarget();
-   const outbound=(event.type.startsWith('attack:')&&target)?{...event,payload:{...(event.payload||{}),targetId:target.id,target:{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac,hp:target.hp}}}:event;
+   const outbound=(event.type.startsWith('attack:')&&target)?{...event,payload:{...(event.payload||{}),targetId:target.id,target:{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac}}}:event;
    if(!connected){queue.push(outbound);if(queue.length>100)queue.shift();return}
-   if(event.type==='state:changed')send({type:'state',state:{...api.getState(),target:target?{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac,hp:target.hp}:null}});
+   if(event.type==='state:changed')send({type:'state',state:{...api.getState(),target:target?{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac}:null}});
    if(!send({type:'event',event:outbound})){queue.push(outbound);if(queue.length>100)queue.shift()}
  });
  node.querySelector('[data-connect]').onclick=connect;
