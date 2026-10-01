@@ -69,10 +69,13 @@ function boot(){
  const mo=new MutationObserver(sync);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','disabled']});sync();
  function rpgVisibility(){
    const strip=$('#rpg-state-strip');if(!strip)return;
-   const state=txt(strip.querySelector('.rpgstate'))||txt(strip);
-   strip.hidden=/hors ligne|déconnect|deconnect/i.test(state)||!state;
+   const banner=$('.rpg-session-banner'), networkStatus=$('.rpg-connect-status');
+   const tone=banner?.dataset?.tone||'';
+   const state=txt(banner?.querySelector('[data-session-title]'))||txt(networkStatus)||txt(strip.querySelector('.rpgstate'))||txt(strip);
+   const connected=(tone&&tone!=='offline')||/connecté|connecte|prépa fight|prepa fight|initiative|à toi|a toi|tour de|réaction|reaction|fight/i.test(state);
+   strip.hidden=!connected;
  }
- const rmo=new MutationObserver(rpgVisibility);rmo.observe(document.body,{subtree:true,childList:true,characterData:true});rpgVisibility();
+ const rmo=new MutationObserver(rpgVisibility);rmo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-tone','class']});rpgVisibility();
 }
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',boot):boot();
 })();
