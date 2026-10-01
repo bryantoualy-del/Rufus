@@ -6,7 +6,21 @@
 <meta name="theme-color" content="#07080d">
 <title>Rufus - Compagnon</title>
 <link rel="stylesheet" href="companion-v3.css?v=21">
-<link rel="stylesheet" href="social-dice.css?v=3"><link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png?v=1"><link rel="manifest" href="site.webmanifest?v=1"><link rel="stylesheet" href="rpg-connect-client.css?v=3"></head>
+<link rel="stylesheet" href="social-dice.css?v=3"><link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png?v=1"><link rel="manifest" href="site.webmanifest?v=1"><link rel="stylesheet" href="rpg-connect-client.css?v=3"><style id="rpg-hud-v9">
+/* RPG-HUD-V9 */
+#rpg-state-strip{display:flex;align-items:center;gap:9px;min-height:34px;margin:7px 0 6px;padding:6px 10px;border:1px solid rgba(125,142,164,.48);border-radius:10px;background:linear-gradient(180deg,rgba(20,25,33,.94),rgba(10,13,18,.96));box-shadow:0 5px 16px rgba(0,0,0,.18);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.15}
+#rpg-state-strip .rpgdot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#6e7783}
+#rpg-state-strip .rpglabel{font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#aeb8c6;white-space:nowrap}
+#rpg-state-strip .rpgstate{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:800;color:#eef3f8}
+#rpg-state-strip[data-tone="ok"]{border-color:rgba(91,160,118,.52)}#rpg-state-strip[data-tone="ok"] .rpgdot{background:#67c98e;box-shadow:0 0 8px rgba(103,201,142,.5)}
+#rpg-state-strip[data-tone="wait"]{border-color:rgba(199,160,82,.55)}#rpg-state-strip[data-tone="wait"] .rpgdot{background:#e6b85e;box-shadow:0 0 8px rgba(230,184,94,.5)}
+#rpg-state-strip[data-tone="action"]{border-color:rgba(255,141,71,.72);background:linear-gradient(180deg,rgba(57,31,18,.96),rgba(23,15,12,.97));box-shadow:0 0 18px rgba(255,126,55,.12)}#rpg-state-strip[data-tone="action"] .rpgdot{background:#ff914f;box-shadow:0 0 10px rgba(255,145,79,.65)}
+#rpg-mini-status{position:fixed;z-index:9998;right:max(8px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));min-height:30px;padding:5px 9px;border:1px solid #46515e;border-radius:999px;background:rgba(10,13,18,.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#cbd4df;font:800 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.06em;box-shadow:0 5px 16px rgba(0,0,0,.28)}
+#rpg-mini-status.ok{border-color:#47765a;color:#aee0bf}#rpg-mini-status.wait{border-color:#7c683c;color:#f0d18a}#rpg-mini-status.action{border-color:#9b5534;color:#ffc09a}
+[data-rpg-passive="1"]{display:none!important}
+@media(max-width:520px){#rpg-state-strip{margin:5px 0;padding:6px 8px;gap:7px}#rpg-state-strip .rpglabel{font-size:9px}#rpg-state-strip .rpgstate{font-size:11px}#rpg-mini-status{font-size:9px;min-height:28px;padding:4px 8px}}
+</style>
+</head>
 <body>
 <div class="fx-stage" id="fxStage" aria-hidden="true">
   <div class="fx-vignette"></div><div class="fx-ring"></div><div class="fx-slash"></div>
@@ -286,5 +300,34 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="companion-v3.js?v=23"></script>
-<script src="companion-api.js?v=5"></script><script src="rpg-connect-icon-registry.js?v=2"></script><script src="rpg-connect-client.js?v=8"></script><script src="social-dice.js?v=2"></script><script type="module" src="dice-engine.js?v=3"></script></body>
+<script src="companion-api.js?v=5"></script><script src="rpg-connect-icon-registry.js?v=2"></script><script src="rpg-connect-client.js?v=8"></script><script src="social-dice.js?v=2"></script><script type="module" src="dice-engine.js?v=3"></script><script id="rpg-hud-v9-script">
+(()=>{if(window.__rpgHudV9)return;window.__rpgHudV9=true;
+const norm=s=>(s||"").replace(/\s+/g," ").trim();
+const urgent=s=>/lance(?:r)? (?:ton |l['’])?initiative|à toi de jouer|reaction demandee|réaction demandée|jet de sauvegarde|jds demandé|prépa fight|prepa fight|pv critique/i.test(s);
+const tone=s=> urgent(s)?"action":(/attente|doit valider|validation mj|autre joueur|autres joueurs|tour de /i.test(s)?"wait":(/connecté|connecte|validée|validee|fight/i.test(s)?"ok":"idle"));
+function boot(){
+ if(document.getElementById("rpg-state-strip"))return;
+ const anchor=document.querySelector("#turnbar,.turnbar,.hud,.turn-economy,[aria-label*='Économie du tour'],[aria-label*='economie du tour']");
+ if(!anchor)return setTimeout(boot,250);
+ const strip=document.createElement("div");strip.id="rpg-state-strip";strip.dataset.tone="idle";strip.innerHTML='<span class="rpgdot"></span><span class="rpglabel">RPG Connect</span><span class="rpgstate">Hors ligne</span>';
+ anchor.parentNode.insertBefore(strip,anchor);
+ const mini=document.createElement("button");mini.id="rpg-mini-status";mini.type="button";mini.textContent="● RPG";mini.title="État RPG Connect";document.body.appendChild(mini);
+ mini.addEventListener("click",()=>{const candidates=[...document.querySelectorAll("button")].filter(b=>b!==mini&&/rpg|connect|salle/i.test(norm(b.textContent)));if(candidates[0])candidates[0].click();});
+ const findRibbon=()=>document.querySelector("#kentaro-ribbon,#ribbon,#rpg-ribbon,[id*='ribbon']");
+ let ribbon=findRibbon();
+ const refresh=()=>{
+   ribbon=ribbon&&document.contains(ribbon)?ribbon:findRibbon();
+   let txt="";
+   if(ribbon){const t=norm(ribbon.querySelector(".title,.rt,[class*='title']")?.textContent);const b=norm(ribbon.querySelector(".body,.rb,[class*='body']")?.textContent);txt=norm([t,b].filter(Boolean).join(" · "));}
+   if(!txt){const net=document.querySelector("[data-rpg-state],#rpgStatus,#rpg-status,.rpg-status");txt=norm(net?.textContent)||"Hors ligne";}
+   const t=tone(txt);strip.dataset.tone=t;strip.querySelector(".rpgstate").textContent=txt.replace(/^rpg connect\s*[·:–-]?\s*/i,"")||"Hors ligne";
+   mini.className=t==="idle"?"":t;mini.textContent=(/hors ligne|déconnect|deconnect/i.test(txt)?"○":"●")+" RPG";
+   if(ribbon){if(urgent(txt))ribbon.removeAttribute("data-rpg-passive");else ribbon.setAttribute("data-rpg-passive","1");}
+ };
+ const mo=new MutationObserver(refresh);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["class","style","hidden"]});refresh();
+}
+document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boot):boot();
+})();
+</script>
+</body>
 </html>
