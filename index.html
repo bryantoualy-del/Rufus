@@ -302,7 +302,7 @@
 <script src="companion-v3.js?v=23"></script>
 <script src="companion-api.js?v=5"></script><script src="rpg-connect-icon-registry.js?v=2"></script><script src="rpg-connect-client.js?v=8"></script><script src="social-dice.js?v=2"></script><script type="module" src="dice-engine.js?v=3"></script><script id="rpg-hud-v9-script">
 (()=>{if(window.__rpgHudV9)return;window.__rpgHudV9=true;
-const norm=s=>(s||"").replace(/\s+/g," ").trim();
+const norm=s=>(s||"").replace(/\s+/g," ").trim();const setText=(el,v)=>{const s=String(v??"");if(el&&el.textContent!==s)el.textContent=s};
 const urgent=s=>/lance(?:r)? (?:ton |l['’])?initiative|à toi de jouer|reaction demandee|réaction demandée|jet de sauvegarde|jds demandé|prépa fight|prepa fight|pv critique/i.test(s);
 const tone=s=> urgent(s)?"action":(/attente|doit valider|validation mj|autre joueur|autres joueurs|tour de /i.test(s)?"wait":(/connecté|connecte|validée|validee|fight/i.test(s)?"ok":"idle"));
 function boot(){
@@ -320,8 +320,8 @@ function boot(){
    let txt="";
    if(ribbon){const t=norm(ribbon.querySelector(".title,.rt,[class*='title']")?.textContent);const b=norm(ribbon.querySelector(".body,.rb,[class*='body']")?.textContent);txt=norm([t,b].filter(Boolean).join(" · "));}
    if(!txt){const net=document.querySelector("[data-rpg-state],#rpgStatus,#rpg-status,.rpg-status");txt=norm(net?.textContent)||"Hors ligne";}
-   const t=tone(txt);strip.dataset.tone=t;strip.querySelector(".rpgstate").textContent=txt.replace(/^rpg connect\s*[·:–-]?\s*/i,"")||"Hors ligne";
-   mini.className=t==="idle"?"":t;mini.textContent=(/hors ligne|déconnect|deconnect/i.test(txt)?"○":"●")+" RPG";
+   const t=tone(txt);strip.dataset.tone=t;setText(strip.querySelector(".rpgstate"),txt.replace(/^rpg connect\s*[·:–-]?\s*/i,"")||"Hors ligne";
+   const miniClass=t==="idle"?"":t;if(mini.className!==miniClass)mini.className=miniClass;setText(mini,(/hors ligne|déconnect|deconnect/i.test(txt)?"○":"●")+" RPG");
    if(ribbon){if(urgent(txt))ribbon.removeAttribute("data-rpg-passive");else ribbon.setAttribute("data-rpg-passive","1");}
  };
  const mo=new MutationObserver(refresh);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["class","style","hidden"]});refresh();
@@ -329,5 +329,5 @@ function boot(){
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boot):boot();
 })();
 </script>
-<script src="companion-turnbar.js?v=2"></script>\n</body>
+<script src="companion-turnbar.js?v=3"></script>\n</body>
 </html>
