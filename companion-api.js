@@ -29,20 +29,27 @@
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
       concentration:s.concentration??s.concSpell??s.conc??null,resources,
       inventorySummary:inventory.map(i=>({id:i.id??i.name,name:i.name,quantity:i.qty??i.quantity??1})),
-      statuses:bridge.statuses?.(s)||[],custom:bridge.custom?.(s)||{},updatedAt:lastUpdated});
+      statuses:bridge.statuses?.(s)||[],
+      defenses:(()=>{const d=bridge.defenses?.(s)||{};const arr=v=>[...new Set((Array.isArray(v)?v:[]).map(x=>String(x||'').trim().toLowerCase()).filter(Boolean))];return{resistances:arr(d.resistances),immunities:arr(d.immunities),vulnerabilities:arr(d.vulnerabilities),conditionImmunities:arr(d.conditionImmunities),sources:Array.isArray(d.sources)?copy(d.sources):[]}})(),
+      custom:bridge.custom?.(s)||{},updatedAt:lastUpdated});
   }
   const DAMAGE_WORDS=['acide','contondants','feu','force','foudre','froid','nécrotiques','perforants','poison','psychiques','radiants','tonnerre','tranchants'];
   const canonDamageType=v=>{const k=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/s$/,'').trim();return DAMAGE_WORDS.find(x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/s$/,'')===k)||''};
   function recentResolutionText(){
-    const nodes=[document.querySelector('#rbody'),document.querySelector('#ribbonText'),document.querySelector('.log-entry:first-child .log-body'),document.querySelector('#log .log-entry:first-child'),document.querySelector('#log')].filter(Boolean);
-    return nodes.map(n=>n.innerText||n.textContent||'').filter(Boolean).join('\n').slice(0,2400);
+    const parts=[],push=n=>{const t=n&&(n.innerText||n.textContent||'');if(t)parts.push(t)};
+    push(document.querySelector('#lastResult'));push(document.querySelector('#rbody'));push(document.querySelector('#ribbonText'));push(document.querySelector('#rtitle'));
+    const entries=[...document.querySelectorAll('#log .log-entry,.log-entry')].slice(0,3);
+    if(entries.length)entries.forEach(push);else{const raw=document.querySelector('#log');if(raw)parts.push((raw.innerText||raw.textContent||'').slice(-1000))}
+    return parts.join('\n').slice(0,1800);
   }
   function inferDamageComponents(total){
     try{const explicit=bridge.lastDamage?.();if(Array.isArray(explicit)&&explicit.length)return explicit.map(c=>({amount:Math.max(0,Math.trunc(Number(c.amount)||0)),type:canonDamageType(c.type)})).filter(c=>c.amount>0)}catch{}
     const text=recentResolutionText(),found=[],push=(amount,type)=>{amount=Math.max(0,Math.trunc(Number(amount)||0));type=canonDamageType(type);if(amount>0&&type&&!found.some(x=>x.amount===amount&&x.type===type))found.push({amount,type})};
     const types='acide|contondants?|feu|force|foudre|froid|n[ée]crotiques?|perforants?|poison|psychiques?|radiants?|tonnerre|tranchants?';
-    let m,re=new RegExp('(\\d+)\\s+(?:d[ée]g[âa]ts?\\s+)?('+types+')','gi');while((m=re.exec(text)))push(m[1],m[2]);
-    re=new RegExp('\\d+d\\d+(?:\\+\\d+)?\\s+('+types+')\\s*[:=]\\s*([\\d+\\s]+)','gi');while((m=re.exec(text))){const parts=(m[2].match(/\\d+/g)||[]).map(Number);if(parts.length)push(parts.reduce((a,b)=>a+b,0),m[1])}
+    let m,re=new RegExp('\\d+d\\d+(?:\\+\\d+)?\\s+('+types+')\\s*[:=]\\s*([\\d+\\s]+)','gi'),scrub=text;
+    scrub=scrub.replace(re,(all,type,expr)=>{const parts=(String(expr).match(/\\d+/g)||[]).map(Number);if(parts.length)push(parts.reduce((a,b)=>a+b,0),type);return' '});
+    re=new RegExp('(\\d+)\\s+(?:d[ée]g[âa]ts?\\s+)?('+types+')','gi');while((m=re.exec(scrub)))push(m[1],m[2]);
+    if(!found.length){const low=text.toLowerCase();if(low.includes('solinar'))push(total,'radiants');else if(low.includes('sélhane')||low.includes('selhane'))push(total,'psychiques');else if(low.includes('décharge occulte')||low.includes('decharge occulte'))push(total,'force');else if(low.includes('absorption de vie'))push(total,'nécrotiques')}
     const sum=found.reduce((n,x)=>n+x.amount,0);if(sum>total&&found.length>1){const exact=found.find(x=>x.amount===total);return exact?[exact]:[]}return found.filter(x=>x.amount<=total);
   }
   function sync(){
