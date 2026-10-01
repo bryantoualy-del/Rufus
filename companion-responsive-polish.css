@@ -1,0 +1,20 @@
+/* Companion responsive polish v1 */
+*{min-width:0}
+button,input,select,textarea{touch-action:manipulation}
+img{max-width:100%}
+@media(max-width:767px){
+  .app{overflow-x:hidden}
+  button,input,select,textarea{min-height:44px}
+  .mobile-hud{padding-top:max(7px,env(safe-area-inset-top))}
+  .mobile-bottom-nav button{min-height:58px}
+  .social-roll-modes{position:sticky;top:var(--rufus-mobile-hud-h,148px);z-index:58;padding:5px;background:rgba(8,10,14,.96);border-radius:11px}
+  .inventory-object,.card,.ability-card,.skill-btn{overflow-wrap:anywhere}
+}
+@media(min-width:768px) and (max-width:1100px){
+  .app{max-width:1080px;padding:10px 12px 100px}
+  .top{grid-template-columns:minmax(260px,.9fr) minmax(0,1.55fr);gap:9px}
+  .turnbar{gap:5px;padding:6px}
+  .nav{top:112px}
+  .grid{gap:9px}
+  .social-main-tabs{position:sticky;top:154px;z-index:33;background:rgba(8,10,14,.94);padding:5px;backdrop-filter:blur(12px)}
+}
