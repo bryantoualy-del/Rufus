@@ -17,3 +17,6 @@
 .rpg-session-banner small{display:block;margin-top:2px;color:#b8cad6;font-size:11px;line-height:1.25}
 .rpg-session-banner[data-tone="connected"]{border-color:#4f8d72}.rpg-session-banner[data-tone="prep"]{border-color:#9e7a45}.rpg-session-banner[data-tone="action"],.rpg-session-banner[data-tone="myturn"]{border-color:#d7ad63;box-shadow:0 8px 28px #0009,0 0 22px #d7ad6333}.rpg-session-banner[data-tone="validated"]{border-color:#4f9b70}.rpg-session-banner[data-tone="waiting"]{border-color:#6687a1}.rpg-session-banner[data-tone="turn"]{border-color:#6d6b9a}.rpg-session-banner[data-tone="error"]{border-color:#b45a5a;background:#281417ee}.rpg-session-banner[data-tone="offline"]{opacity:.76}
 @media(max-width:767px){.rpg-session-banner{top:calc(54px + env(safe-area-inset-top));width:calc(100vw - 16px);max-width:430px;padding:7px 10px}.rpg-session-banner strong{font-size:12px}.rpg-session-banner small{font-size:10px}}
+
+/* RPG-OFFLINE-HIDE-V1 */
+.rpg-session-banner[data-tone="offline"]{display:none!important}
