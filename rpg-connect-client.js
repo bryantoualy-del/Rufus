@@ -74,6 +74,6 @@
  node.querySelector('.rpg-connect-launch').onclick=()=>panel.hidden=!panel.hidden;
  node.querySelector('[data-close]').onclick=()=>panel.hidden=true;
  node.querySelector('[data-clear-target]').onclick=()=>{selectedTargetId=null;saveTargets();renderTargets();api.emitLocal('target:selected',{targetId:null,target:null})};
- renderTargets();setSessionState(fields.token.value?'Prêt à rejoindre':'Hors ligne',fields.token.value?'Connexion mémorisée · appuie sur Rejoindre la salle':'Compagnon autonome',fields.token.value?'connected':'offline');
+ renderTargets();setSessionState(fields.token.value?'Prêt à rejoindre':'Hors ligne',fields.token.value?'Connexion mémorisée · appuie sur Rejoindre la salle':'Compagnon autonome','offline');
  window.RPGConnect={connect,disconnect:()=>node.querySelector('[data-disconnect]').click(),getStatus:()=>({connected,room:fields.room.value.trim(),characterId:identity.id,target:selectedTarget()}),setTargets:(list,selected)=>setTargets(list,selected),getTargets:()=>targets.map(t=>({...t})),selectTarget:id=>{if(!targets.some(t=>t.id===id))return false;selectedTargetId=id;saveTargets();renderTargets();return true}};
 })();
