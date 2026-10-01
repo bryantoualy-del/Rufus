@@ -66,9 +66,9 @@
  }
  api.subscribe(event=>{if(!active||event.type==='companion:ready')return;
    const target=selectedTarget();
-   const outbound=(event.type.startsWith('attack:')&&target)?{...event,payload:{...(event.payload||{}),targetId:target.id,target:{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite}}}:event;
+   const outbound=(event.type.startsWith('attack:')&&target)?{...event,payload:{...(event.payload||{}),targetId:target.id,target:{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac,hp:target.hp}}}:event;
    if(!connected){queue.push(outbound);if(queue.length>100)queue.shift();return}
-   if(event.type==='state:changed')send({type:'state',state:{...api.getState(),target:target?{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite}:null}});
+   if(event.type==='state:changed')send({type:'state',state:{...api.getState(),target:target?{id:target.id,name:target.name,creatureType:target.creatureType,boss:target.boss,elite:target.elite,ac:target.ac,hp:target.hp}:null}});
    if(!send({type:'event',event:outbound})){queue.push(outbound);if(queue.length>100)queue.shift()}
  });
  node.querySelector('[data-connect]').onclick=connect;
