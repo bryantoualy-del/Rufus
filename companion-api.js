@@ -48,7 +48,7 @@
       }
       const key=pending?JSON.stringify(pending):null;
       if(key&&!pendingKey){pendingId=pending.attackId||id();emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:pending.roll??null},pendingId);emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id});}
-      else if(!key&&pendingKey&&pendingId){const result=bridge.lastHit?.();if(result!==null&&result!==undefined)emit(result?'attack:hit':'attack:miss',{attackId:pendingId,actor:bridge.id});pendingId=null;}
+      else if(!key&&pendingKey&&pendingId){const result=bridge.lastHit?.();if(result!==null&&result!==undefined){emit(result?'attack:hit':'attack:miss',{attackId:pendingId,actor:bridge.id});if(result){const beforeDamage=Number(previous?.turn?.damage)||0,afterDamage=Number(current?.turn?.damage)||0,amount=Math.max(0,afterDamage-beforeDamage);if(amount>0)emit('attack:damage',{attackId:pendingId,actor:bridge.id,amount,beforeTurnDamage:beforeDamage,afterTurnDamage:afterDamage});}}pendingId=null;}
       pendingKey=key;previous=current;
     });
   }
