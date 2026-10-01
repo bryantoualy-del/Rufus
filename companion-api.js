@@ -31,6 +31,20 @@
       inventorySummary:inventory.map(i=>({id:i.id??i.name,name:i.name,quantity:i.qty??i.quantity??1})),
       statuses:bridge.statuses?.(s)||[],custom:bridge.custom?.(s)||{},updatedAt:lastUpdated});
   }
+  const DAMAGE_WORDS=['acide','contondants','feu','force','foudre','froid','nécrotiques','perforants','poison','psychiques','radiants','tonnerre','tranchants'];
+  const canonDamageType=v=>{const k=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/s$/,'').trim();return DAMAGE_WORDS.find(x=>x.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/s$/,'')===k)||''};
+  function recentResolutionText(){
+    const nodes=[document.querySelector('#rbody'),document.querySelector('#ribbonText'),document.querySelector('.log-entry:first-child .log-body'),document.querySelector('#log .log-entry:first-child'),document.querySelector('#log')].filter(Boolean);
+    return nodes.map(n=>n.innerText||n.textContent||'').filter(Boolean).join('\n').slice(0,2400);
+  }
+  function inferDamageComponents(total){
+    try{const explicit=bridge.lastDamage?.();if(Array.isArray(explicit)&&explicit.length)return explicit.map(c=>({amount:Math.max(0,Math.trunc(Number(c.amount)||0)),type:canonDamageType(c.type)})).filter(c=>c.amount>0)}catch{}
+    const text=recentResolutionText(),found=[],push=(amount,type)=>{amount=Math.max(0,Math.trunc(Number(amount)||0));type=canonDamageType(type);if(amount>0&&type&&!found.some(x=>x.amount===amount&&x.type===type))found.push({amount,type})};
+    const types='acide|contondants?|feu|force|foudre|froid|n[ée]crotiques?|perforants?|poison|psychiques?|radiants?|tonnerre|tranchants?';
+    let m,re=new RegExp('(\\d+)\\s+(?:d[ée]g[âa]ts?\\s+)?('+types+')','gi');while((m=re.exec(text)))push(m[1],m[2]);
+    re=new RegExp('\\d+d\\d+(?:\\+\\d+)?\\s+('+types+')\\s*[:=]\\s*([\\d+\\s]+)','gi');while((m=re.exec(text))){const parts=(m[2].match(/\\d+/g)||[]).map(Number);if(parts.length)push(parts.reduce((a,b)=>a+b,0),m[1])}
+    const sum=found.reduce((n,x)=>n+x.amount,0);if(sum>total&&found.length>1){const exact=found.find(x=>x.amount===total);return exact?[exact]:[]}return found.filter(x=>x.amount<=total);
+  }
   function sync(){
     if(queued)return;queued=true;
     queueMicrotask(()=>{
@@ -48,7 +62,7 @@
       }
       const key=pending?JSON.stringify(pending):null;
       if(key&&!pendingKey){pendingId=pending.attackId||id();emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:pending.roll??null},pendingId);emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id});}
-      else if(!key&&pendingKey&&pendingId){const result=bridge.lastHit?.();if(result!==null&&result!==undefined){emit(result?'attack:hit':'attack:miss',{attackId:pendingId,actor:bridge.id});if(result){const beforeDamage=Number(previous?.turn?.damage)||0,afterDamage=Number(current?.turn?.damage)||0,amount=Math.max(0,afterDamage-beforeDamage);if(amount>0)emit('attack:damage',{attackId:pendingId,actor:bridge.id,amount,beforeTurnDamage:beforeDamage,afterTurnDamage:afterDamage});}}pendingId=null;}
+      else if(!key&&pendingKey&&pendingId){const result=bridge.lastHit?.();if(result!==null&&result!==undefined){emit(result?'attack:hit':'attack:miss',{attackId:pendingId,actor:bridge.id});if(result){const beforeDamage=Number(previous?.turn?.damage)||0,afterDamage=Number(current?.turn?.damage)||0,amount=Math.max(0,afterDamage-beforeDamage);if(amount>0){const components=inferDamageComponents(amount);emit('attack:damage',{attackId:pendingId,actor:bridge.id,amount,components,beforeTurnDamage:beforeDamage,afterTurnDamage:afterDamage});}}}pendingId=null;}
       pendingKey=key;previous=current;
     });
   }
