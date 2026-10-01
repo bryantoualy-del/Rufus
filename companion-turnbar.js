@@ -1,7 +1,7 @@
 /* Compagnie Créole — Turnbar Standard V1 */
 (()=>{'use strict';
 if(window.__ccTurnbarStandard)return;window.__ccTurnbarStandard=true;
-const $=(s,r=document)=>r.querySelector(s), txt=n=>(n?.textContent||'').replace(/\s+/g,' ').trim();
+const $=(s,r=document)=>r.querySelector(s), txt=n=>(n?.textContent||'').replace(/\s+/g,' ').trim(), setText=(el,v)=>{const s=String(v??'');if(el&&el.textContent!==s)el.textContent=s};
 const id=()=>window.__CompanionBridge?.id||({Kentaro:'kentaro',Samoth:'samoth',Brackmard:'brackmard',Rufus:'rufus',Nans:'nans',Zephyr:'zephyr'}[document.title.split(' - ')[0]]||'');
 const configs={
  kentaro:{anchor:'#ecoAction',turn:'#turnEconomyView',round:'#turnEconomyView',action:'#ecoAction',bonus:'#ecoBonus',reaction:'#ecoReaction',move:'#ecoMove',damage:'#turnDamageView',conc:'#ecoConc',next:'#newTurn',short:'#shortRest',long:'#longRest'},
@@ -56,17 +56,17 @@ function boot(){
  conc.addEventListener('click',()=>{const target=get(cfg.conc);if(target?.matches('button,[role="button"]'))return target.click();const clear=window.__CompanionBridge?.commands?.clearConcentration;if(typeof clear==='function'&&!/aucune|—/i.test(conc.querySelector('.cc-turn-state').textContent))clear()});
  function sync(){
    const turn=txt(get(cfg.turn))||'1',roundValue=txt(get(cfg.round))||turn;
-   round.querySelector('.cc-turn-label').textContent='Tour '+turn;round.querySelector('.cc-turn-state').textContent='Round '+roundValue;
+   setText(round.querySelector('.cc-turn-label'),'Tour '+turn);setText(round.querySelector('.cc-turn-state'),'Round '+roundValue);
    for(const [btn,key] of [[action,'action'],[bonus,'bonus'],[reaction,'reaction'],[move,'move']]){
-     const el=get(cfg[key]),st=statusFrom(el);btn.querySelector('.cc-turn-state').textContent=st;
+     const el=get(cfg[key]),st=statusFrom(el);setText(btn.querySelector('.cc-turn-state'),st);
      btn.classList.toggle('is-used',!!el&&(el.classList.contains('used')||/utilis|épuis|indispo/i.test(st)));
      btn.classList.toggle('is-active',!!el&&(el.classList.contains('extra')||el.classList.contains('active')||el.classList.contains('on')));
    }
-   let d=txt(get(cfg.damage)).replace(/\s*dégâts?.*$/i,'');damage.querySelector('.cc-turn-label').textContent=(d||'0')+' dégâts';
-   const cEl=get(cfg.conc),ct=txt(get(cfg.concText))||(cEl?txt(cEl.querySelector('b')):'')||'—';conc.querySelector('.cc-turn-state').textContent=ct;conc.classList.toggle('is-active',!/aucune|—|none/i.test(ct));
-   const n=get(cfg.next);if(n){const label=txt(n);next.querySelector('.cc-turn-state').textContent=/spectre/i.test(label)?label.replace(/^↻\s*/,''):''}
+   let d=txt(get(cfg.damage)).replace(/\s*dégâts?.*$/i,'');setText(damage.querySelector('.cc-turn-label'),(d||'0')+' dégâts');
+   const cEl=get(cfg.conc),ct=txt(get(cfg.concText))||(cEl?txt(cEl.querySelector('b')):'')||'—';setText(conc.querySelector('.cc-turn-state'),ct);conc.classList.toggle('is-active',!/aucune|—|none/i.test(ct));
+   const n=get(cfg.next);if(n){const label=txt(n);setText(next.querySelector('.cc-turn-state'),/spectre/i.test(label)?label.replace(/^↻\s*/,''):'')}
  }
- const mo=new MutationObserver(sync);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','disabled']});sync();
+ const mo=new MutationObserver(mutations=>{if(mutations.every(m=>bar.contains(m.target)))return;sync()});mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','disabled']});sync();
  function rpgVisibility(){
    const strip=$('#rpg-state-strip');if(!strip)return;
    const banner=$('.rpg-session-banner'), networkStatus=$('.rpg-connect-status');
