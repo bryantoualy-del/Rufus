@@ -713,11 +713,11 @@ function renderSubtabs(group){
   const view=$('#'+group);if(view)view.querySelectorAll(':scope > .subpane').forEach(p=>p.classList.toggle('active',p.dataset.subpane===selected));
 }
 function setSubtab(group,id){
-  S.ui.subtabs=S.ui.subtabs||{};S.ui.subtabs[group]=id;save();renderSubtabs(group);window.scrollTo({top:0,behavior:'instant'});
+  S.ui.subtabs=S.ui.subtabs||{};S.ui.subtabs[group]=id;save();renderSubtabs(group);if(window.matchMedia('(min-width:768px)').matches)window.scrollTo({top:0,behavior:'instant'});
 }
 function switchView(id){
   S.ui.view=id;$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
-  if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);window.scrollTo({top:0,behavior:'instant'});
+  if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);if(window.matchMedia('(min-width:768px)').matches)window.scrollTo({top:0,behavior:'instant'});
 }
 function render(){
   const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#maxHpValue').textContent=S.maxHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
