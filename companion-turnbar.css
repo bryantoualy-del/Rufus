@@ -49,3 +49,6 @@
   #cc-turnbar-standard .cc-turn-label{font-size:10px}
   #cc-turnbar-standard .cc-turn-state{font-size:8px}
 }
+
+/* RPG-STRIP-HIDDEN-V1 */
+#rpg-state-strip[hidden]{display:none!important}
