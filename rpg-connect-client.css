@@ -20,3 +20,10 @@
 
 /* RPG-OFFLINE-HIDE-V1 */
 .rpg-session-banner[data-tone="offline"]{display:none!important}
+
+.rpg-connect-config{display:grid;gap:8px}
+.rpg-connect-details{display:none;width:100%;margin-top:8px;min-height:38px}
+.rpg-connect.rpg-connected:not(.rpg-show-config) .rpg-connect-config{display:none}
+.rpg-connect.rpg-connected .rpg-connect-details{display:block}
+.rpg-connect.rpg-connected.rpg-show-config .rpg-connect-config{display:grid}
+.rpg-connect.rpg-connected.rpg-show-config .rpg-connect-details::after{content:' · masquer'}
