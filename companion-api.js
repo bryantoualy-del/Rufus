@@ -3,7 +3,7 @@
   const bridge=window.__CompanionBridge;
   if(!bridge)throw Error('Companion bridge missing');
   const listeners=new Set(), seen=new Set();
-  let serial=0, previous=null, pendingId=null, pendingKey=null, pendingMissingTimer=null, queued=false,lastUpdated=new Date().toISOString();const apiUndo=[];
+  let serial=0, previous=null, pendingId=null, pendingKey=null, pendingDamageBaseline=null, pendingMissingTimer=null, queued=false,lastUpdated=new Date().toISOString();const apiUndo=[];
   const copy=x=>JSON.parse(JSON.stringify(x));
   const id=()=>`${bridge.id}-${Date.now().toString(36)}-${(++serial).toString(36)}`;
   const number=x=>Number.isFinite(Number(x))?Number(x):null;
@@ -69,9 +69,37 @@
       }
       const key=pending?JSON.stringify(pending):null;
       if(key&&pendingMissingTimer){clearTimeout(pendingMissingTimer);pendingMissingTimer=null}
-      if(key&&!pendingKey){pendingId=pending.attackId||id();const rawRoll=pending.total??pending.roll?.total??pending.roll??pending.attackTotal??pending.attack??null,numericRoll=(rawRoll!==null&&rawRoll!==''&&Number.isFinite(Number(rawRoll)))?Number(rawRoll):null;emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(pending.nat!==null&&pending.nat!==undefined&&Number.isFinite(Number(pending.nat)))?Number(pending.nat):null,detail:pending.detail??pending.roll?.detail??'',crit:!!pending.crit,name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id},pendingId+':pending');}
-      else if(!key&&pendingKey&&pendingId){const result=bridge.lastHit?.();if(result!==null&&result!==undefined){emit(result?'attack:hit':'attack:miss',{attackId:pendingId,actor:bridge.id});if(result){const beforeDamage=Number(previous?.turn?.damage)||0,afterDamage=Number(current?.turn?.damage)||0,amount=Math.max(0,afterDamage-beforeDamage);if(amount>0){const components=inferDamageComponents(amount);emit('attack:damage',{attackId:pendingId,actor:bridge.id,amount,components,beforeTurnDamage:beforeDamage,afterTurnDamage:afterDamage});}}pendingId=null;pendingKey=null;}
-        else{if(!pendingMissingTimer)pendingMissingTimer=setTimeout(()=>{pendingMissingTimer=null;const still=bridge.pending?.()||null;if(still){sync();return}pendingId=null;pendingKey=null},650);previous=current;return;}}
+      if(key&&!pendingKey){
+        pendingId=pending.attackId||id();
+        pendingDamageBaseline=Number(current?.turn?.damage)||0;
+        const rawRoll=pending.total??pending.roll?.total??pending.roll??pending.attackTotal??pending.attack??null,numericRoll=(rawRoll!==null&&rawRoll!==''&&Number.isFinite(Number(rawRoll)))?Number(rawRoll):null;
+        emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(pending.nat!==null&&pending.nat!==undefined&&Number.isFinite(Number(pending.nat)))?Number(pending.nat):null,detail:pending.detail??pending.roll?.detail??'',crit:!!pending.crit,name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
+        emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id},pendingId+':pending');
+      }
+      else if(!key&&pendingKey&&pendingId){
+        const result=bridge.lastHit?.();
+        if(result!==null&&result!==undefined){
+          const resolvedAttackId=pendingId,baseline=Number(pendingDamageBaseline)||0;
+          emit(result?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id});
+          if(result){
+            const settleDamage=(attempt=0)=>{
+              const settled=state(),afterDamage=Number(settled?.turn?.damage)||0,amount=Math.max(0,afterDamage-baseline);
+              if(amount>0){
+                const components=inferDamageComponents(amount);
+                emit('attack:damage',{attackId:resolvedAttackId,actor:bridge.id,amount,components,beforeTurnDamage:baseline,afterTurnDamage:afterDamage},resolvedAttackId+':damage');
+                return;
+              }
+              if(attempt<8)setTimeout(()=>settleDamage(attempt+1),attempt<2?16:40);
+            };
+            setTimeout(()=>settleDamage(0),0);
+          }
+          pendingId=null;pendingKey=null;pendingDamageBaseline=null;
+        }
+        else{
+          if(!pendingMissingTimer)pendingMissingTimer=setTimeout(()=>{pendingMissingTimer=null;const still=bridge.pending?.()||null;if(still){sync();return}pendingId=null;pendingKey=null;pendingDamageBaseline=null},650);
+          previous=current;return;
+        }
+      }
       pendingKey=key;previous=current;
     });
   }
