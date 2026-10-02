@@ -141,7 +141,7 @@
    if(!connected){queue.push(outbound);if(queue.length>100)queue.shift();return}
    if(event.type==='state:changed')send({type:'state',state:{...api.getState(),target:currentTarget?{id:currentTarget.id,name:currentTarget.name,creatureType:currentTarget.creatureType,boss:currentTarget.boss,elite:currentTarget.elite,ac:currentTarget.ac}:null}});
    const sent=send({type:'event',event:outbound});if(!sent){queue.push(outbound);if(queue.length>100)queue.shift()}
-   if(sent&&attackId&&event.type==='attack:damage'){clearTimeout(attackTargetLockTimers.get(attackId));attackTargetLockTimers.set(attackId,setTimeout(()=>{attackTargetLockTimers.delete(attackId);attackTargetLocks.delete(attackId)},5000))}
+   if(sent&&attackId&&event.type==='attack:damage'){clearTimeout(attackTargetLockTimers.get(attackId));attackTargetLockTimers.set(attackId,setTimeout(()=>{attackTargetLockTimers.delete(attackId);attackTargetLocks.delete(attackId)},15000))}
    if(sent&&attackId&&event.type==='attack:miss'){clearTimeout(attackTargetLockTimers.get(attackId));attackTargetLockTimers.delete(attackId);attackTargetLocks.delete(attackId)}
    if(event.type==='undo:performed'){for(const t of attackTargetLockTimers.values())clearTimeout(t);attackTargetLockTimers.clear();attackTargetLocks.clear()};
  });
