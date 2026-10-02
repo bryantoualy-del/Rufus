@@ -87,7 +87,7 @@
     nextTurn:()=>call('nextTurn'),resetCombat:()=>call('resetCombat'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
     setConcentration:value=>call('setConcentration',value),clearConcentration:()=>call('clearConcentration'),
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
-    applyHitDecision:(hit,attackId)=>{if(!pendingId||attackId&&attackId!==pendingId)throw Error('Aucune attaque correspondante en attente');const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');return call('applyHitDecision',!!hit)},
+    applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');if(!pendingId&&attackId){pendingId=attackId;pendingKey=JSON.stringify(live)}if(!pendingId)pendingId=live.attackId||id();if(attackId&&attackId!==pendingId)throw Error('Aucune attaque correspondante en attente');return call('applyHitDecision',!!hit)},
     applyRemoteEvent:event=>{if(!event||typeof event!=='object'||!event.id||!event.type)throw TypeError('Événement invalide');if(seen.has(event.id))return false;
       const actions={'hp:damage':()=>api.damage(event.payload?.amount,event.payload?.options),'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
         'hp:set':()=>api.setHP(event.payload?.value),'tempHp:set':()=>api.setTemporaryHP(event.payload?.value),
