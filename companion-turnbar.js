@@ -66,7 +66,8 @@ function boot(){
    const cEl=get(cfg.conc),ct=txt(get(cfg.concText))||(cEl?txt(cEl.querySelector('b')):'')||'—';setText(conc.querySelector('.cc-turn-state'),ct);conc.classList.toggle('is-active',!/aucune|—|none/i.test(ct));
    const n=get(cfg.next);if(n){const label=txt(n);setText(next.querySelector('.cc-turn-state'),/spectre/i.test(label)?label.replace(/^↻\s*/,''):'')}
  }
- const mo=new MutationObserver(mutations=>{if(mutations.every(m=>bar.contains(m.target)))return;sync()});mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','disabled']});sync();
+ sync();
+ const syncTimer=setInterval(()=>{if(document.hidden||!document.body.contains(bar))return;sync()},500);
  function rpgVisibility(){
    const strip=$('#rpg-state-strip');if(!strip)return;
    const banner=$('.rpg-session-banner'), networkStatus=$('.rpg-connect-status');
@@ -75,7 +76,8 @@ function boot(){
    const connected=(tone&&tone!=='offline')||/connecté|connecte|prépa fight|prepa fight|initiative|à toi|a toi|tour de|réaction|reaction|fight/i.test(state);
    strip.hidden=!connected;
  }
- const rmo=new MutationObserver(rpgVisibility);rmo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['data-tone','class']});rpgVisibility();
+ rpgVisibility();
+ const rpgTimer=setInterval(()=>{if(document.hidden)return;rpgVisibility()},750);
 }
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',boot):boot();
 })();
