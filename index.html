@@ -367,7 +367,9 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
   visualViewport?.addEventListener('resize',schedule,{passive:true});
   visualViewport?.addEventListener('scroll',schedule,{passive:true});
   new ResizeObserver(schedule).observe(nav);
-  new MutationObserver(schedule).observe(nav,{attributes:true,attributeFilter:['class','style']});
+  setTimeout(apply,50);
+  setTimeout(apply,300);
+  setTimeout(apply,1000);
 })();
 </script>
 </body>
