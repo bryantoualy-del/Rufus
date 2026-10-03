@@ -561,10 +561,7 @@ function socialRoll(label,bonus,isSave=false,ability=''){
 }
 function renderSocial(){
   const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
-  const inventoryMode=tab==='inventory';
-  $$('[data-social-surface]').forEach(b=>b.classList.toggle('active',(b.dataset.socialSurface==='inventory')===inventoryMode));
-  const profileTabs=$('.social-profile-tabs');if(profileTabs)profileTabs.hidden=inventoryMode;
-  $$('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
+  const inventoryMode=tab==='inventory';$('[data-social-surface]').forEach(b=>b.classList.toggle('active',(b.dataset.socialSurface==='inventory')===inventoryMode));const profileTabs=$('.social-profile-tabs');if(profileTabs)profileTabs.hidden=inventoryMode;$('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
   $$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
   $('#socialSheetPane').hidden=inventoryMode;$('#socialInventoryPane').hidden=!inventoryMode;if(inventoryMode){renderInventory();return;}
   if(tab==='skills'){
@@ -774,7 +771,7 @@ function bind(){
   $$('[data-psi]').forEach(b=>b.onclick=()=>commit('Dé psychique','Suivi manuel : '+(b.dataset.psi==='0'?'épuisé':'d'+b.dataset.psi),()=>{S.psiDie=Number(b.dataset.psi);}));
   $('#shortRestBtn').onclick=shortRest;$('#longRestBtn').onclick=longRest;$('#quickShortRestBtn').onclick=shortRest;$('#quickLongRestBtn').onclick=longRest;$('#mobileShortRest').onclick=shortRest;$('#mobileLongRest').onclick=longRest;$('#newDayBtn').onclick=newDay;$('#undoBtn').onclick=undo;
   $('#psiKnackBtn').onclick=usePsiKnack;$('#psiWhispersBtn').onclick=usePsiWhispers;$('#psiRestoreBtn').onclick=restorePsi;$('#psiTeleportBtn').onclick=psychicTeleport;
-  $$('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$$('[data-social-surface]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialSurface==='inventory'?'inventory':'skills';save();renderSocial();});$$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
+  $('[data-social-mode]').forEach(b=>b.onclick=()=>{S.socialMode=b.dataset.socialMode;save();renderSocial();});$('[data-social-surface]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialSurface==='inventory'?'inventory':'skills';save();renderSocial();});$('[data-social-tab]').forEach(b=>b.onclick=()=>{S.ui.socialTab=b.dataset.socialTab;save();renderSocial();});
   $$('.inventory-tabs button').forEach(b=>b.onclick=()=>{S.inventoryTab=b.dataset.inventoryTab;save();renderInventory();});$('#inventorySearch').oninput=renderInventory;$('#addItemBtn').onclick=()=>openItemEditor(-1);$('#itemEditor').onsubmit=saveItem;$('#deleteItemBtn').onclick=deleteItem;$('#closeItemBtn').onclick=closeItemEditor;$('#pickImageBtn').onclick=pickImage;$('#imageFile').onchange=e=>handleImage(e.target.files?.[0]);
   $('#ribbonUndo').onclick=undo;$('#ribbonToggle').onclick=()=>$('#resultRibbon').classList.toggle('collapsed');$('#resultRibbon').addEventListener('click',e=>{if(e.target.closest('button'))return;if($('#resultRibbon').classList.contains('collapsed'))$('#resultRibbon').classList.remove('collapsed');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#itemEditor').hidden)closeItemEditor();});
