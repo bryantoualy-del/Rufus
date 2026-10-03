@@ -562,7 +562,7 @@ function socialRoll(label,bonus,isSave=false,ability=''){
 function renderSocial(){
   const c=$('#socialContent');if(!c)return;const tab=S.ui.socialTab;
   const inventoryMode=tab==='inventory';$$('[data-social-surface]').forEach(b=>b.classList.toggle('active',(b.dataset.socialSurface==='inventory')===inventoryMode));const profileTabs=$('.social-profile-tabs');if(profileTabs)profileTabs.hidden=inventoryMode;$$('[data-social-tab]').forEach(b=>b.classList.toggle('active',b.dataset.socialTab===tab));
-  $$$('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
+  $('[data-social-mode]').forEach(b=>b.classList.toggle('on',b.dataset.socialMode===S.socialMode));
   $('#socialSheetPane').hidden=inventoryMode;$('#socialInventoryPane').hidden=!inventoryMode;if(inventoryMode){renderInventory();return;}
   if(tab==='skills'){
     c.innerHTML='<div class="social-passives"><span>Perception passive <b>16</b></span><span>Intuition passive <b>12</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
