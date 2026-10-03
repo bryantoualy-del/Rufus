@@ -3,7 +3,7 @@
   const bridge=window.__CompanionBridge;
   if(!bridge)throw Error('Companion bridge missing');
   const listeners=new Set(), seen=new Set();
-  let serial=0, previous=null, pendingId=null, pendingKey=null, pendingDamageBaseline=null, pendingMissingTimer=null, queued=false,lastUpdated=new Date().toISOString();const apiUndo=[];
+  let serial=0, previous=null, pendingId=null, pendingKey=null, pendingDamageBaseline=null, pendingMissingTimer=null, queued=false,lastUpdated=new Date().toISOString(),damageCursor=null;const apiUndo=[],damageWaiters=[];
   const copy=x=>JSON.parse(JSON.stringify(x));
   const id=()=>`${bridge.id}-${Date.now().toString(36)}-${(++serial).toString(36)}`;
   const number=x=>Number.isFinite(Number(x))?Number(x):null;
@@ -55,7 +55,7 @@
   function sync(){
     if(queued)return;queued=true;
     queueMicrotask(()=>{
-      queued=false;const current=state(),pending=bridge.pending?.()||null;
+      queued=false;const current=state(),pending=bridge.pending?.()||null;if(damageCursor===null)damageCursor=Number(previous?.turn?.damage)||0;
       if(previous){
         if(JSON.stringify(previous.hp)!==JSON.stringify(current.hp)){
           if(previous.hp.current!==current.hp.current)emit('hp:changed',{before:previous.hp.current,after:current.hp.current});
@@ -71,6 +71,7 @@
       if(key&&pendingMissingTimer){clearTimeout(pendingMissingTimer);pendingMissingTimer=null}
       if(key&&!pendingKey){
         pendingId=pending.attackId||id();
+        try{if(pending&&typeof pending==='object'&&!pending.attackId)pending.attackId=pendingId}catch{}
         pendingDamageBaseline=Number(current?.turn?.damage)||0;
         const rawRoll=pending.total??pending.roll?.total??pending.roll??pending.attackTotal??pending.attack??null,numericRoll=(rawRoll!==null&&rawRoll!==''&&Number.isFinite(Number(rawRoll)))?Number(rawRoll):null;
         emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(pending.nat!==null&&pending.nat!==undefined&&Number.isFinite(Number(pending.nat)))?Number(pending.nat):null,detail:pending.detail??pending.roll?.detail??'',crit:!!pending.crit,name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
@@ -80,25 +81,26 @@
         const result=bridge.lastHit?.();
         if(result!==null&&result!==undefined){
           const resolvedAttackId=pendingId,baseline=Number(pendingDamageBaseline)||0;
-          emit(result?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id});
-          if(result){
-            const settleDamage=(attempt=0)=>{
-              const settled=state(),afterDamage=Number(settled?.turn?.damage)||0,amount=Math.max(0,afterDamage-baseline);
-              if(amount>0){
-                const components=inferDamageComponents(amount);
-                emit('attack:damage',{attackId:resolvedAttackId,actor:bridge.id,amount,components,beforeTurnDamage:baseline,afterTurnDamage:afterDamage},resolvedAttackId+':damage');
-                return;
-              }
-              if(attempt<8)setTimeout(()=>settleDamage(attempt+1),attempt<2?16:40);
-            };
-            setTimeout(()=>settleDamage(0),0);
-          }
+          emit(result?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id},resolvedAttackId+(result?':hit':':miss'));
+          if(result&&!bridge.emitsAttackDamage)damageWaiters.push({attackId:resolvedAttackId,baseline,at:Date.now()});
           pendingId=null;pendingKey=null;pendingDamageBaseline=null;
         }
         else{
           if(!pendingMissingTimer)pendingMissingTimer=setTimeout(()=>{pendingMissingTimer=null;const still=bridge.pending?.()||null;if(still){sync();return}pendingId=null;pendingKey=null;pendingDamageBaseline=null},650);
           previous=current;return;
         }
+      }
+      const damageNow=Number(current?.turn?.damage)||0;
+      if(damageNow<damageCursor){damageWaiters.length=0;damageCursor=damageNow}
+      else if(damageNow>damageCursor){
+        const amount=Math.max(0,damageNow-damageCursor),now=Date.now();
+        while(damageWaiters.length&&now-damageWaiters[0].at>1600)damageWaiters.shift();
+        const waiter=damageWaiters.shift();
+        if(waiter&&amount>0){
+          const components=inferDamageComponents(amount);
+          emit('attack:damage',{attackId:waiter.attackId,actor:bridge.id,amount,components,beforeTurnDamage:damageCursor,afterTurnDamage:damageNow},waiter.attackId+':damage');
+        }
+        damageCursor=damageNow;
       }
       pendingKey=key;previous=current;
     });
@@ -115,7 +117,7 @@
     nextTurn:()=>call('nextTurn'),resetCombat:()=>call('resetCombat'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
     setConcentration:value=>call('setConcentration',value),clearConcentration:()=>call('clearConcentration'),
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
-    applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}return call('applyHitDecision',!!hit)},
+    applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}const resolvedAttackId=requested||pendingId;emit(hit?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id,remoteDecision:true},resolvedAttackId+(hit?':hit':':miss'));return call('applyHitDecision',!!hit)},
     applyRemoteEvent:event=>{if(!event||typeof event!=='object'||!event.id||!event.type)throw TypeError('Événement invalide');if(seen.has(event.id))return false;
       const actions={'hp:damage':()=>api.damage(event.payload?.amount,event.payload?.options),'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
         'hp:set':()=>api.setHP(event.payload?.value),'tempHp:set':()=>api.setTemporaryHP(event.payload?.value),
@@ -126,7 +128,7 @@
       if(!actions[event.type])throw Error('Commande non prise en charge');actions[event.type]();seen.add(event.id);return true;},
     undo:()=>{if(apiUndo.length&&bridge.restore){bridge.restore(apiUndo.pop());sync();emit('undo:performed',{});return true}const result=call('undo');emit('undo:performed',{});return result},subscribe:fn=>{if(typeof fn!=='function')throw TypeError('Fonction attendue');listeners.add(fn);return()=>listeners.delete(fn)},
     unsubscribe:fn=>listeners.delete(fn),sync,emitLocal:emit});
-  window.CompanionAPI=api;previous=state();emit('companion:ready',{version:1});
+  window.CompanionAPI=api;previous=state();damageCursor=Number(previous?.turn?.damage)||0;emit('companion:ready',{version:1});
   // Existing character interfaces own their rules and rendering. Observe their
   // completed UI changes so local actions also enter the same event stream.
   const observer=new MutationObserver(sync);
