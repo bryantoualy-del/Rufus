@@ -784,16 +784,6 @@ function bind(){
 }
 
 window.__CompanionBridge={id:'rufus',name:'Rufus',maxHp:53,initiative:{bonus:3,mode:'normal'},read:()=>S,used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>commit('Concentration terminée','',()=>{S.concentration=null}),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,false),undo}};
-function bootCompanion(){
-  const errors=[];
-  try{load();}catch(error){errors.push(['load',error]);console.error('Rufus boot · load',error);S=defaults();}
-  try{bind();}catch(error){errors.push(['bind',error]);console.error('Rufus boot · bind',error);}
-  try{render();}catch(error){errors.push(['render',error]);console.error('Rufus boot · render',error);}
-  try{switchView(S.ui.view||'combat');}catch(error){errors.push(['view',error]);console.error('Rufus boot · view',error);}
-  document.documentElement.dataset.rufusBoot=errors.length?'degraded':'ready';
-  window.__RufusBootStatus={ready:!errors.length,errors:errors.map(([stage,error])=>({stage,message:String(error?.message||error)}))};
-  if(errors.length){const el=document.getElementById('toast');if(el){el.textContent='Rufus chargé en mode dégradé · recharge la page.';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),4500);}}
-  if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
-}
-bootCompanion();
+load();bind();render();switchView(S.ui.view||'combat');
+if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
 })();
