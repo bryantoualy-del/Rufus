@@ -707,32 +707,3 @@ textarea{resize:vertical}
 /* Emblème détouré, centré dans la zone d’identité. */
 .signature-icon{display:grid;place-items:center}
 .signature-icon img{object-fit:contain;border-radius:0}
-
-/* Social touch/navigation hardening */
-.social-surface-tabs,.social-profile-tabs{
-  overflow-x:auto;
-  overflow-y:hidden;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-x;
-  scrollbar-width:none;
-  flex-wrap:nowrap;
-}
-.social-surface-tabs::-webkit-scrollbar,.social-profile-tabs::-webkit-scrollbar{display:none}
-.social-surface-tabs .subtab,.social-profile-tabs .subtab{flex:0 0 auto;min-width:max-content;padding-inline:14px}
-@media(max-width:767px){
-  .social-surface-tabs,.social-profile-tabs{margin-left:0;margin-right:0}
-  .social-surface-tabs .subtab,.social-profile-tabs .subtab{min-width:44%;font-size:10px}
-}
-
-/* Rufus mobile navigation + scroll safety */
-html,body{min-height:100%;overflow-x:hidden;overflow-y:auto!important;-webkit-overflow-scrolling:touch}
-body{height:auto!important;touch-action:pan-y pinch-zoom}
-.app{height:auto!important;min-height:100vh;overflow:visible!important}
-.view.active{height:auto!important;max-height:none!important;overflow:visible!important;touch-action:pan-y pinch-zoom}
-@media(max-width:767px){
-  .mobile-main-nav{pointer-events:auto!important}
-  .mobile-main-nav button{pointer-events:auto!important;touch-action:manipulation}
-  #social.view.active{padding-bottom:calc(120px + env(safe-area-inset-bottom))!important}
-  #social .social-shell,#social #socialInventoryPane{overflow:visible!important;max-height:none!important}
-  .social-surface-tabs,.social-profile-tabs{touch-action:pan-x pan-y}
-}
