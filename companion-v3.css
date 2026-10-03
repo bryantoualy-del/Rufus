@@ -707,3 +707,32 @@ textarea{resize:vertical}
 /* Emblème détouré, centré dans la zone d’identité. */
 .signature-icon{display:grid;place-items:center}
 .signature-icon img{object-fit:contain;border-radius:0}
+
+
+/* ===== Rufus signature FX restore ===== */
+.fx-stage.no-label .fx-label{display:none}
+.fx-stage.psychic{--fx:#a873ff;--fx2:#f1dcff}
+.fx-stage.dagger{--fx:#d5b56d;--fx2:#fff4d8}
+.fx-stage.crossbow{--fx:#78c9ff;--fx2:#eefaff}
+.fx-stage.sneak{--fx:#c86cff;--fx2:#f4dcff}
+.fx-stage.teleport{--fx:#9e7cff;--fx2:#f0e8ff}
+.fx-stage.sneak-ready{--fx:#d08aff;--fx2:#f5e6ff}
+.fx-stage.sneak .fx-vignette{background:radial-gradient(circle at 50% 48%,rgba(150,45,210,.42),rgba(65,10,82,.28) 38%,rgba(4,2,9,.64) 76%,transparent)}
+.fx-stage.teleport .fx-vignette{background:radial-gradient(circle at 50% 50%,rgba(140,105,255,.26),transparent 48%)}
+.fx-stage.sneak.fire{--fx:#ee7d68;--fx2:#ffe6c8}
+.fx-weapon-slash{position:absolute;left:50%;top:50%;width:8px;height:280px;border-radius:999px;opacity:0;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(.18);transform-origin:center;background:linear-gradient(180deg,transparent,var(--fx2),var(--fx),transparent);box-shadow:0 0 22px var(--fx);animation:fxWeaponSlash .82s ease-out var(--delay,0s) forwards}
+.fx-psychic-slash{height:min(44vh,360px);width:9px;filter:drop-shadow(0 0 16px rgba(177,112,255,.78))}
+.fx-dagger-slash{height:min(36vh,290px);width:6px;filter:drop-shadow(0 0 12px rgba(225,183,90,.72))}
+.fx-sneak-slash{left:var(--left,50%);top:var(--top,50%);height:min(50vh,410px);width:9px;box-shadow:0 0 30px var(--fx);animation-duration:1.05s}
+.fx-bolt{position:absolute;top:50%;left:-20%;width:min(44vw,430px);height:6px;border-radius:999px;background:linear-gradient(90deg,transparent,#dff2ff,#79bfff,#fff);box-shadow:0 0 22px rgba(79,145,201,.95);opacity:0;animation:fxBolt .7s cubic-bezier(.15,.8,.2,1) forwards}
+.fx-impact-ring{position:absolute;left:76%;top:50%;width:110px;height:110px;border:3px solid #8fd0ff;border-radius:50%;opacity:0;transform:translate(-50%,-50%) scale(.2);animation:fxImpact .62s ease-out .3s forwards}
+.fx-sneak-ring,.fx-ready-ring{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%) scale(.2);opacity:0}
+.fx-sneak-ring{width:170px;height:170px;border:5px solid #d88cff;box-shadow:0 0 45px rgba(187,86,255,.85),inset 0 0 40px rgba(130,40,190,.45);animation:fxSneakRing 1.2s ease-out forwards}
+.fx-ready-ring{width:110px;height:110px;border:3px solid #d58cff;box-shadow:0 0 34px rgba(200,121,255,.8);animation:fxReady .68s ease-out forwards}
+.fx-tele-ring{position:absolute;left:50%;top:50%;width:var(--size,100px);height:var(--size,100px);border:2px solid var(--fx);border-radius:50%;opacity:0;transform:translate(-50%,-50%) scale(.25);animation:fxTele .72s ease-out var(--delay,0s) forwards}
+@keyframes fxWeaponSlash{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(.18)}28%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(1.95)}}
+@keyframes fxBolt{0%{left:-20%;opacity:0}18%{opacity:1}72%{left:68%;opacity:1}100%{left:108%;opacity:0}}
+@keyframes fxImpact{0%{opacity:1;transform:translate(-50%,-50%) scale(.2)}100%{opacity:0;transform:translate(-50%,-50%) scale(3.4)}}
+@keyframes fxSneakRing{0%{opacity:1;transform:translate(-50%,-50%) scale(.15)}35%{opacity:.95}100%{opacity:0;transform:translate(-50%,-50%) scale(5.2)}}
+@keyframes fxReady{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}28%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(3.7)}}
+@keyframes fxTele{0%{opacity:0;transform:translate(-50%,-50%) scale(.25)}30%{opacity:.9}100%{opacity:0;transform:translate(-50%,-50%) scale(2.15)}}
