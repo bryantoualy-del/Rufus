@@ -332,5 +332,43 @@ document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boo
 })();
 </script>
 <script src="companion-turnbar.js?v=5"></script>
+<script id="rufus-mobile-dock-lock">
+(()=>{
+  if(window.__rufusMobileDockLock)return;
+  window.__rufusMobileDockLock=true;
+  const nav=document.querySelector('nav.mobile-main-nav');
+  if(!nav)return;
+  let raf=0;
+  const apply=()=>{
+    raf=0;
+    const visible=getComputedStyle(nav).display!=='none';
+    if(!visible)return;
+    const vv=window.visualViewport;
+    const visualBottom=vv ? Math.max(0,window.innerHeight-(vv.offsetTop+vv.height)) : 0;
+    const s=nav.style;
+    s.setProperty('position','fixed','important');
+    s.setProperty('top','auto','important');
+    s.setProperty('right','0','important');
+    s.setProperty('bottom',visualBottom+'px','important');
+    s.setProperty('left','0','important');
+    s.setProperty('inset','auto 0 '+visualBottom+'px 0','important');
+    s.setProperty('transform','none','important');
+    s.setProperty('translate','none','important');
+    s.setProperty('margin','0','important');
+    s.setProperty('width','100vw','important');
+    s.setProperty('max-width','100vw','important');
+    s.setProperty('z-index','2147483000','important');
+  };
+  const schedule=()=>{if(!raf)raf=requestAnimationFrame(apply)};
+  apply();
+  addEventListener('resize',schedule,{passive:true});
+  addEventListener('orientationchange',schedule,{passive:true});
+  addEventListener('scroll',schedule,{passive:true});
+  visualViewport?.addEventListener('resize',schedule,{passive:true});
+  visualViewport?.addEventListener('scroll',schedule,{passive:true});
+  new ResizeObserver(schedule).observe(nav);
+  new MutationObserver(schedule).observe(nav,{attributes:true,attributeFilter:['class','style']});
+})();
+</script>
 </body>
 </html>
