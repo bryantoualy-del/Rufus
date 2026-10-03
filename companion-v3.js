@@ -386,6 +386,8 @@ function useGuidedStrikePending(){
   const r=die(S.psiDie);pushHistory();p.guidedPsiRoll=r;p.total+=r;logEvent('Frappes autoguidées','+'+r+' au jet d’attaque · si cela transforme le raté en touche, le dé diminuera.');save();render();
 }
 function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:sum(arr)};}
+function rufusEncounterSaveContext(label){const s=window.RPGConnect?.getStatus?.()||{};if(!s.connected)return{connected:false,target:null};if(!s.target){toast(label+' : sélectionne une cible Encounter.');return{connected:true,target:null}}return{connected:true,target:s.target}}
+function rufusRequestSave(effect){return window.RPGConnect?.requestSave?.(effect)}
 function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
   if(!hit){
@@ -414,7 +416,11 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   window.__lastDamageComponents=[{amount:primaryBase+sneakAmount,type:spec.type}].concat(fireAmount?[{amount:fireAmount,type:'feu'}]:[]);
   const spectralEffect=p.key==='spectral'?' · CON DD13 ou désavantage à sa prochaine attaque':'';
   const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'')+spectralEffect;
-  S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();{
+  if(window.RPGConnect?.getStatus?.().connected){
+    if(p.key==='spectral')rufusRequestSave({ability:'CON',dc:13,source:'Dague spectrale +1',condition:{name:'Désavantage prochaine attaque',durationType:'nextAttack',source:'Dague spectrale +1'}});
+    if(fireText)rufusRequestSave({ability:'CON',dc:16,source:'Lame du Feu Caché',condition:{name:'Aveuglé',durationType:'sourceTurnEnd',remaining:2,source:'Lame du Feu Caché',sourceCharacterId:'rufus'}});
+  }
+  S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(window.RPGConnect?.getStatus?.().connected&&(p.key==='spectral'||fireText)?' · JdS Encounter en attente':'')+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();{
     const fxKinds=[spec.psychic?'psychic':p.key==='crossbow'?'crossbow':'dagger'];
     if(useSneak&&eligible)fxKinds.push('sneak');
     if(crit)fxKinds.push('crit');
@@ -494,6 +500,7 @@ function useVision(){
   },'raven');
 }
 function castHex(name,cost,concentration){
+  const saveNet=name==='Motif hypnotique'?rufusEncounterSaveContext('Motif hypnotique'):{connected:false,target:null};if(saveNet.connected&&!saveNet.target)return;
   if(S.hexCharges<cost)return toast('Pas assez de charges Hexen Blade.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
   if(concentration&&S.concentration&&S.concentration.name!==name&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
@@ -501,6 +508,7 @@ function castHex(name,cost,concentration){
     S.hexCharges-=cost;S.economy.action=false;
     if(concentration){S.concentration={name,source:'Hexen Blade'};S.vision.active=false;}
   },'raven');
+  if(name==='Motif hypnotique'&&saveNet.connected)rufusRequestSave({ability:'SAG',dc:15,source:'Motif hypnotique',conditions:[{name:'Charmé',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Incapacité',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Vitesse 0',durationType:'rounds',remaining:10,source:'Motif hypnotique'}],failureEffect:'L’effet cesse si la cible subit des dégâts ou si une créature utilise une action pour la secouer.'});
 }
 function hexDawn(logTitle='Aube · Hexen Blade'){
   const gain=die(4)+1,before=S.hexCharges;
