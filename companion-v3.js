@@ -320,6 +320,7 @@ function breakInvisibilityForAttack(){
   }
 }
 function startAttack(key,context='own'){
+  window.__lastDamageComponents=null;
   const spec=attacks[key];if(!spec)return;
   const cost=context==='reaction'?'reaction':spec.cost;
   if(cost==='action'&&!S.economy.action)return toast('Action déjà utilisée.');
@@ -388,7 +389,7 @@ function rollDamage(count,sides){const arr=dice(count,sides);return {arr,total:s
 function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
   if(!hit){
-    resolvePendingHistory(p);S.pending=null;logEvent('Attaque ratée · '+spec.name,'Jet '+p.total);save();render();
+    window.__lastDamageComponents=null;resolvePendingHistory(p);S.pending=null;logEvent('Attaque ratée · '+spec.name,'Jet '+p.total);save();render();
     return;
   }
   resolvePendingHistory(p);
@@ -397,20 +398,22 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const multiplier=crit?2:1;
   const base=rollDamage(spec.count*multiplier,spec.sides);
   const sharp=p.key==='crossbow'&&S.sharpshooter?10:0;
-  const parts=[base.total+spec.mod+sharp+' '+spec.type];
-  let total=base.total+spec.mod+sharp;
+  const primaryBase=base.total+spec.mod+sharp,parts=[primaryBase+' '+spec.type];
+  let total=primaryBase,sneakAmount=0,fireAmount=0;
   let sneakText='',fireText='';
   const eligible=sneakEligible(spec,p.context);
   if(useSneak&&eligible){
-    const sneak=rollDamage(5*multiplier,6);total+=sneak.total;sneakText=sneak.total+' Sournoise';
+    const sneak=rollDamage(5*multiplier,6);sneakAmount=sneak.total;total+=sneakAmount;sneakText=sneakAmount+' Sournoise';
     if(p.context==='reaction')S.sneakReaction=true;else S.sneakOwn=true;
     if(S.fireBlade.armed&&S.fireBlade.ready){
-      const fire=rollDamage(2*multiplier,6);total+=fire.total;fireText=fire.total+' feu';
+      const fire=rollDamage(2*multiplier,6);fireAmount=fire.total;total+=fireAmount;fireText=fireAmount+' feu';
       S.fireBlade.ready=false;S.fireBlade.armed=false;
     }
   }
   if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
-  const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'');
+  window.__lastDamageComponents=[{amount:primaryBase+sneakAmount,type:spec.type}].concat(fireAmount?[{amount:fireAmount,type:'feu'}]:[]);
+  const spectralEffect=p.key==='spectral'?' · CON DD13 ou désavantage à sa prochaine attaque':'';
+  const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'')+spectralEffect;
   S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();{
     const fxKinds=[spec.psychic?'psychic':p.key==='crossbow'?'crossbow':'dagger'];
     if(useSneak&&eligible)fxKinds.push('sneak');
@@ -425,7 +428,8 @@ function renderPending(){
   if(!p){el.hidden=true;el.innerHTML='';return;}
   el.hidden=false;
   if(p.kind==='wound'){
-    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">Blessure · attaque de sort à résoudre</div><b>Bonus d’attaque selon validation MJ</b></div></div><div class="pending-details">Une fois le résultat d’attaque connu, confirmez l’issue.</div><h3 class="pending-question">Est-ce que cette attaque touche ?</h3><div class="pending-actions"><button class="primary" data-special-hit="wound">Oui · lancer 3d10</button><button class="ability" data-special-miss="wound">Non · raté</button></div>';
+    const rolls=p.rolls?.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat??'—');
+    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">Blessure · attaque de sort</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus||0)+' = '+esc(p.total??'—')+'</div></div><div class="sneak-badge">'+(p.crit?'CRITIQUE':'JET')+'</div></div><div class="pending-details">'+esc(p.mode||'normal')+' · 3d10 nécrotiques'+(p.crit?' doublés sur critique':'')+'</div><h3 class="pending-question">Est-ce que cette attaque touche ?</h3><div class="pending-actions"><button class="primary" data-special-hit="wound">Oui'+(p.crit?' · critique':'')+'</button><button class="ability" data-special-miss="wound">Non · raté</button></div>';
     return;
   }
   const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=S.vision.active?'17–20':'20';
@@ -453,14 +457,24 @@ function renderPending(){
 function useWound(){
   if(!S.woundReady)return toast('Blessure déjà utilisée aujourd’hui.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
-  commit('Blessure','1/jour · attaque de sort au contact',()=>{S.economy.action=false;S.woundReady=false;S.pending={kind:'wound'};});
+  const raw=prompt('Bonus d’attaque de sort pour Blessure :','');
+  if(raw===null)return;
+  const bonus=Number(String(raw).trim());
+  if(!Number.isInteger(bonus)||bonus<-20||bonus>30)return toast('Bonus d’attaque invalide.');
+  window.__lastDamageComponents=null;
+  const mode=effectiveRollMode(),rr=rollAttackD20(mode);$('#manualRoll').value='';
+  const total=rr.nat+bonus,crit=rr.nat===20||(S.vision.active&&rr.nat>=17);
+  commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
+    breakInvisibilityForAttack();S.economy.action=false;S.woundReady=false;
+    S.pending={kind:'wound',name:'Blessure',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
+  });
   beginPendingTransaction();
 }
-function resolveWound(hit){
+function resolveWound(hit){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='wound')return;
   resolvePendingHistory(p);S.pending=null;
-  if(!hit){logEvent('Blessure ratée','Aucun dégât.');save();render();return;}
-  const r=rollDamage(3,10);S.turnDamage+=r.total;logEvent('Blessure · touché',r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');
+  if(!hit){window.__lastDamageComponents=null;logEvent('Blessure ratée','Jet '+(p.total??'—')+' · aucun dégât.');save();render();return;}
+  const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');
 }
 function useInvisibility(){
   if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
@@ -797,7 +811,7 @@ function bind(){
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
-window.__CompanionBridge={id:'rufus',name:'Rufus',maxHp:53,initiative:{bonus:3,mode:'normal'},read:()=>S,used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>commit('Concentration terminée','',()=>{S.concentration=null}),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,false),undo}};
+window.__CompanionBridge={id:'rufus',name:'Rufus',maxHp:53,initiative:{bonus:3,mode:'normal'},read:()=>S,used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>commit('Concentration terminée','',()=>{S.concentration=null}),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,false),undo}};
 load();bind();render();switchView(S.ui.view||'combat');
 if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
 })();
