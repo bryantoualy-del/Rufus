@@ -224,11 +224,22 @@ function toast(msg){
 }
 function playFx(kind,label){
   const stage=$('#fxStage');if(!stage||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  stage.className='fx-stage '+kind;$('#fxLabel').textContent=label||'Rufus';
+  const kinds=String(kind||'raven').trim().split(/\s+/).filter(Boolean);
+  stage.className='fx-stage '+kinds.join(' ');
+  const labelNode=$('#fxLabel');if(labelNode)labelNode.textContent=label===undefined?'Rufus':label;
+  stage.classList.toggle('no-label',label==='');
   const p=$('#fxParticles');p.innerHTML='';
-  for(let i=0;i<16;i++){const n=document.createElement('i');n.className='fx-particle';const a=Math.random()*Math.PI*2,r=90+Math.random()*250;n.style.setProperty('--x',Math.cos(a)*r+'px');n.style.setProperty('--y',Math.sin(a)*r+'px');n.style.setProperty('--delay',(Math.random()*.11)+'s');p.appendChild(n);}
+  const add=(cls,style={})=>{const n=document.createElement('i');n.className=cls;for(const [k,v] of Object.entries(style))n.style.setProperty(k,v);p.appendChild(n);return n;};
+  const particles=kinds.includes('sneak')?30:kinds.includes('crit')?24:18;
+  for(let i=0;i<particles;i++){const a=Math.random()*Math.PI*2,r=80+Math.random()*(kinds.includes('sneak')?390:270);add('fx-particle',{'--x':Math.cos(a)*r+'px','--y':Math.sin(a)*r+'px','--delay':(Math.random()*.12)+'s'});}
+  if(kinds.includes('psychic'))for(let i=0;i<4;i++)add('fx-weapon-slash fx-psychic-slash',{'--rot':(-58+i*38)+'deg','--delay':(i*.045)+'s'});
+  if(kinds.includes('dagger'))for(let i=0;i<3;i++)add('fx-weapon-slash fx-dagger-slash',{'--rot':(-72+i*72)+'deg','--delay':(i*.05)+'s'});
+  if(kinds.includes('crossbow')){add('fx-bolt');add('fx-impact-ring');}
+  if(kinds.includes('sneak')){for(let i=0;i<10;i++)add('fx-weapon-slash fx-sneak-slash',{'--rot':(-78+Math.random()*156)+'deg','--left':(36+Math.random()*28)+'%','--top':(39+Math.random()*22)+'%','--delay':(i*.035)+'s'});add('fx-sneak-ring');}
+  if(kinds.includes('teleport'))for(let i=0;i<5;i++)add('fx-tele-ring',{'--size':(84+i*34)+'px','--delay':(i*.055)+'s'});
+  if(kinds.includes('sneak-ready'))add('fx-ready-ring');
   stage.classList.remove('play');void stage.offsetWidth;
-  requestAnimationFrame(()=>{stage.classList.add('play');clearTimeout(playFx.t);playFx.t=setTimeout(()=>stage.classList.remove('play'),980);});
+  requestAnimationFrame(()=>{stage.classList.add('play');clearTimeout(playFx.t);playFx.t=setTimeout(()=>stage.classList.remove('play'),kinds.includes('sneak')?1450:1050);});
 }
 
 function acInfo(){
@@ -350,23 +361,23 @@ function psiRollWithFlux(){
 }
 function usePsiKnack(){
   const rr=psiRollWithFlux();if(!rr)return toast('Dé psionique épuisé.');
-  commit('Truc de psi','d'+rr.before+' = '+rr.r+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.psiDie=rr.after;S.psiKnackLast='+'+rr.r+' au test maîtrisé · dé '+(rr.after?'d'+rr.after:'épuisé');},'raven');
+  commit('Truc de psi','d'+rr.before+' = '+rr.r+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.psiDie=rr.after;S.psiKnackLast='+'+rr.r+' au test maîtrisé · dé '+(rr.after?'d'+rr.after:'épuisé');},'psychic');
 }
 function usePsiWhispers(){
   if(!S.economy.action)return toast('Action déjà utilisée.');
   const rr=psiRollWithFlux();if(!rr)return toast('Dé psionique épuisé.');
-  commit('Murmures psychiques',rr.r+' créature'+(rr.r>1?'s':'')+' · télépathie 1 h à 1,5 km'+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.economy.action=false;S.psiDie=rr.after;S.psiWhispersLast=rr.r+' créature'+(rr.r>1?'s':'')+' reliée'+(rr.r>1?'s':'');},'raven');
+  commit('Murmures psychiques',rr.r+' créature'+(rr.r>1?'s':'')+' · télépathie 1 h à 1,5 km'+(rr.after!==rr.before?' · dé → '+(rr.after?'d'+rr.after:'épuisé'):''),()=>{S.economy.action=false;S.psiDie=rr.after;S.psiWhispersLast=rr.r+' créature'+(rr.r>1?'s':'')+' reliée'+(rr.r>1?'s':'');},'psychic');
 }
 function restorePsi(){
   if(!S.psiReconstitutionReady)return toast('Reconstitution du psi déjà utilisée.');
   if(!S.economy.bonus)return toast('Action bonus déjà utilisée.');
-  commit('Reconstitution du psi','Dé psionique restauré à d8.',()=>{S.economy.bonus=false;S.psiDie=8;S.psiReconstitutionReady=false;},'raven');
+  commit('Reconstitution du psi','Dé psionique restauré à d8.',()=>{S.economy.bonus=false;S.psiDie=8;S.psiReconstitutionReady=false;},'psychic');
 }
 function psychicTeleport(){
   if(!S.economy.bonus)return toast('Action bonus déjà utilisée.');
   if(!S.psiDie)return toast('Dé psionique épuisé.');
   const before=S.psiDie,after=psiStepDown(before);
-  commit('Téléportation psychique','Jusqu’à 12 m · dé d'+before+' → '+(after?'d'+after:'épuisé'),()=>{S.economy.bonus=false;S.psiDie=after;},'raven');
+  commit('Téléportation psychique','Jusqu’à 12 m · dé d'+before+' → '+(after?'d'+after:'épuisé'),()=>{S.economy.bonus=false;S.psiDie=after;},'teleport psychic');
 }
 function useGuidedStrikePending(){
   const p=S.pending;if(!p||p.kind!=='attack'||!attacks[p.key]?.psychic||p.nat===1||!S.psiDie)return;
@@ -400,7 +411,13 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   }
   if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
   const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'');
-  S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();playFx(fireText?'fire':crit?'crit':'raven',crit?'Critique':spec.name);
+  S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();{
+    const fxKinds=[spec.psychic?'psychic':p.key==='crossbow'?'crossbow':'dagger'];
+    if(useSneak&&eligible)fxKinds.push('sneak');
+    if(crit)fxKinds.push('crit');
+    if(fireText)fxKinds.push('fire');
+    playFx(fxKinds.join(' '),useSneak&&eligible?'':crit?'Critique':spec.name);
+  }
   toast(detail);
 }
 function renderPending(){
@@ -757,8 +774,8 @@ function bind(){
   $('#damageBtn').onclick=$('#mobileDamage').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#mobileHeal').onclick=()=>changeHp('heal');bindHpInputs();
 
   $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
-  $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{S.rollMode=b.dataset.rollMode;save();render();});
-  $$('[data-cond]').forEach(b=>b.onclick=()=>{const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();});
+  $('[data-roll-mode]').forEach(b=>b.onclick=()=>{const before=sneakEligible(attacks.psychic,'own');S.rollMode=b.dataset.rollMode;save();render();if(!before&&sneakEligible(attacks.psychic,'own'))playFx('sneak-ready','');});
+  $('[data-cond]').forEach(b=>b.onclick=()=>{const before=sneakEligible(attacks.psychic,'own');const k=b.dataset.cond;if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();if(k==='allyAdjacent'&&!before&&sneakEligible(attacks.psychic,'own'))playFx('sneak-ready','');});
   $('#sharpshooterToggle').onclick=()=>{S.sharpshooter=!S.sharpshooter;save();render();};
   $$('[data-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.attack,'own'));$$('[data-reaction-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.reactionAttack,'reaction'));
   $('#pendingAttack').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))spendLuckyPending();else if(b.hasAttribute('data-guided-psi'))useGuidedStrikePending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
