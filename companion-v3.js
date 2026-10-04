@@ -158,6 +158,7 @@ function pushHistory(){
   S.history.push(combatSnapshot());
   if(S.history.length>MAX_HISTORY)S.history.shift();
 }
+function resultRibbonTone(title,detail){const t=String(title||'').toLowerCase(),x=t+' '+String(detail||'').toLowerCase();if(t==='dégâts reçus'||/pv perdus|pv perdu/.test(x))return'damage';if(t==='soins reçus'||/pv récupérés|pv rendus/.test(x))return'heal';if(/ratée|raté|échec|déjà|aucun|aucune|indisponible|épuis|impossible|invalide|terminée|terminé|annul/.test(x))return'neutral';return'info'}
 let lastRibbonEventId='';
 function logEvent(title,detail=''){
   S.journal.unshift({id:Date.now()+'-'+Math.random().toString(36).slice(2,7),time:now(),title:String(title).slice(0,120),detail:String(detail).slice(0,1200)});
@@ -168,6 +169,8 @@ function renderResultRibbon(){
   const e=S.journal[0];
   $('#resultRibbonTitle').textContent=e?e.title:'Dernier résultat';
   $('#resultRibbonText').textContent=e?(e.detail||e.time):'Prêt · les détails complets sont dans Journal / Notes.';
+  ribbon.classList.remove('tone-neutral','tone-damage','tone-heal');
+  const tone=e?resultRibbonTone(e.title,e.detail):'info';if(tone!=='info')ribbon.classList.add('tone-'+tone);
   $('#ribbonUndo').disabled=!S.history.length;
   if(e&&e.id!==lastRibbonEventId){
     lastRibbonEventId=e.id;ribbon.classList.remove('pop');void ribbon.offsetWidth;ribbon.classList.add('pop');
@@ -278,7 +281,7 @@ function applyHp(kind,n){
     },'raven');
     if(before) setTimeout(()=>{if(confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?'))concentrationCheck(n);},50);
     if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
-  }else commit('Soins',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
+  }else commit('Soins reçus',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
 }
 function changeHp(kind){const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));applyHp(kind,n)}
 function bindHpInputs(){
