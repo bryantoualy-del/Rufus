@@ -303,7 +303,7 @@ function applyHp(kind,n){
     },'raven');
     if(before) setTimeout(()=>{if(confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?'))concentrationCheck(n);},50);
     if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
-  }else commit('Soins',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
+  }else commit('Soins reçus',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
 }
 function changeHp(kind){const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));applyHp(kind,n)}
 function bindHpInputs(){
