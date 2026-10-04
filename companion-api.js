@@ -1,5 +1,7 @@
 /* Companion API v1 — local boundary for a future RPG Connect client. No transport. */
 (()=>{'use strict';
+  const stateEpoch=crypto.randomUUID();let stateRevision=0;
+
   const bridge=window.__CompanionBridge;
   if(!bridge)throw Error('Companion bridge missing');
   const listeners=new Set(), seen=new Set();
@@ -10,7 +12,7 @@
   const initiativeProfile=()=>{const raw=typeof bridge.initiative==='function'?bridge.initiative(bridge.read()):(bridge.initiative||{}),bonus=number(raw.bonus)??0,mode=['normal','adv','dis'].includes(raw.mode)?raw.mode:'normal';return{bonus,mode}};
   const rollD20=()=>Math.floor(Math.random()*20)+1;
   const emit=(type,payload={},eventId)=>{
-    const event={id:eventId||id(),type,characterId:bridge.id,timestamp:new Date().toISOString(),payload:copy(payload)};
+    const event={id:eventId||id(),type,characterId:bridge.id,stateEpoch,stateRevision,timestamp:new Date().toISOString(),payload:copy(payload)};
     if(seen.has(event.id))return event;
     seen.add(event.id);if(seen.size>500)seen.delete(seen.values().next().value);
     for(const fn of [...listeners])try{fn(copy(event))}catch(error){console.error('Companion event listener',error)}
@@ -23,7 +25,7 @@
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({characterId:bridge.id,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
+    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
@@ -65,7 +67,7 @@
           if(JSON.stringify(previous.resources[key])!==JSON.stringify(current.resources[key]))emit('resource:changed',{key,before:previous.resources[key]??null,after:current.resources[key]??null});
         if(JSON.stringify(previous.inventorySummary)!==JSON.stringify(current.inventorySummary))emit('inventory:changed',{inventorySummary:current.inventorySummary});
         if(previous.turn.number!==current.turn.number||previous.turn.active!==current.turn.active)emit('turn:started',{turn:current.turn});
-        if(JSON.stringify({...previous,updatedAt:''})!==JSON.stringify({...current,updatedAt:''})){lastUpdated=new Date().toISOString();current.updatedAt=lastUpdated;emit('state:changed',{state:current})}
+        if(JSON.stringify({...previous,updatedAt:''})!==JSON.stringify({...current,updatedAt:''})){stateRevision++;current.stateRevision=stateRevision;lastUpdated=new Date().toISOString();current.updatedAt=lastUpdated;emit('state:changed',{state:current})}
       }
       const key=pending?JSON.stringify(pending):null;
       if(key&&pendingMissingTimer){clearTimeout(pendingMissingTimer);pendingMissingTimer=null}
