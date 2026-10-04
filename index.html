@@ -342,7 +342,7 @@ function boot(){
    const miniClass=t==="idle"?"":t;if(mini.className!==miniClass)mini.className=miniClass;setText(mini,(/hors ligne|déconnect|deconnect/i.test(txt)?"○":"●")+" RPG");
    if(ribbon){if(urgent(txt))ribbon.removeAttribute("data-rpg-passive");else ribbon.setAttribute("data-rpg-passive","1");}
  };
- const mo=new MutationObserver(refresh);mo.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:["class","style","hidden"]});refresh();
+ let refreshQueued=false;const scheduleRefresh=()=>{if(refreshQueued)return;refreshQueued=true;const run=()=>{refreshQueued=false;refresh()};if(typeof requestAnimationFrame==="function")requestAnimationFrame(run);else setTimeout(run,32)};const mo=new MutationObserver(scheduleRefresh);mo.observe(document.body,{subtree:true,childList:true,characterData:true});window.addEventListener("rpg-connect:authority",scheduleRefresh);refresh();
 }
 document.readyState==="loading"?document.addEventListener("DOMContentLoaded",boot):boot();
 })();
