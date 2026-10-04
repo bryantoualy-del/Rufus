@@ -27,3 +27,6 @@
 .rpg-connect.rpg-connected .rpg-connect-details{display:block}
 .rpg-connect.rpg-connected.rpg-show-config .rpg-connect-config{display:grid}
 .rpg-connect.rpg-connected.rpg-show-config .rpg-connect-details::after{content:' · masquer'}
+
+/* Keep initiative modal above companion overlays. */
+.rpg-connect:has(.rpg-initiative-request:not([hidden])){z-index:10060}
