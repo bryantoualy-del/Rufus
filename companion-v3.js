@@ -525,7 +525,7 @@ function useVision(){
   },'raven');
 }
 function castHex(name,cost,concentration){
-  const saveNet=name==='Motif hypnotique'?rufusEncounterSaveContext('Motif hypnotique'):{connected:false,target:null};if(saveNet.connected&&!saveNet.target)return;
+  if(name==='Motif hypnotique')window.RPGConnect?.prepareTargets?.({targetMode:'multi',open:false});const saveNet=name==='Motif hypnotique'?rufusEncounterSaveContext('Motif hypnotique'):{connected:false,target:null};if(saveNet.connected&&!saveNet.target){window.RPGConnect?.openTargetPicker?.();return;}
   if(S.hexCharges<cost)return toast('Pas assez de charges Hexen Blade.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
   if(concentration&&S.concentration&&S.concentration.name!==name&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
@@ -533,7 +533,7 @@ function castHex(name,cost,concentration){
     S.hexCharges-=cost;S.economy.action=false;
     if(concentration){S.concentration={name,source:'Hexen Blade'};S.vision.active=false;}
   },'raven');
-  if(name==='Motif hypnotique'&&saveNet.connected)rufusRequestSave({ability:'SAG',dc:15,source:'Motif hypnotique',conditions:[{name:'Charmé',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Incapacité',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Vitesse 0',durationType:'rounds',remaining:10,source:'Motif hypnotique'}],failureEffect:'L’effet cesse si la cible subit des dégâts ou si une créature utilise une action pour la secouer.'});
+  if(name==='Motif hypnotique'&&saveNet.connected)rufusRequestSave({ability:'SAG',dc:15,source:'Motif hypnotique',targetMode:'multi',damageRollMode:'shared',conditions:[{name:'Charmé',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Incapacité',durationType:'rounds',remaining:10,source:'Motif hypnotique'},{name:'Vitesse 0',durationType:'rounds',remaining:10,source:'Motif hypnotique'}],failureEffect:'L’effet cesse si la cible subit des dégâts ou si une créature utilise une action pour la secouer.'});
 }
 function hexDawn(logTitle='Aube · Hexen Blade'){
   const gain=die(4)+1,before=S.hexCharges;
