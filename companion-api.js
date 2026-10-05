@@ -1,5 +1,7 @@
 /* Companion API v1 — local boundary for a future RPG Connect client. No transport. */
 (()=>{'use strict';
+  const stateEpoch=crypto.randomUUID();let stateRevision=0;
+
   const bridge=window.__CompanionBridge;
   if(!bridge)throw Error('Companion bridge missing');
   const listeners=new Set(), seen=new Set();
@@ -10,7 +12,7 @@
   const initiativeProfile=()=>{const raw=typeof bridge.initiative==='function'?bridge.initiative(bridge.read()):(bridge.initiative||{}),bonus=number(raw.bonus)??0,mode=['normal','adv','dis'].includes(raw.mode)?raw.mode:'normal';return{bonus,mode}};
   const rollD20=()=>Math.floor(Math.random()*20)+1;
   const emit=(type,payload={},eventId)=>{
-    const event={id:eventId||id(),type,characterId:bridge.id,timestamp:new Date().toISOString(),payload:copy(payload)};
+    const event={id:eventId||id(),type,characterId:bridge.id,stateEpoch,stateRevision,timestamp:new Date().toISOString(),payload:copy(payload)};
     if(seen.has(event.id))return event;
     seen.add(event.id);if(seen.size>500)seen.delete(seen.values().next().value);
     for(const fn of [...listeners])try{fn(copy(event))}catch(error){console.error('Companion event listener',error)}
@@ -23,11 +25,11 @@
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({characterId:bridge.id,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
+    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
-      concentration:s.concentration??s.concSpell??s.conc??null,resources,
+      concentration:(()=>{const c=s.concentration??s.concSpell??s.conc;return typeof c==='string'?c.trim()||null:c&&typeof c==='object'?String(c.name||c.spell||'').trim()||null:c===true?'Concentration':null})(),resources,
       inventorySummary:inventory.map(i=>({id:i.id??i.name,name:i.name,quantity:i.qty??i.quantity??1})),
       statuses:bridge.statuses?.(s)||[],
       defenses:(()=>{const d=bridge.defenses?.(s)||{};const arr=v=>[...new Set((Array.isArray(v)?v:[]).map(x=>String(x||'').trim().toLowerCase()).filter(Boolean))];return{resistances:arr(d.resistances),immunities:arr(d.immunities),vulnerabilities:arr(d.vulnerabilities),conditionImmunities:arr(d.conditionImmunities),sources:Array.isArray(d.sources)?copy(d.sources):[]}})(),
@@ -65,7 +67,7 @@
           if(JSON.stringify(previous.resources[key])!==JSON.stringify(current.resources[key]))emit('resource:changed',{key,before:previous.resources[key]??null,after:current.resources[key]??null});
         if(JSON.stringify(previous.inventorySummary)!==JSON.stringify(current.inventorySummary))emit('inventory:changed',{inventorySummary:current.inventorySummary});
         if(previous.turn.number!==current.turn.number||previous.turn.active!==current.turn.active)emit('turn:started',{turn:current.turn});
-        if(JSON.stringify({...previous,updatedAt:''})!==JSON.stringify({...current,updatedAt:''})){lastUpdated=new Date().toISOString();current.updatedAt=lastUpdated;emit('state:changed',{state:current})}
+        if(JSON.stringify({...previous,updatedAt:''})!==JSON.stringify({...current,updatedAt:''})){stateRevision++;current.stateRevision=stateRevision;lastUpdated=new Date().toISOString();current.updatedAt=lastUpdated;emit('state:changed',{state:current})}
       }
       const key=pending?JSON.stringify(pending):null;
       if(key&&pendingMissingTimer){clearTimeout(pendingMissingTimer);pendingMissingTimer=null}
@@ -106,7 +108,7 @@
     });
   }
   const commands=bridge.commands||{};
-  function call(name,...args){if(typeof commands[name]!=='function')throw Error(`${name} indisponible pour ${bridge.name}`);const before=name!=='undo'&&bridge.snapshot?.();const result=commands[name](...args);if(before!==undefined&&name!=='undo'){apiUndo.push(before);if(apiUndo.length>30)apiUndo.shift()}sync();return result;}
+  function call(name,...args){if(typeof commands[name]!=='function')throw Error(`${name} indisponible pour ${bridge.name}`);const before=name!=='undo'&&bridge.snapshot?.();const result=commands[name](...args);if(before!==undefined&&name!=='undo'){apiUndo.push(before);if(apiUndo.length>30)apiUndo.shift()}sync();try{window.CompanionV3?.syncEconomy?.()}catch(error){console.warn('Economy UI sync',error)}return result;}
   function positive(value){const n=number(value);if(n===null||n<0||!Number.isFinite(n))throw RangeError('Montant positif requis');return Math.floor(n)}
   function rollInitiative(options={}){const profile=initiativeProfile(),hasManual=options.manual!==undefined&&options.manual!==null&&options.manual!=='',manual=number(options.manual);let dice,mode=profile.mode;if(hasManual){if(manual===null||!Number.isInteger(manual)||manual<1||manual>20)throw RangeError('Jet manuel compris entre 1 et 20 requis');dice=[manual];mode='manual'}else dice=profile.mode==='normal'?[rollD20()]:[rollD20(),rollD20()];const chosen=mode==='adv'?Math.max(...dice):mode==='dis'?Math.min(...dice):dice[0],result={requestId:String(options.requestId||''),dice,chosen,bonus:profile.bonus,total:chosen+profile.bonus,mode};emit('initiative:rolled',result);return copy(result)}
   const api=Object.freeze({version:1,getCharacter:()=>({id:bridge.id,name:bridge.name,actors:bridge.actors?.()||[{id:bridge.id,name:bridge.name}]}),getState:state,getInitiativeProfile:()=>copy(initiativeProfile()),rollInitiative,
@@ -117,7 +119,7 @@
     nextTurn:()=>call('nextTurn'),resetCombat:()=>call('resetCombat'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
     setConcentration:value=>call('setConcentration',value),clearConcentration:()=>call('clearConcentration'),
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
-    applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}const resolvedAttackId=requested||pendingId;emit(hit?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id,remoteDecision:true},resolvedAttackId+(hit?':hit':':miss'));return call('applyHitDecision',!!hit)},
+    applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}const resolvedAttackId=requested||pendingId;emit(hit?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id,remoteDecision:true},resolvedAttackId+(hit?':hit':':miss'));window.__CompanionResolvedAttackId=resolvedAttackId;return call('applyHitDecision',!!hit)},
     applyRemoteEvent:event=>{if(!event||typeof event!=='object'||!event.id||!event.type)throw TypeError('Événement invalide');if(seen.has(event.id))return false;
       const actions={'hp:damage':()=>api.damage(event.payload?.amount,event.payload?.options),'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
         'hp:set':()=>api.setHP(event.payload?.value),'tempHp:set':()=>api.setTemporaryHP(event.payload?.value),
