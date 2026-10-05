@@ -20,7 +20,7 @@
     return event;
   };
   function state(){
-    const s=bridge.read(),eco=s.economy||s.eco||s.used||{},used=bridge.used!==false;
+    const s=bridge.read(),eco=bridge.economy?.(s)||s.economy||s.eco||s.used||{},used=bridge.used!==false;
     const available=k=>eco[k]===undefined?null:used?!eco[k]:!!eco[k];
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
@@ -76,7 +76,7 @@
         try{if(pending&&typeof pending==='object'&&!pending.attackId)pending.attackId=pendingId}catch{}
         pendingDamageBaseline=Number(current?.turn?.damage)||0;
         const rawRoll=pending.total??pending.roll?.total??pending.roll??pending.attackTotal??pending.attack??null,numericRoll=(rawRoll!==null&&rawRoll!==''&&Number.isFinite(Number(rawRoll)))?Number(rawRoll):null;
-        emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(pending.nat!==null&&pending.nat!==undefined&&Number.isFinite(Number(pending.nat)))?Number(pending.nat):null,detail:pending.detail??pending.roll?.detail??'',crit:!!pending.crit,name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
+        emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(()=>{const n=pending.nat??pending.roll?.nat??pending.roll?.raw??pending.roll?.d20;return n!=null&&Number.isFinite(Number(n))?Number(n):null})(),detail:pending.detail??pending.roll?.detail??'',crit:!!(pending.crit??pending.roll?.crit),name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
         emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id},pendingId+':pending');
       }
       else if(!key&&pendingKey&&pendingId){
@@ -110,13 +110,13 @@
   const commands=bridge.commands||{};
   function call(name,...args){if(typeof commands[name]!=='function')throw Error(`${name} indisponible pour ${bridge.name}`);const before=name!=='undo'&&bridge.snapshot?.();const result=commands[name](...args);if(before!==undefined&&name!=='undo'){apiUndo.push(before);if(apiUndo.length>30)apiUndo.shift()}sync();try{window.CompanionV3?.syncEconomy?.()}catch(error){console.warn('Economy UI sync',error)}return result;}
   function positive(value){const n=number(value);if(n===null||n<0||!Number.isFinite(n))throw RangeError('Montant positif requis');return Math.floor(n)}
-  function rollInitiative(options={}){const profile=initiativeProfile(),hasManual=options.manual!==undefined&&options.manual!==null&&options.manual!=='',manual=number(options.manual);let dice,mode=profile.mode;if(hasManual){if(manual===null||!Number.isInteger(manual)||manual<1||manual>20)throw RangeError('Jet manuel compris entre 1 et 20 requis');dice=[manual];mode='manual'}else dice=profile.mode==='normal'?[rollD20()]:[rollD20(),rollD20()];const chosen=mode==='adv'?Math.max(...dice):mode==='dis'?Math.min(...dice):dice[0],result={requestId:String(options.requestId||''),dice,chosen,bonus:profile.bonus,total:chosen+profile.bonus,mode};emit('initiative:rolled',result);return copy(result)}
+  function rollInitiative(options={}){const profile=initiativeProfile(),hasManual=options.manual!==undefined&&options.manual!==null&&options.manual!=='',manual=number(options.manual);let dice,mode=profile.mode;if(hasManual){if(manual===null||!Number.isInteger(manual)||manual<1||manual>20)throw RangeError('Jet manuel compris entre 1 et 20 requis');dice=[manual];mode='manual'}else dice=profile.mode==='normal'?[rollD20()]:[rollD20(),rollD20()];const chosen=mode==='adv'?Math.max(...dice):mode==='dis'?Math.min(...dice):dice[0],result={requestId:String(options.requestId||''),dice,chosen,bonus:profile.bonus,total:chosen+profile.bonus,mode};const event=emit('initiative:rolled',result);return copy({...result,eventId:event.id})}
   const api=Object.freeze({version:1,getCharacter:()=>({id:bridge.id,name:bridge.name,actors:bridge.actors?.()||[{id:bridge.id,name:bridge.name}]}),getState:state,getInitiativeProfile:()=>copy(initiativeProfile()),rollInitiative,
     damage:(amount,options={})=>call('damage',positive(amount),options),heal:(amount,options={})=>call('heal',positive(amount),options),
     setHP:value=>call('setHP',positive(value)),setTemporaryHP:value=>call('setTemporaryHP',positive(value)),
     setResource:(key,value)=>call('setResource',String(key),positive(value)),changeResource:(key,delta)=>{const n=number(delta);if(n===null)throw RangeError('Variation invalide');return call('changeResource',String(key),n)},
     setRollMode:mode=>{if(!['normal','adv','dis','manual'].includes(mode))throw RangeError('Mode de jet invalide');return call('setRollMode',mode)},
-    nextTurn:()=>call('nextTurn'),resetCombat:()=>call('resetCombat'),startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
+    nextTurn:()=>call('nextTurn'),resetCombat:()=>{clearTimeout(pendingMissingTimer);pendingMissingTimer=null;pendingId=null;pendingKey=null;pendingDamageBaseline=null;damageWaiters.length=0;damageCursor=null;bridge.cancelPending?.();return call('resetCombat')},startTurn:actor=>call('startTurn',actor),endTurn:actor=>call('endTurn',actor),
     setConcentration:value=>call('setConcentration',value),clearConcentration:()=>call('clearConcentration'),
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
     applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}const resolvedAttackId=requested||pendingId;emit(hit?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id,remoteDecision:true},resolvedAttackId+(hit?':hit':':miss'));window.__CompanionResolvedAttackId=resolvedAttackId;return call('applyHitDecision',!!hit)},

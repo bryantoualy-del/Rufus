@@ -1,6 +1,6 @@
 /* RPG Connect icon registry v3 — central source: bryantoualy-del/RPG-Connect */
 (()=>{'use strict';
-const ROOT=window.RPG_CONNECT_ICON_ROOT||'https://raw.githubusercontent.com/bryantoualy-del/RPG-Connect/ba640794c73df8ee2067375e09d73446f378482a/';
+const ROOT=window.RPG_CONNECT_ICON_ROOT||'https://raw.githubusercontent.com/bryantoualy-del/RPG-Connect/09ede3862f8a8b7bbb4371dcee4ee36824161a1a/';
 const creatureBase=ROOT+'assets/icons/creatures/';
 const types=['aberration','beast','celestial','construct','dragon','elemental','fey','fiend','giant','humanoid','monstrosity','ooze','plant','undead'];
 const labels={aberration:'Aberration',beast:'Bête',celestial:'Céleste',construct:'Artificiel',dragon:'Dragon',elemental:'Élémentaire',fey:'Fée',fiend:'Fiélon',giant:'Géant',humanoid:'Humanoïde',monstrosity:'Monstruosité',ooze:'Vase',plant:'Plante',undead:'Mort-vivant',unknown:'Inconnu'};
@@ -13,9 +13,10 @@ const shards=[...Array(10)].map((_,i)=>ROOT+'assets/icon-data/icon-data-'+String
 const ready=Promise.all(shards.map(u=>fetch(u,{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('RPG icon shard '+r.status);return r.json()}))).then(rows=>{for(const row of rows)Object.assign(data,row.icons||{});return api}).catch(err=>{console.warn('RPG Connect extended icons unavailable',err);return api});
 const key=(group,name)=>group+'/'+String(name||'').toLowerCase().trim().replace(/[ -]+/g,'_');
 const api={
- version:4,source:'RPG-Connect',ready,bossReady:true,creatureTypes:[...types],
+ fallback:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"%3E%3Ccircle cx="32" cy="32" r="27" fill="%230d1825" stroke="%238fb5c9" stroke-width="3"/%3E%3Cpath d="M24 24a8 8 0 1 1 12 7c-4 2-4 4-4 8m0 7v2" fill="none" stroke="%23eef8ff" stroke-width="4"/%3E%3C/svg%3E',
+ version:5,source:'RPG-Connect',ready,bossReady:true,creatureTypes:[...types],
  label:t=>labels[norm(t)]||labels.unknown,
- creature:(t,isBoss=false)=>{const k=norm(t);return types.includes(k)?creatureBase+(isBoss?'boss':'standard')+'/'+k+'.webp':''},
+ creature:(t,isBoss=false)=>{const k=norm(t);return types.includes(k)?creatureBase+(isBoss?'boss':'standard')+'/'+k+'.png':''},
  ui:name=>data[key('ui',name)]||null,
  classIcon:name=>data[key('classes',name)]||null,
  magicSchool:name=>data[key('magic-schools',name)]||null,
