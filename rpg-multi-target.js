@@ -36,10 +36,11 @@
  }
  function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
  function configure(options={}){
-  const mode=normalizeMode(options.targetMode||options.mode||'single'),maxTargets=normalizeMax(options.maxTargets,mode),changed=mode!==state.mode||maxTargets!==state.maxTargets;
+  const mode=normalizeMode(options.targetMode||options.mode||'single'),maxTargets=normalizeMax(options.maxTargets,mode),previousMode=state.mode,changed=mode!==state.mode||maxTargets!==state.maxTargets;
   state.mode=mode;state.maxTargets=maxTargets;
+  if(mode!=='single'&&previousMode==='single'&&changed)state.selectedIds=[];
   if(mode==='single'){const current=baseGetStatus?.()?.target;if(current?.id){state.selectedIds=[String(current.id)]}else if(state.selectedIds.length){const keep=state.selectedIds[0];state.selectedIds=[keep];baseSelectTarget?.(keep)}else state.selectedIds=[]}
-  else if(changed&&!state.selectedIds.length){const current=baseGetStatus?.()?.target;if(current?.id)state.selectedIds=[String(current.id)]}
+  else if(changed&&previousMode!=='single'&&!state.selectedIds.length){const current=baseGetStatus?.()?.target;if(current?.id)state.selectedIds=[String(current.id)]}
   prune();save();decorate();if(options.open)openPicker();return status()
  }
  function openPicker(){const dock=ensureTools();if(!dock)return false;dock.removeAttribute('hidden');dock.classList.add('open');decorate();return true}
