@@ -25,7 +25,7 @@
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
+    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',authorityRevision:s.rpgHealthRevision||0},ac:bridge.ac?.(s)??null,
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
@@ -60,8 +60,8 @@
       queued=false;const current=state(),pending=bridge.pending?.()||null;if(damageCursor===null)damageCursor=Number(previous?.turn?.damage)||0;
       if(previous){
         if(JSON.stringify(previous.hp)!==JSON.stringify(current.hp)){
-          if(previous.hp.current!==current.hp.current)emit('hp:changed',{before:previous.hp.current,after:current.hp.current});
-          if(previous.hp.temp!==current.hp.temp)emit('tempHp:changed',{before:previous.hp.temp,after:current.hp.temp});
+          if(previous.hp.current!==current.hp.current)emit('hp:changed',{before:previous.hp.current,after:current.hp.current,authorityRevision:current.hp.authorityRevision,authoritative:!!window.__RPGHealthApplying});
+          if(previous.hp.temp!==current.hp.temp)emit('tempHp:changed',{before:previous.hp.temp,after:current.hp.temp,source:current.hp.tempSource,authoritative:!!window.__RPGHealthApplying});
         }
         for(const key of new Set([...Object.keys(previous.resources),...Object.keys(current.resources)]))
           if(JSON.stringify(previous.resources[key])!==JSON.stringify(current.resources[key]))emit('resource:changed',{key,before:previous.resources[key]??null,after:current.resources[key]??null});
