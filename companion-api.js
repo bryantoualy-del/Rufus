@@ -25,7 +25,7 @@
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp},ac:bridge.ac?.(s)??null,
+    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',tempMetadata:s.tempMetadata||{},authorityRevision:s.rpgHealthRevision||0},ac:bridge.ac?.(s)??null,
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
@@ -60,8 +60,8 @@
       queued=false;const current=state(),pending=bridge.pending?.()||null;if(damageCursor===null)damageCursor=Number(previous?.turn?.damage)||0;
       if(previous){
         if(JSON.stringify(previous.hp)!==JSON.stringify(current.hp)){
-          if(previous.hp.current!==current.hp.current)emit('hp:changed',{before:previous.hp.current,after:current.hp.current});
-          if(previous.hp.temp!==current.hp.temp)emit('tempHp:changed',{before:previous.hp.temp,after:current.hp.temp});
+          if(previous.hp.current!==current.hp.current)emit('hp:changed',{before:previous.hp.current,after:current.hp.current,authorityRevision:current.hp.authorityRevision,authoritative:!!window.__RPGHealthApplying});
+          if(previous.hp.temp!==current.hp.temp)emit('tempHp:changed',{before:previous.hp.temp,after:current.hp.temp,source:current.hp.tempSource,authoritative:!!window.__RPGHealthApplying});
         }
         for(const key of new Set([...Object.keys(previous.resources),...Object.keys(current.resources)]))
           if(JSON.stringify(previous.resources[key])!==JSON.stringify(current.resources[key]))emit('resource:changed',{key,before:previous.resources[key]??null,after:current.resources[key]??null});
@@ -76,7 +76,7 @@
         try{if(pending&&typeof pending==='object'&&!pending.attackId)pending.attackId=pendingId}catch{}
         pendingDamageBaseline=Number(current?.turn?.damage)||0;
         const rawRoll=pending.total??pending.roll?.total??pending.roll??pending.attackTotal??pending.attack??null,numericRoll=(rawRoll!==null&&rawRoll!==''&&Number.isFinite(Number(rawRoll)))?Number(rawRoll):null;
-        emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,roll:numericRoll??rawRoll,total:numericRoll,nat:(()=>{const n=pending.nat??pending.roll?.nat??pending.roll?.raw??pending.roll?.d20;return n!=null&&Number.isFinite(Number(n))?Number(n):null})(),detail:pending.detail??pending.roll?.detail??'',crit:!!(pending.crit??pending.roll?.crit),name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
+        emit('attack:rolled',{attackId:pendingId,actor:pending.actor||bridge.id,attackKind:pending.attackKind||'spell',roll:numericRoll??rawRoll,total:numericRoll,nat:(()=>{const n=pending.nat??pending.roll?.nat??pending.roll?.raw??pending.roll?.d20;return n!=null&&Number.isFinite(Number(n))?Number(n):null})(),detail:pending.detail??pending.roll?.detail??'',crit:!!(pending.crit??pending.roll?.crit),name:pending.name??pending.label??pending.kind??'Attaque'},pendingId+':rolled');
         emit('attack:pending-hit',{attackId:pendingId,actor:pending.actor||bridge.id},pendingId+':pending');
       }
       else if(!key&&pendingKey&&pendingId){
@@ -121,7 +121,7 @@
     updateInventory:item=>call('updateInventory',item),addInventoryItem:item=>call('addInventoryItem',item),removeInventoryItem:id=>call('removeInventoryItem',id),
     applyHitDecision:(hit,attackId)=>{const live=bridge.pending?.()||null;if(!live)throw Error('Attaque momentanément indisponible · réessaie la validation');const requested=attackId?String(attackId):null,liveAttackId=live.attackId?String(live.attackId):null;if(!pendingId){pendingId=liveAttackId||requested||id();pendingKey=JSON.stringify(live)}if(requested&&requested!==pendingId){if(liveAttackId&&liveAttackId!==requested)throw Error('Aucune attaque correspondante en attente');pendingId=requested;pendingKey=JSON.stringify(live)}const resolvedAttackId=requested||pendingId;emit(hit?'attack:hit':'attack:miss',{attackId:resolvedAttackId,actor:bridge.id,remoteDecision:true},resolvedAttackId+(hit?':hit':':miss'));window.__CompanionResolvedAttackId=resolvedAttackId;return call('applyHitDecision',!!hit)},
     applyRemoteEvent:event=>{if(!event||typeof event!=='object'||!event.id||!event.type)throw TypeError('Événement invalide');if(seen.has(event.id))return false;
-      const actions={'hp:damage':()=>api.damage(event.payload?.amount,event.payload?.options),'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
+      const actions={'hp:damage':()=>{const p=event.payload||{};if(p.options?.authoritative&&window.RPGHealth)window.RPGHealth.applyDamageConsequences(()=>api.damage(p.amount,p.options),p.options.before,p.options.after);else api.damage(p.amount,p.options)},'hp:heal':()=>api.heal(event.payload?.amount,event.payload?.options),
         'hp:set':()=>api.setHP(event.payload?.value),'tempHp:set':()=>api.setTemporaryHP(event.payload?.value),
         'resource:set':()=>api.setResource(event.payload?.key,event.payload?.value),'turn:next':()=>api.nextTurn(),
         'inventory:add':()=>api.addInventoryItem(event.payload?.item),'inventory:update':()=>api.updateInventory(event.payload?.item),'inventory:remove':()=>api.removeInventoryItem(event.payload?.id),
