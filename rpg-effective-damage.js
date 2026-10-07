@@ -38,5 +38,5 @@
    journal.attacks={};journal.saves={};journal.done={};journal.cancelled={};persist();
   }
  });
- window.RPGEffectiveDamage={getJournal:()=>JSON.parse(JSON.stringify(journal))};
+ window.RPGEffectiveDamage={cancel:actionId=>{journal.cancelled[actionId]=true;persist()},getJournal:()=>JSON.parse(JSON.stringify(journal))};
 })();
