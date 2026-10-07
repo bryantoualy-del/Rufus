@@ -27,13 +27,13 @@
  async function choose({min=1,max=1,title='Choisir les alliés',self=false,lifeStatus='living',filter=()=>true}={}){
   if(!online()||busy()){notice('Termine le soin en attente avant une autre capacité');return []}
   if(self)return context.healthActorId?[context.healthActorId]:[];
-  choosing=true;try{return await window.RPGMultiTargetUI.chooseTargets({list:(context.allyCatalog||[]).filter(t=>(lifeStatus==='dead'?t.lifeStatus==='dead':t.lifeStatus!=='dead')&&filter(t)),min,max,title})}finally{choosing=false}
+  choosing=true;try{return await window.RPGGroup.choose({min,max,title,lifeStatus,filter})}finally{choosing=false}
  }
  function perform({family='heal:request',source,amount,targetIds,...details},consume){
   if(!online()||pending||!['heal:request','tempHp:request','maxHp:request','revive:request'].includes(family)||!Number.isSafeInteger(amount)||(amount<=0&&!(family==='maxHp:request'&&details.operation==='expire'))||!targetIds?.length)return false;
   const s=bridge.read();if(family==='tempHp:request'&&targetIds.length===1&&targetIds[0]===context.healthActorId&&source!=='Cri de ralliement'&&['kentaro','nans'].includes(bridge.id)&&details.replace===undefined){const temp=Number(s.temp??s.tempHp)||0,old=s.tempSource||'';if(temp>0&&old!==source&&(bridge.id==='nans'||old)){if(!confirm('Remplacer '+temp+' PV temporaires ('+(old||'source inconnue')+') par '+amount+' ('+source+') ?'))return false;details.replace=true}}const before=copy(s);consume?.();
   pending={family,room:room(),turnStamp:JSON.stringify([s.turn,s.round,s.phase,s.turnPhase]),effect:{...details,actionId:crypto.randomUUID(),source,amount,targetIds,combatId:context.combatId??null},changes:changes(before,s)};
-  window.RPGUndo?.reserve(pending.effect.actionId,before);
+  window.RPGResources?.begin(pending.effect.actionId,before);window.RPGUndo?.reserve(pending.effect.actionId,before);
   pending.effect.undoCapture=window.RPGUndo?.describe(pending.effect.actionId)||[];
   try{persist()}catch(error){for(const c of pending.changes)set(s,c.path,c.before);pending=null;notice('Soin annulé · sauvegarde réseau indisponible');return false}
   redraw();transmit();return true;
@@ -47,7 +47,7 @@
  // A pending reservation is recovered after reload without rolling or spending again.
  if(pending){const s=bridge.read();for(const c of pending.changes||[])if(JSON.stringify(get(s,c.path))===JSON.stringify(c.before))set(s,c.path,c.after);redraw()}
  document.addEventListener('click',e=>{const button=e.target.closest('button');if(button&&authoritative()&&!online()){const rules={brackmard:'#second,[onclick*=dwarvenFortitude]',zephyr:'#healBtn,#arrowStrike,#arrowSacrifice,#anchorBtn,#vitalityHeal,.cast[data-name="Revivifier"],.cast[data-name="Aura de vitalité"],.upcast[data-name="Aide"],.upcast[data-name="Armure d’Agathys"]',kentaro:'#bite,#lazarus,[data-agathys]',nans:'[onclick*=useBark],[onclick*=rally]',samoth:'[data-ability="hitDice"],[data-use="hitDice"]'};const spell=bridge.id==='samoth'&&button.id==='combatCast'&&document.querySelector('#combatSpell')?.value==='cure';if(spell||button.matches(rules[bridge.id]||'[data-never-health]')||/repos|rest/i.test(button.id+' '+button.textContent)){e.preventDefault();e.stopImmediatePropagation();notice('Connexion Encounter requise · aucune ressource dépensée');return}}if(!busy())return;const b=e.target.closest('button');if(b&&/repos|rest|undo|reset|annuler|fin de tour/i.test(b.id+' '+b.textContent+' '+b.getAttribute('onclick'))&&!b.closest('#rpgMultiTargetPicker')){e.preventDefault();e.stopImmediatePropagation();notice('Résolution du soin en attente · ressources réservées')}},true);
- function weaponRollMode(base='normal'){const self=context.mechanics||{},target=net.getStatus().target?.mechanics||{},adv=base==='adv'||self.attackAdvantage||self.nextWeaponAttackAdvantage||target.attacksAgainstAdvantage,dis=base==='dis'||self.attackDisadvantage||target.attacksAgainstDisadvantage;return !!adv===!!dis?'normal':adv?'adv':'dis'}
+ function weaponRollMode(base='normal'){const self=context.mechanics||{},target=net.getStatus().target?.mechanics||{},adv=window.RPGWeaponGate?.advantage()||window.RPGReactions?.metadata().attackAdvantage||base==='adv'||self.attackAdvantage||self.nextWeaponAttackAdvantage||target.attacksAgainstAdvantage,dis=base==='dis'||self.attackDisadvantage||target.attacksAgainstDisadvantage;return !!adv===!!dis?'normal':adv?'adv':'dis'}
  window.RPGHealth={applyDamageConsequences,authoritative,formatResult,weaponRollMode,online,busy,choose,perform,setContext,receive,getContext:()=>copy(context),getPending:()=>copy(pending)};
  setInterval(transmit,4000);
 })();

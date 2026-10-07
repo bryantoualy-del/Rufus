@@ -12,6 +12,8 @@
   const initiativeProfile=()=>{const raw=typeof bridge.initiative==='function'?bridge.initiative(bridge.read()):(bridge.initiative||{}),bonus=number(raw.bonus)??0,mode=['normal','adv','dis'].includes(raw.mode)?raw.mode:'normal';return{bonus,mode}};
   const rollD20=()=>Math.floor(Math.random()*20)+1;
   const emit=(type,payload={},eventId)=>{
+    if(type==='attack:damage')payload=window.RPGReactions?.damage(payload)||payload;
+    payload=window.RPGResources?.decorate(type,payload)||payload;
     const event={id:eventId||id(),type,characterId:bridge.id,stateEpoch,stateRevision,timestamp:new Date().toISOString(),payload:copy(payload)};
     if(seen.has(event.id))return event;
     seen.add(event.id);if(seen.size>500)seen.delete(seen.values().next().value);
@@ -109,7 +111,7 @@
     });
   }
   const commands=bridge.commands||{};
-  function call(name,...args){if(name==='setConcentration'){const s=bridge.read();s.rpgConcentrationInstance=crypto.randomUUID();}if(typeof commands[name]!=='function')throw Error(`${name} indisponible pour ${bridge.name}`);const before=name!=='undo'&&bridge.snapshot?.();const result=commands[name](...args);if(before!==undefined&&name!=='undo'){apiUndo.push(before);if(apiUndo.length>30)apiUndo.shift()}sync();try{window.CompanionV3?.syncEconomy?.()}catch(error){console.warn('Economy UI sync',error)}return result;}
+  function call(name,...args){if(name==='setConcentration'){const s=bridge.read();s.rpgConcentrationInstance=crypto.randomUUID();}if(typeof commands[name]!=='function')throw Error(`${name} indisponible pour ${bridge.name}`);const before=name!=='undo'&&bridge.snapshot?.();const result=commands[name](...args);if(['nextTurn','resetCombat','startTurn'].includes(name))window.RPGResources?.begin();if(before!==undefined&&name!=='undo'){apiUndo.push(before);if(apiUndo.length>30)apiUndo.shift()}sync();try{window.CompanionV3?.syncEconomy?.()}catch(error){console.warn('Economy UI sync',error)}return result;}
   function positive(value){const n=number(value);if(n===null||n<0||!Number.isFinite(n))throw RangeError('Montant positif requis');return Math.floor(n)}
   function rollInitiative(options={}){const profile=initiativeProfile(),hasManual=options.manual!==undefined&&options.manual!==null&&options.manual!=='',manual=number(options.manual);let dice,mode=profile.mode;if(hasManual){if(manual===null||!Number.isInteger(manual)||manual<1||manual>20)throw RangeError('Jet manuel compris entre 1 et 20 requis');dice=[manual];mode='manual'}else dice=profile.mode==='normal'?[rollD20()]:[rollD20(),rollD20()];const chosen=mode==='adv'?Math.max(...dice):mode==='dis'?Math.min(...dice):dice[0],result={requestId:String(options.requestId||''),dice,chosen,bonus:profile.bonus,total:chosen+profile.bonus,mode};const event=emit('initiative:rolled',result);return copy({...result,eventId:event.id})}
   const api=Object.freeze({version:1,getCharacter:()=>({id:bridge.id,name:bridge.name,actors:bridge.actors?.()||[{id:bridge.id,name:bridge.name}]}),getState:state,getInitiativeProfile:()=>copy(initiativeProfile()),rollInitiative,

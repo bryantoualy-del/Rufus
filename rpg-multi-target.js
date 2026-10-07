@@ -63,7 +63,7 @@
   if(mode==='single'){configure({targetMode:'single',open:false});return baseRequestSave?.(effect,source)??false}
   configure({targetMode:mode,maxTargets:effect.maxTargets,open:false});
   const list=selected();if(!list.length){say('JdS non envoyé · sélectionne au moins une cible Encounter.');openPicker();return false}
-  const actionId=String(effect.actionId||crypto.randomUUID()),saveId=String(effect.saveId||actionId),targetRefs=refs(list),primary=targetRefs[0];
+  const actionId=String(effect.actionId||window.RPGReactions?.metadata().parentActionId||window.RPGWeaponGate?.metadata().actionId||window.RPGResources?.origin()?.actionId||crypto.randomUUID()),saveId=String(effect.saveId||crypto.randomUUID()),targetRefs=refs(list),primary=targetRefs[0];
   api.emitLocal('save:request',{...effect,saveId,actionId,parentActionId:actionId,targetMode:mode,maxTargets:state.maxTargets,damageRollMode:effect.damageRollMode||'shared',targetId:primary.targetId,target:{id:primary.id,name:primary.name},targets:targetRefs},saveId);
   pushAction(actionId);return true
  }

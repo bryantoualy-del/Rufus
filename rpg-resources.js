@@ -1,0 +1,8 @@
+/* Native costs are captured by the existing scoped undo; no mirrored resource authority. */
+(()=>{'use strict';const api=window.CompanionAPI,b=window.__CompanionBridge;if(!api||!b)return;const copy=x=>JSON.parse(JSON.stringify(x));let origin=null;
+ function begin(actionId=crypto.randomUUID(),before=copy(b.read())){origin={actionId,before};return actionId}
+ function decorate(type,payload){if(!origin||!['state:changed','resource:changed','attack:rolled','attack:pending-hit','attack:damage','attack:miss','target:condition','save:request','instruction:intent'].includes(type))return payload;if(type==='state:changed'&&window.MJJournalModel?.diff(origin.before,b.read(),[],path=>['history','log','undo','pending','pendingHit','hp','tempHp','temp','rpgHealthRevision'].includes(path[0])).length===0)return payload;const reaction=window.RPGReactions?.metadata()||{},actionId=payload.actionId||reaction.parentActionId||window.RPGWeaponGate?.metadata().actionId||origin.actionId;window.RPGUndo?.reserve(actionId,origin.before);return{...payload,actionId,parentActionId:actionId,undoCertified:!!window.RPGUndo,undoCapture:window.RPGUndo?.describe(actionId)||[]}}
+ // Capture before native handlers. Dialog steps retain the same origin through async rolls.
+ document.addEventListener('click',e=>{if(!window.RPGConnect?.getStatus()?.connected||e.target.closest('dialog,.rpg-connect-panel,.rpg-target-dock,.rpg-group-launch,[data-opportunity]'))return;if(e.target.closest('button,[role=button]')&&!b.pending?.())begin(window.RPGReactions?.metadata().parentActionId||window.RPGWeaponGate?.metadata().actionId||crypto.randomUUID())},true);
+ window.RPGResources={begin,decorate,origin:()=>origin};
+})();
