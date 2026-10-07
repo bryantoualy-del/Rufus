@@ -331,12 +331,13 @@ function rollAttackD20(mode){
   const a=die(20);if(mode==='normal')return {rolls:[a],nat:a};
   const b=die(20);return {rolls:[a,b],nat:mode==='adv'?Math.max(a,b):Math.min(a,b)};
 }
+function sneakBucket(context){const c=window.RPGHealth?.getContext();return context==='reaction'&&(!window.RPGConnect?.getStatus().connected||c?.activeParticipantId!==c?.healthActorId)?'sneakReaction':'sneakOwn'}
 function sneakEligible(spec,context){
   if(!(spec.finesse||spec.ranged||spec.psychic))return false;
-  if(effectiveRollMode()==='dis')return false;
-  const used=context==='reaction'?S.sneakReaction:S.sneakOwn;
+  if((window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode())==='dis')return false;
+  const used=S[sneakBucket(context)];
   if(used)return false;
-  const advantage=effectiveRollMode()==='adv';
+  const advantage=(window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode())==='adv';
   return advantage||S.conditions.allyAdjacent;
 }
 function breakInvisibilityForAttack(){
@@ -360,7 +361,7 @@ function startAttack(key,context='own'){
     S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={attackKind:'weapon',kind:'attack',key,context:context==='reaction'?'reaction':'own',rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(S.vision.active&&rr.nat>=17),total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
+    S.pending={attackKind:'weapon',kind:'attack',key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(S.vision.active&&rr.nat>=17),total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
   beginPendingTransaction();
 }
@@ -431,7 +432,7 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const eligible=sneakEligible(spec,p.context);
   if(useSneak&&eligible){
     const sneak=rollDamage(5*multiplier,6);sneakAmount=sneak.total;total+=sneakAmount;sneakText=sneakAmount+' Sournoise';
-    if(p.context==='reaction')S.sneakReaction=true;else S.sneakOwn=true;
+    S[sneakBucket(p.context)]=true;
     if(S.fireBlade.armed&&S.fireBlade.ready){
       const fire=rollDamage(2*multiplier,6);fireAmount=fire.total;total+=fireAmount;fireText=fireAmount+' feu';
       S.fireBlade.ready=false;S.fireBlade.armed=false;
@@ -464,7 +465,7 @@ function renderPending(){
     return;
   }
   const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=S.vision.active?'17–20':'20';
-  const rolls=p.rolls.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat);
+  p.sneakEligible=eligible;const rolls=p.rolls.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat);
   if(p.nat===1){
     el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge used">1 naturel</div></div>'+
       '<div class="pending-details">Échec automatique. Chanceux peut encore fournir un autre d20 avant la résolution.</div>'+
@@ -497,7 +498,7 @@ function useWound(){
   const total=rr.nat+bonus,crit=rr.nat===20||(S.vision.active&&rr.nat>=17);
   commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
     breakInvisibilityForAttack();S.economy.action=false;S.woundReady=false;
-    S.pending={kind:'wound',name:'Blessure',rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
+    S.pending={kind:'wound',name:'Blessure',useSneak:sneakEligible(spec,context),rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
   });
   beginPendingTransaction();
 }
@@ -832,7 +833,8 @@ function bind(){
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
-window.__CompanionBridge={concentrationProfile:()=>({modifier:0}),id:'rufus',name:'Rufus',maxHp:53,initiative:{bonus:3,mode:'normal'},read:()=>S,healthRefresh:()=>{render();save()},used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>endConcentration('contrôle réseau'),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,false),undo}};
+window.__CompanionBridge={concentrationProfile:()=>({modifier:0}),id:'rufus',name:'Rufus',maxHp:53,initiative:{bonus:3,mode:'normal'},read:()=>S,healthRefresh:()=>{render();save()},used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>endConcentration('contrôle réseau'),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,!!S.pending?.useSneak),undo}};
+window.__CompanionBridge.combatTurn=q=>{if(!q.activeParticipantId)return;const stamp=JSON.stringify([q.combatId,q.round,q.activeParticipantId]);if(S.rpgSneakTurnStamp!==stamp){S.rpgSneakTurnStamp=stamp;S.sneakReaction=false;save();render()}};
 window.__CompanionBridge.adjustTurnDamage=delta=>{S.turnDamage=Math.max(0,(Number(S.turnDamage)||0)+delta);render()};
 load();bind();render();switchView(S.ui.view||'combat');
 if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
