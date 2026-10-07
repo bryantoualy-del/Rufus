@@ -26,7 +26,7 @@
     const rawConcentration=s.concentration??s.concSpell??s.conc,concentrationName=typeof rawConcentration==='string'?rawConcentration.trim():rawConcentration&&typeof rawConcentration==='object'?String(rawConcentration.name||rawConcentration.spell||''):rawConcentration===true?'Concentration':'';if(s.rpgConcentrationName!==concentrationName){s.rpgConcentrationName=concentrationName;s.rpgConcentrationInstance=concentrationName?crypto.randomUUID():null;}
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',tempMetadata:s.tempMetadata||{},authorityRevision:s.rpgHealthRevision||0},ac:bridge.ac?.(s)??null,
+    return copy({portrait:new URL(bridge.id==='kentaro'?'icon-192.png':'assets/emblem-transparent.png',document.baseURI).href,characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',tempMetadata:s.tempMetadata||{},authorityRevision:s.rpgHealthRevision||0},ac:bridge.ac?.(s)??null,
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},

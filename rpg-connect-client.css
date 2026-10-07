@@ -35,3 +35,5 @@
 dialog.rpg-initiative-request{margin:0;max-width:none;max-height:none;width:100vw;height:100dvh;box-sizing:border-box;border:0;color:#eef8ff}dialog.rpg-initiative-request::backdrop{background:rgba(2,7,13,.78)}
 
 .rpg-condition-icon{width:17px;height:17px;object-fit:contain;flex-shrink:0}.rpg-condition-pill{max-width:100%;white-space:normal}
+
+.rpg-party-profiles{margin-top:8px}.rpg-party-profiles summary{cursor:pointer;padding:8px;min-height:36px}.rpg-party-list{display:flex;gap:8px;overflow-x:auto;padding:4px}.rpg-party-card{display:flex;gap:7px;flex:0 0 220px;padding:8px;border:1px solid #526475;border-radius:10px;background:#132131}.rpg-party-card>div{min-width:0}.rpg-party-card small,.rpg-party-card span{display:block;font-size:11px;margin-top:3px}.rpg-party-portrait{width:40px;height:40px;object-fit:contain;border-radius:7px}.rpg-party-card .rpg-condition-pill{display:inline-flex}
