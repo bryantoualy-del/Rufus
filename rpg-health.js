@@ -33,6 +33,8 @@
   if(!online()||pending||!['heal:request','tempHp:request','maxHp:request','revive:request'].includes(family)||!Number.isSafeInteger(amount)||(amount<=0&&!(family==='maxHp:request'&&details.operation==='expire'))||!targetIds?.length)return false;
   const s=bridge.read();if(family==='tempHp:request'&&targetIds.length===1&&targetIds[0]===context.healthActorId&&source!=='Cri de ralliement'&&['kentaro','nans'].includes(bridge.id)&&details.replace===undefined){const temp=Number(s.temp??s.tempHp)||0,old=s.tempSource||'';if(temp>0&&old!==source&&(bridge.id==='nans'||old)){if(!confirm('Remplacer '+temp+' PV temporaires ('+(old||'source inconnue')+') par '+amount+' ('+source+') ?'))return false;details.replace=true}}const before=copy(s);consume?.();
   pending={family,room:room(),turnStamp:JSON.stringify([s.turn,s.round,s.phase,s.turnPhase]),effect:{...details,actionId:crypto.randomUUID(),source,amount,targetIds,combatId:context.combatId??null},changes:changes(before,s)};
+  window.RPGUndo?.reserve(pending.effect.actionId,before);
+  pending.effect.undoCapture=window.RPGUndo?.describe(pending.effect.actionId)||[];
   try{persist()}catch(error){for(const c of pending.changes)set(s,c.path,c.before);pending=null;notice('Soin annulé · sauvegarde réseau indisponible');return false}
   redraw();transmit();return true;
  }

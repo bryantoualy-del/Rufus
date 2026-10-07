@@ -30,7 +30,7 @@
       turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
-      concentrationInstance:s.rpgConcentrationInstance||null,concentration:(()=>{const c=s.concentration??s.concSpell??s.conc;return typeof c==='string'?c.trim()||null:c&&typeof c==='object'?String(c.name||c.spell||'').trim()||null:c===true?'Concentration':null})(),resources,
+      undoCapability:window.RPGUndo?1:0,concentrationInstance:s.rpgConcentrationInstance||null,concentration:(()=>{const c=s.concentration??s.concSpell??s.conc;return typeof c==='string'?c.trim()||null:c&&typeof c==='object'?String(c.name||c.spell||'').trim()||null:c===true?'Concentration':null})(),resources,
       inventorySummary:inventory.map(i=>({id:i.id??i.name,name:i.name,quantity:i.qty??i.quantity??1})),
       statuses:bridge.statuses?.(s)||[],
       defenses:(()=>{const d=bridge.defenses?.(s)||{};const arr=v=>[...new Set((Array.isArray(v)?v:[]).map(x=>String(x||'').trim().toLowerCase()).filter(Boolean))];return{resistances:arr(d.resistances),immunities:arr(d.immunities),vulnerabilities:arr(d.vulnerabilities),conditionImmunities:arr(d.conditionImmunities),sources:Array.isArray(d.sources)?copy(d.sources):[]}})(),
@@ -129,7 +129,7 @@
         'attack:decision':()=>api.applyHitDecision(event.payload?.hit,event.payload?.attackId),
         'defense:turn-ended':()=>{if(typeof bridge.commands?.expireTurnDefenses==='function')bridge.commands.expireTurnDefenses(event.payload||{})}};
       if(!actions[event.type])throw Error('Commande non prise en charge');actions[event.type]();seen.add(event.id);return true;},
-    undo:()=>{if(apiUndo.length&&bridge.restore){bridge.restore(apiUndo.pop());sync();emit('undo:performed',{});return true}const result=call('undo');emit('undo:performed',{});return result},subscribe:fn=>{if(typeof fn!=='function')throw TypeError('Fonction attendue');listeners.add(fn);return()=>listeners.delete(fn)},
+    undo:()=>{if(window.RPGUndo?.authoritative())return window.RPGUndo.request();if(apiUndo.length&&bridge.restore){bridge.restore(apiUndo.pop());sync();emit('undo:performed',{});return true}const result=call('undo');emit('undo:performed',{});return result},subscribe:fn=>{if(typeof fn!=='function')throw TypeError('Fonction attendue');listeners.add(fn);return()=>listeners.delete(fn)},
     unsubscribe:fn=>listeners.delete(fn),sync,emitLocal:emit});
   window.CompanionAPI=api;previous=state();damageCursor=Number(previous?.turn?.damage)||0;emit('companion:ready',{version:1});
   // Existing character interfaces own their rules and rendering. Observe their
