@@ -296,7 +296,7 @@ async function performFallback(opts){
   await sleep(settings.speed==='fast'?210:470);
   if(currentResolve===null)return;
   if(chosen===20)o.classList.add('nat20');if(chosen===1)o.classList.add('nat1');
-  o.querySelector('.cc-dice-verdict').textContent=chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet';
+  o.querySelector('.cc-dice-verdict').textContent=opts.verdict||(chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet');
   o.querySelector('.cc-dice-total').textContent=opts.total!=null?String(opts.total):String(chosen);
   o.querySelector('.cc-dice-detail').textContent=opts.detail||('d20 '+chosen);
   o.querySelector('.cc-dice-result').classList.add('show');o.classList.add('reveal');
@@ -334,7 +334,7 @@ async function perform(opts,resolve){
   await emphasize(currentDice,chosen);
   o.querySelector('.cc-dice-status').textContent=rolls.length===2?'Dé retenu : '+chosen:'Face obtenue : '+chosen;
   await sleep(settings.speed==='fast'?90:190);
-  o.querySelector('.cc-dice-verdict').textContent=chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet';
+  o.querySelector('.cc-dice-verdict').textContent=opts.verdict||(chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet');
   o.querySelector('.cc-dice-total').textContent=opts.total!=null?String(opts.total):String(chosen);
   o.querySelector('.cc-dice-detail').textContent=opts.detail||('d20 '+chosen);
   o.querySelector('.cc-dice-result').classList.add('show');
