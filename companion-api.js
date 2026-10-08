@@ -23,13 +23,13 @@
   };
   function state(){
     const s=bridge.read(),eco=bridge.economy?.(s)||s.economy||s.eco||s.used||{},used=bridge.used!==false;
-    const available=k=>eco[k]===undefined?null:used?!eco[k]:!!eco[k];
+    const available=k=>s.rpgCombatEffectMirror?.actionsBlocked?false:eco[k]===undefined?null:used?!eco[k]:!!eco[k];
     const hp=number(s.hp)??0,max=number(s.maxHp)??bridge.maxHp,temp=number(s.tempHp??s.temp)??0;
     const rawConcentration=s.concentration??s.concSpell??s.conc,concentrationName=typeof rawConcentration==='string'?rawConcentration.trim():rawConcentration&&typeof rawConcentration==='object'?String(rawConcentration.name||rawConcentration.spell||''):rawConcentration===true?'Concentration':'';if(s.rpgConcentrationName!==concentrationName){s.rpgConcentrationName=concentrationName;s.rpgConcentrationInstance=concentrationName?crypto.randomUUID():null;}
     const inventory=bridge.inventory?.()||s.inventory||s.items||[];
     const resources=bridge.resources?.(s)||{};
-    return copy({portrait:new URL(bridge.id==='kentaro'?'icon-192.png':'assets/emblem-transparent.png',document.baseURI).href,characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',tempMetadata:s.tempMetadata||{},authorityRevision:s.rpgHealthRevision||0},ac:bridge.ac?.(s)??null,
-      turn:{number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
+    return copy({portrait:new URL(bridge.id==='kentaro'?'icon-192.png':'assets/emblem-transparent.png',document.baseURI).href,characterId:bridge.id,stateEpoch,stateRevision,characterName:bridge.name,hp:{current:hp,max,temp,tempSource:s.tempSource||'',tempMetadata:s.tempMetadata||{},authorityRevision:s.rpgHealthRevision||0},baseAc:bridge.baseAc?.(s)??bridge.ac?.(s)??null,ac:bridge.ac?.(s)??null,
+      turn:{movementAllowanceMultiplier:s.rpgCombatEffectMirror?.movementAllowanceMultiplier||1,disengaged:!!s.rpgCombatEffectMirror?.disengaged,speedMultiplier:s.rpgCombatEffectMirror?.speedMultiplier||1,hasteAction:!!s.rpgCombatEffectMirror?.hasteAction,actionsBlocked:!!s.rpgCombatEffectMirror?.actionsBlocked,number:s.turn??s.round??1,round:s.round??s.turn??1,active:s.phase||s.turnPhase||true,
         action:available(bridge.ecoKeys?.action||'action'),bonus:available(bridge.ecoKeys?.bonus||'bonus'),
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
       undoCapability:window.RPGUndo?1:0,concentrationInstance:s.rpgConcentrationInstance||null,concentration:(()=>{const c=s.concentration??s.concSpell??s.conc;return typeof c==='string'?c.trim()||null:c&&typeof c==='object'?String(c.name||c.spell||'').trim()||null:c===true?'Concentration':null})(),resources,
