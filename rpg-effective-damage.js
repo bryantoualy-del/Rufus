@@ -13,7 +13,7 @@
  const damage=n=>Number.isFinite(Number(n))?Math.max(0,Math.trunc(Number(n))):0;
  const credit=(id,record,amount)=>{if(!id||journal.done[id]||journal.cancelled[record.actionId])return;
   journal.done[id]=true;
-  if(record.turn===turn()&&amount)bridge.adjustTurnDamage(amount);
+  if(record.turn===turn()&&amount)(window.RPGUndo?.track?RPGUndo.track(record.actionId,()=>bridge.adjustTurnDamage(amount)):bridge.adjustTurnDamage(amount));
   persist();
  };
  api.subscribe(event=>{
