@@ -346,6 +346,7 @@ function breakInvisibilityForAttack(){
   }
 }
 function startAttack(key,context='own'){
+ if(window.RPGConnect?.getStatus()?.connected&&!window.RPGConnect.getStatus().target){window.RPGConnect.openTargetPicker();toast('Choisis une cible Encounter avant de lancer cette attaque.');return false;}
   window.__lastDamageComponents=null;
   const spec=attacks[key];if(!spec)return;
   const cost=context==='reaction'?'reaction':spec.cost;
