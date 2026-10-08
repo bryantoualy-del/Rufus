@@ -762,3 +762,5 @@ textarea{resize:vertical}
   }
   html,body{transform:none!important;perspective:none!important;filter:none!important}
 }
+
+#opportunityOptions[hidden]{display:none!important}
