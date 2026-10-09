@@ -350,6 +350,24 @@
 <script>window.RPGOpportunityConfig=[{"id": "opportunity-spectral", "label": "Opportunité · Dague spectrale", "selector": "[data-reaction-attack=\"spectral\"]"}, {"id": "opportunity-hexen", "label": "Opportunité · Hexen Blade", "selector": "[data-reaction-attack=\"hexen\"]"}];</script><script src="rpg-opportunities.js?v=session-reliability-1"></script><script src="rpg-triggered-effects.js?v=mj-20261007-1"></script>
 <script src="mj-journal-model.js?v=2"></script><script src="rpg-undo.js?v=rufus-20261009-1"></script><script src="rpg-group.js?v=group-20261007-1"></script>
 <script src="rpg-resources.js?v=rufus-20261009-1"></script>
+<style id="rufus-compact-group-nav">
+@media(min-width:768px){
+  .desktop-main-nav{grid-template-columns:repeat(4,minmax(0,1fr)) auto}
+  .desktop-main-nav>.rpg-combat-tools{margin:0;grid-column:auto;flex-wrap:nowrap;align-self:stretch}
+  .desktop-main-nav>.rpg-combat-tools>.rpg-group-launch{height:100%;min-height:44px}
+}
+</style>
+<script id="rufus-compact-group-placement">
+(()=>{
+  const nav=document.querySelector('.desktop-main-nav');
+  const combat=document.getElementById('combat');
+  const tools=combat?.querySelector('.rpg-combat-tools');
+  if(!nav||!tools)return;
+  const tablet=matchMedia('(min-width:768px)');
+  const place=()=>{if(tablet.matches)nav.append(tools);else combat.prepend(tools)};
+  place();tablet.addEventListener('change',place);
+})();
+</script>
 <script src="rpg-instruction.js"></script>
 <script src="rpg-weapon-gate.js"></script>
 <script src="rpg-combat-effects-client.js?v=zephyr-effects-20261008"></script>
