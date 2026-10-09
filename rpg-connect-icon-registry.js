@@ -1,6 +1,6 @@
 /* RPG Connect icon registry v3 — central source: bryantoualy-del/RPG-Connect */
 (()=>{'use strict';
-const ROOT=window.RPG_CONNECT_ICON_ROOT||'https://raw.githubusercontent.com/bryantoualy-del/RPG-Connect/09ede3862f8a8b7bbb4371dcee4ee36824161a1a/';
+const ROOT=window.RPG_CONNECT_ICON_ROOT||'https://rpg-icons.bryantoualy.workers.dev/';
 const creatureBase=ROOT+'assets/icons/creatures/';
 const types=['aberration','beast','celestial','construct','dragon','elemental','fey','fiend','giant','humanoid','monstrosity','ooze','plant','undead'];
 const labels={aberration:'Aberration',beast:'Bête',celestial:'Céleste',construct:'Artificiel',dragon:'Dragon',elemental:'Élémentaire',fey:'Fée',fiend:'Fiélon',giant:'Géant',humanoid:'Humanoïde',monstrosity:'Monstruosité',ooze:'Vase',plant:'Plante',undead:'Mort-vivant',unknown:'Inconnu'};
