@@ -11,8 +11,9 @@
  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const die=n=>{const x=new Uint32Array(1),limit=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(x)}while(x[0]>=limit);return x[0]%n+1};
  const online=()=>window.RPGConnect?.getStatus().connected;
- function send(item){if(!item.cancelled&&item.result&&!item.ack&&online())api.emitLocal('player-save:result',item.result,item.request.requestId+':result')}
- function finish(item,result){if(item.finalized)return;item.result={requestId:item.request.requestId,combatId:item.request.combatId,targetId:item.request.targetId,ability:item.request.ability,dc:item.request.dc,...result};item.finalized=true;persist();send(item);if(dialog.open)dialog.close();current=null;queueMicrotask(next)}
+ function send(item){if(!item.cancelled&&item.result&&!item.refinementPending&&!item.ack&&online())api.emitLocal('player-save:result',item.result,item.request.requestId+':result')}
+ async function refine(item){if(item.refining)return;item.refining=true;try{item.result=await bridge.refineSave(item.result,item.request);item.refinementPending=false;persist();finish(item,item.result);}finally{item.refining=false;}}
+ function finish(item,result){if(item.refinementPending){refine(item);return;}if(item.finalized)return;item.result={requestId:item.request.requestId,combatId:item.request.combatId,targetId:item.request.targetId,ability:item.request.ability,dc:item.request.dc,...result};item.finalized=true;persist();send(item);if(dialog.open)dialog.close();current=null;queueMicrotask(next)}
  function next(){if(current)return;const item=Object.values(ledger).find(x=>!x.cancelled&&!x.result&&x.request.combatId===currentCombatId);if(!item)return;current=item;const q=item.request,keys=new Set((q.conditions||[]).map(c=>norm(c.name)));
   if(['FOR','DEX'].includes(q.ability)&&['etourdi','paralyse','inconscient','petrifie'].some(k=>keys.has(k)))return finish(item,{automatic:true,rolls:[],modifier:0,penalties:[],total:0,success:false,mode:'auto-fail'});
   const p=bridge.saveProfile?.(q.ability,q);if(!p||!Number.isFinite(p.modifier)){current=null;throw Error('Profil de JdS absent : demande conservée en attente')}
@@ -23,9 +24,9 @@
  }
  dialog.querySelector('[data-save-roll]').onclick=async()=>{const item=current;if(!item||item.rolling)return;const extra=Number(dialog.querySelector('[data-save-extra]').value);if(!Number.isFinite(extra)||Math.abs(extra)>100){dialog.querySelector('[data-save-status]').textContent='Indique un bonus circonstanciel valide.';return}item.rolling=true;const q=item.request,p=bridge.saveProfile(q.ability,q),keys=new Set((q.conditions||[]).map(c=>norm(c.name))),selected=dialog.querySelector('[data-save-mode]').value,adv=selected==='adv',dis=selected==='dis'||(q.ability==='DEX'&&keys.has('entrave')),mode=adv===dis?'normal':adv?'adv':'dis',rolls=Array.from({length:mode==='normal'?1:2},()=>die(20)),natural=mode==='adv'?Math.max(...rolls):mode==='dis'?Math.min(...rolls):rolls[0],effectBonus=(q.conditions||[]).reduce((n,c)=>n+(Number(c.saveBonus)||0),0)+((q.conditions||[]).some(c=>c.effectKind==='bless')?die(4):0),modifier=p.modifier+extra+effectBonus,total=natural+modifier,success=total>=q.dc;
   // Store the result before 3D animation: a refresh or lost ACK cannot roll again.
-  item.result={requestId:q.requestId,combatId:q.combatId,targetId:q.targetId,ability:q.ability,dc:q.dc,rolls,natural,modifier,baseModifier:p.modifier,circumstantialModifier:extra,effectBonus,penalties:[],total,success,mode};persist();if(dialog.open)dialog.close();
+  item.refinementPending=!!bridge.refineSave;item.result={requestId:q.requestId,combatId:q.combatId,targetId:q.targetId,ability:q.ability,dc:q.dc,rolls,natural,modifier,baseModifier:p.modifier,circumstantialModifier:extra,effectBonus,penalties:[],total,success,mode};persist();if(dialog.open)dialog.close();
   if(!window.CompanionDiceEngine)await new Promise(resolve=>window.addEventListener('companiondice:ready',resolve,{once:true}));
-  await window.CompanionDiceEngine.roll({label:'JdS '+q.ability+' · '+q.source,verdict:success?'JET RÉUSSI':'JET RATÉ',rolls,chosen:natural,total,detail:'d20 '+rolls.join(' / ')+' → '+natural+' + '+p.modifier+(extra?' + '+extra+' circonstanciel':'')+(effectBonus?' + '+effectBonus+' effets Encounter':'')+' = '+total+' / DD '+q.dc,mode});finish(item,item.result);
+  await window.CompanionDiceEngine.roll({label:'JdS '+q.ability+' · '+q.source,verdict:success?'JET RÉUSSI':'JET RATÉ',rolls,chosen:natural,total,detail:'d20 '+rolls.join(' / ')+' → '+natural+' + '+p.modifier+(extra?' + '+extra+' circonstanciel':'')+(effectBonus?' + '+effectBonus+' effets Encounter':'')+' = '+total+' / DD '+q.dc,mode});if(item.refinementPending){await refine(item);return;}finish(item,item.result);
  };
  function receive(type,q){if(type==='player-save:ack'){if(ledger[q.requestId]){ledger[q.requestId].ack=true;persist()}return true}if(type!=='player-save:request'||!q.requestId||!q.combatId||!q.targetId||!['FOR','DEX','CON','INT','SAG','CHA'].includes(q.ability)||!Number.isFinite(q.dc))return false;
   const old=ledger[q.requestId];if(old){if(old.result&&!old.finalized&&current!==old)finish(old,old.result);else{send(old);next()}return true}
@@ -35,3 +36,4 @@
  setInterval(()=>{for(const item of Object.values(ledger))send(item)},3000);
  window.RPGPlayerSaves={cancelRequests:ids=>{for(const item of Object.values(ledger))if(ids.includes(item.request.requestId)){item.cancelled=true;item.ack=true;item.finalized=true;if(current===item){current=null;if(dialog.open)dialog.close()}}persist()},receive,restore,pending:()=>Object.values(ledger).filter(x=>!x.result).map(x=>x.request)};
 })();
+
