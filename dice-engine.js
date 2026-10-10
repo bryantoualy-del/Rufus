@@ -6,6 +6,9 @@ const defaults={speed:'cinematic',sound:true,haptics:true};
 let settings=loadSettings();
 let overlay=null,renderer=null,scene=null,camera=null,clockId=0,webglUnavailable=false,fallbackTicker=0;
 let queue=[],busy=false,currentResolve=null,currentDice=[];
+let animationWatchdog=0,sequence=0;
+const animationCurrent=id=>id===sequence&&busy;
+function animationReady(){clearTimeout(animationWatchdog);animationWatchdog=0;}
 
 function loadSettings(){
   try{return {...defaults,...JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}')}}catch(e){return {...defaults}}
@@ -213,17 +216,19 @@ function tone(kind){
   }catch(e){}
 }
 
-function frameLoop(){if(!renderer||!scene||!camera)return;renderScene();clockId=requestAnimationFrame(frameLoop)}
+function frameLoop(){if(!renderer||!scene||!camera)return;try{renderScene();clockId=requestAnimationFrame(frameLoop)}catch(error){console.warn('Companion Dice animation interrupted',error);finishCurrent()}}
 function startLoop(){cancelAnimationFrame(clockId);frameLoop()}
 function stopLoop(){cancelAnimationFrame(clockId);clockId=0;renderScene()}
 
-async function animateRoll(dice,duration){
+async function animateRoll(dice,duration,id){
   const start=performance.now();
   const endY=-.05;
   let settled=false,settleStart=0;
   const startQ=dice.map(()=>null);
-  return new Promise(resolve=>{
+  return new Promise((resolve,reject)=>{
     function step(now){
+      if(!animationCurrent(id)){resolve();return}
+      try{
       const t=clamp01((now-start)/duration);
       const fall=easeOut(clamp01(t/0.78));
       dice.forEach((g,i)=>{
@@ -241,6 +246,7 @@ async function animateRoll(dice,duration){
       });
       renderScene();
       if(t<1)requestAnimationFrame(step);else resolve();
+      }catch(error){reject(error)}
     }
     requestAnimationFrame(step);
   });
@@ -266,15 +272,20 @@ function updateQueueBadge(){
 }
 
 function finishCurrent(){
-  if(!overlay)return;
-  clearInterval(fallbackTicker);fallbackTicker=0;
-  overlay.dataset.dismissable='0';overlay.classList.remove('open','nat20','nat1','reveal','impact','fallback');
-  stopLoop();clearDice();
-  const r=currentResolve;currentResolve=null;
-  setTimeout(()=>{r?.();busy=false;pump()},120);
+  if(!busy)return;
+  animationReady();sequence++;
+  const resolve=currentResolve;currentResolve=null;
+  try{
+    clearInterval(fallbackTicker);fallbackTicker=0;
+    if(overlay){overlay.dataset.dismissable='0';overlay.classList.remove('open','nat20','nat1','reveal','impact','fallback');}
+    cancelAnimationFrame(clockId);clockId=0;
+    try{clearDice()}catch(error){console.warn('Companion Dice cleanup interrupted',error)}
+  }finally{
+    busy=false;resolve?.();setTimeout(pump,120);
+  }
 }
 
-async function performFallback(opts){
+async function performFallback(opts,id){
   const o=ensureOverlay(),mode=opts.mode||'normal';
   const rolls=Array.isArray(opts.rolls)&&opts.rolls.length?opts.rolls.slice(0,2):[opts.chosen||1];
   const chosen=opts.chosen??rolls[0];
@@ -289,29 +300,30 @@ async function performFallback(opts){
   vibrate(14);tone('start');
   fallbackTicker=setInterval(()=>{face.textContent=String(1+Math.floor(Math.random()*20))},70);
   await sleep(settings.speed==='fast'?680:1620);
-  if(currentResolve===null)return;
+  if(!animationCurrent(id))return;
   clearInterval(fallbackTicker);fallbackTicker=0;face.textContent=String(chosen);
   tone('impact');vibrate(20);
   o.querySelector('.cc-dice-status').textContent=rolls.length===2?'Dé retenu : '+chosen:'Face obtenue : '+chosen;
   await sleep(settings.speed==='fast'?210:470);
-  if(currentResolve===null)return;
+  if(!animationCurrent(id))return;
   if(chosen===20)o.classList.add('nat20');if(chosen===1)o.classList.add('nat1');
   o.querySelector('.cc-dice-verdict').textContent=opts.verdict||(chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet');
   o.querySelector('.cc-dice-total').textContent=opts.total!=null?String(opts.total):String(chosen);
   o.querySelector('.cc-dice-detail').textContent=opts.detail||('d20 '+chosen);
   o.querySelector('.cc-dice-result').classList.add('show');o.classList.add('reveal');
   if(chosen===20){tone('crit');vibrate([22,30,44])}
-  o.dataset.dismissable='1';updateQueueBadge();
-  if(queue.length){await sleep(settings.speed==='fast'?520:980);if(o.dataset.dismissable==='1')finishCurrent()}
+  o.dataset.dismissable='1';animationReady();updateQueueBadge();
+  if(queue.length){await sleep(settings.speed==='fast'?520:980);if(animationCurrent(id)&&o.dataset.dismissable==='1')finishCurrent()}
 }
 
-async function perform(opts,resolve){
+async function perform(opts,resolve,id){
+  if(!animationCurrent(id))return;
   settings=loadSettings();
-  if(settings.speed==='off'||matchMedia('(prefers-reduced-motion: reduce)').matches){resolve();busy=false;pump();return}
+  if(settings.speed==='off'||matchMedia('(prefers-reduced-motion: reduce)').matches){animationReady();currentResolve=null;resolve();busy=false;pump();return}
   currentResolve=resolve;
   const o=ensureOverlay();
   const ok=ensureThree();
-  if(!ok){await performFallback(opts);return}
+  if(!ok){await performFallback(opts,id);return}
   clearDice();
   o.className='';
   o.dataset.dismissable='0';
@@ -325,15 +337,19 @@ async function perform(opts,resolve){
   heading.replaceChildren(document.createTextNode(opts.label||'Jet de d20'),subtitle);
   o.querySelector('.cc-dice-status').textContent=settings.speed==='fast'?'Jet rapide':'Lancer du d20';
   if(chosen===20)o.classList.add('nat20');if(chosen===1)o.classList.add('nat1');
-  o.classList.add('open');resizeRenderer();startLoop();vibrate(14);tone('start');
+  o.classList.add('open');resizeRenderer();startLoop();if(!animationCurrent(id))return;vibrate(14);tone('start');
   currentDice=rolls.map((v,i)=>createD20(v,i,rolls.length));
   const duration=settings.speed==='fast'?680:1620;
-  await animateRoll(currentDice,duration);
+  await animateRoll(currentDice,duration,id);
+  if(!animationCurrent(id))return;
   o.querySelector('.cc-dice-status').textContent='Le dé se stabilise…';
   await sleep(settings.speed==='fast'?120:280);
+  if(!animationCurrent(id))return;
   await emphasize(currentDice,chosen);
+  if(!animationCurrent(id))return;
   o.querySelector('.cc-dice-status').textContent=rolls.length===2?'Dé retenu : '+chosen:'Face obtenue : '+chosen;
   await sleep(settings.speed==='fast'?90:190);
+  if(!animationCurrent(id))return;
   o.querySelector('.cc-dice-verdict').textContent=opts.verdict||(chosen===20?'20 naturel · critique':chosen===1?'1 naturel · échec critique':'Résultat du jet');
   o.querySelector('.cc-dice-total').textContent=opts.total!=null?String(opts.total):String(chosen);
   o.querySelector('.cc-dice-detail').textContent=opts.detail||('d20 '+chosen);
@@ -341,18 +357,23 @@ async function perform(opts,resolve){
   o.classList.add('reveal');
   if(chosen===20){tone('crit');vibrate([22,30,44])}
   else if(chosen===1){vibrate([36,24,36])}
-  o.dataset.dismissable='1';
+  o.dataset.dismissable='1';animationReady();
   updateQueueBadge();
-  if(queue.length){await sleep(settings.speed==='fast'?520:980);if(o.dataset.dismissable==='1')finishCurrent()}
+  if(queue.length){await sleep(settings.speed==='fast'?520:980);if(animationCurrent(id)&&o.dataset.dismissable==='1')finishCurrent()}
 }
 
 function pump(){
   if(busy||!queue.length){updateQueueBadge();return}
-  busy=true;const job=queue.shift();updateQueueBadge();perform(job.opts,job.resolve);
+  busy=true;const job=queue.shift(),id=++sequence;currentResolve=job.resolve;
+  animationWatchdog=setTimeout(()=>{if(animationCurrent(id)){console.warn('Companion Dice animation timeout');finishCurrent()}},8000);
+  Promise.resolve().then(()=>{updateQueueBadge();return perform(job.opts,job.resolve,id)}).catch(error=>{
+    console.warn('Companion Dice animation interrupted',error);
+    if(animationCurrent(id))finishCurrent();
+  });
 }
 function roll(opts={}){return new Promise(resolve=>{queue.push({opts:{...opts},resolve});pump()})}
 function close(){if(overlay?.dataset.dismissable==='1')finishCurrent()}
 function cancelAll(){queue.splice(0).forEach(j=>j.resolve());updateQueueBadge();if(busy)finishCurrent()}
 
-window.CompanionDiceEngine={roll,close,cancelAll,getSettings,setSettings,version:'2.2.0-cc',source:'social-only'};
-window.dispatchEvent(new CustomEvent('companiondice:ready',{detail:{version:'2.2.0-cc'}}));
+window.CompanionDiceEngine={roll,close,cancelAll,getSettings,setSettings,version:'2.2.1-cc',source:'social-only'};
+window.dispatchEvent(new CustomEvent('companiondice:ready',{detail:{version:'2.2.1-cc'}}));
