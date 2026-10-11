@@ -7,10 +7,10 @@
  const persist=()=>{if(pending)localStorage.setItem(key,JSON.stringify(pending));else localStorage.removeItem(key)};
  const notice=text=>{const el=document.querySelector('.rpg-connect-message');if(el){el.textContent=text;el.hidden=false}document.dispatchEvent(new CustomEvent('rpg-health:notice',{detail:text}))};
  const formatResult=r=>r.armed?r.targetName+' : Ancre préparée, soin à la prochaine attaque':r.maxHpReduction?r.targetName+' : −'+r.maxHpReduction+' PV max (Marque)':r.damageTaken?r.targetName+' : '+r.damageTaken+' dégâts ('+r.tempAbsorbed+' absorbés)':r.kept?r.targetName+' : PV temporaires conservés':r.targetName+' : '+r.appliedAmount+(pending?.family==='tempHp:request'?' PV temporaires':pending?.family==='maxHp:request'?' PV max':' PV rendus');
- const authoritative=()=>!!bridge.read().rpgHealthAuthorityActive||!!context.healthCapabilities?.includes('HEAL');
- const online=()=>net.getStatus().connected&&context.healthCapabilities?.includes('HEAL');
+ const authoritative=()=>!window.RPGResolution?.free()&&(!!bridge.read().rpgHealthAuthorityActive||!!context.healthCapabilities?.includes('HEAL'));
+ const online=()=>net.getStatus().controlled&&context.healthCapabilities?.includes('HEAL');
  const room=()=>net.getStatus().room;
- const busy=()=>!!pending||choosing;
+ const busy=()=>!window.RPGResolution?.free()&&(!!pending||choosing);
  function redraw(){const s=bridge.read();if(bridge.healthRefresh)bridge.healthRefresh();else bridge.commands.setHP(s.hp);api.sync()}
  const get=(s,path)=>path.reduce((v,k)=>v?.[k],s);
  const set=(s,path,value)=>{let v=s;for(const k of path.slice(0,-1))v=v[k];v[path.at(-1)]=copy(value)};
@@ -23,7 +23,7 @@
   redraw();queueMicrotask(()=>{window.__RPGHealthApplying=false});
  }
  function applyDamageConsequences(run,before,after){const s=bridge.read(),latest={epoch:s.rpgHealthEpoch||'',current:s.hp,max:s.maxHp,temp:s.temp??s.tempHp??0,tempSource:s.tempSource||'',tempMetadata:copy(s.tempMetadata||{}),revision:s.rpgHealthRevision||0};applyHealth(before,true);try{window.__RPGHealthApplying=true;run()}finally{applyHealth(latest.revision>after.revision?latest:after,true);queueMicrotask(()=>{window.__RPGHealthApplying=false})}}
- function setContext(value){if(value.healthCapabilities?.includes('HEAL'))bridge.read().rpgHealthAuthorityActive=true;context={...context,...value};if(value.health)applyHealth(value.health);}
+ function setContext(value){if(window.RPGResolution?.free()&&!window.RPGResolution.controlled())return;if(value.healthCapabilities?.includes('HEAL'))bridge.read().rpgHealthAuthorityActive=true;context={...context,...value};if(value.health)applyHealth(value.health);}
  async function choose({min=1,max=1,title='Choisir les alliés',self=false,lifeStatus='living',filter=()=>true}={}){
   if(!online()||busy()){notice('Termine le soin en attente avant une autre capacité');return []}
   if(self)return context.healthActorId?[context.healthActorId]:[];
@@ -46,8 +46,9 @@
  }
  // A pending reservation is recovered after reload without rolling or spending again.
  if(pending){const s=bridge.read();for(const c of pending.changes||[])if(JSON.stringify(get(s,c.path))===JSON.stringify(c.before))set(s,c.path,c.after);redraw()}
- document.addEventListener('click',e=>{const button=e.target.closest('button');if(button&&authoritative()&&!online()){const rules={brackmard:'#second,[onclick*=dwarvenFortitude]',zephyr:'#healBtn,#arrowStrike,#arrowSacrifice,#anchorBtn,#vitalityHeal,.cast[data-name="Revivifier"],.cast[data-name="Aura de vitalité"],.upcast[data-name="Aide"],.upcast[data-name="Armure d’Agathys"]',kentaro:'#bite,#lazarus,[data-agathys]',nans:'[onclick*=useBark],[onclick*=rally]',samoth:'[data-ability="hitDice"],[data-use="hitDice"]'};const spell=bridge.id==='samoth'&&button.id==='combatCast'&&document.querySelector('#combatSpell')?.value==='cure';if(spell||button.matches(rules[bridge.id]||'[data-never-health]')||/repos|rest/i.test(button.id+' '+button.textContent)){e.preventDefault();e.stopImmediatePropagation();notice('Connexion Encounter requise · aucune ressource dépensée');return}}if(!busy())return;const b=e.target.closest('button');if(b&&/repos|rest|undo|reset|annuler|fin de tour/i.test(b.id+' '+b.textContent+' '+b.getAttribute('onclick'))&&!b.closest('#rpgMultiTargetPicker')){e.preventDefault();e.stopImmediatePropagation();notice('Résolution du soin en attente · ressources réservées')}},true);
+ document.addEventListener('click',e=>{if(e.target.closest?.('[data-resolution-controls]'))return;const button=e.target.closest('button');if(button&&authoritative()&&!online()){const rules={brackmard:'#second,[onclick*=dwarvenFortitude]',zephyr:'#healBtn,#arrowStrike,#arrowSacrifice,#anchorBtn,#vitalityHeal,.cast[data-name="Revivifier"],.cast[data-name="Aura de vitalité"],.upcast[data-name="Aide"],.upcast[data-name="Armure d’Agathys"]',kentaro:'#bite,#lazarus,[data-agathys]',nans:'[onclick*=useBark],[onclick*=rally]',samoth:'[data-ability="hitDice"],[data-use="hitDice"]'};const spell=bridge.id==='samoth'&&button.id==='combatCast'&&document.querySelector('#combatSpell')?.value==='cure';if(spell||button.matches(rules[bridge.id]||'[data-never-health]')||/repos|rest/i.test(button.id+' '+button.textContent)){e.preventDefault();e.stopImmediatePropagation();notice('Connexion Encounter requise · aucune ressource dépensée');return}}if(!busy())return;const b=e.target.closest('button');if(b&&/repos|rest|undo|reset|annuler|fin de tour/i.test(b.id+' '+b.textContent+' '+b.getAttribute('onclick'))&&!b.closest('#rpgMultiTargetPicker')){e.preventDefault();e.stopImmediatePropagation();notice('Résolution du soin en attente · ressources réservées')}},true);
  function weaponRollMode(base='normal'){const self=context.mechanics||{},target=net.getStatus().target?.mechanics||{},adv=window.RPGWeaponGate?.advantage()||window.RPGReactions?.metadata().attackAdvantage||base==='adv'||(self.attackAdvantage&&!(self.invisible&&target.seesInvisible))||self.nextWeaponAttackAdvantage||target.attacksAgainstAdvantage,dis=base==='dis'||self.attackDisadvantage||(target.attacksAgainstDisadvantage&&!(target.invisible&&context.mechanics?.seesInvisible));return !!adv===!!dis?'normal':adv?'adv':'dis'}
+ window.RPGResolution.register('health',{detach:()=>{const old=copy(pending);pending=null;choosing=false;persist();return old}});
  window.RPGHealth={applyDamageConsequences,authoritative,formatResult,weaponRollMode,online,busy,choose,perform,setContext,receive,getContext:()=>copy(context),getPending:()=>copy(pending)};
  setInterval(transmit,4000);
 })();

@@ -17,14 +17,14 @@
  dialog.innerHTML='<div class="rpg-multi-picker-head"><strong>Choisir les cibles</strong><button type="button" data-multi-close aria-label="Fermer">Fermer</button></div><p data-multi-picker-count></p><div data-multi-picker-list></div><p data-multi-picker-empty></p><div class="rpg-multi-picker-foot"><button type="button" data-multi-clear>Tout désélectionner</button><button type="button" data-multi-done>Valider la sélection</button></div>';
  function renderPicker(){
   if(!dialog.open)return;
-  const connected=net.getStatus().connected,list=choice?choice.list:net.getTargets(),ids=new Set(choice?choice.ids:selected().map(t=>String(t.id)));
+  const connected=net.getStatus().controlled,list=choice?choice.list:net.getTargets(),ids=new Set(choice?choice.ids:selected().map(t=>String(t.id)));
   const html=list.map(t=>{const original=[...document.querySelectorAll('#rpg-target-dock [data-target-id]')].find(el=>el.dataset.targetId===String(t.id)),img=original?.querySelector('img');return '<button type="button" data-multi-target="'+esc(t.id)+'" aria-pressed="'+ids.has(String(t.id))+'" '+(!connected?'disabled':'')+'>'+(img?'<img alt="" src="'+esc(img.src)+'">':'')+'<span>'+esc(t.name)+(choice?' <small>'+esc(t.kind==='player'?'PJ':t.companionId?'Companion allié':'PNJ / créature alliée')+'</small>':'')+'</span><b aria-hidden="true">'+(ids.has(String(t.id))?'✓':'+')+'</b></button>'}).join('');
   const box=dialog.querySelector('[data-multi-picker-list]');if(box.innerHTML!==html)box.innerHTML=html;
   setText(dialog.querySelector('[data-multi-picker-count]'),(choice?choice.ids.length:selected().length)+' cible(s) sélectionnée(s)' + (choice?' / '+choice.max:''));
   setText(dialog.querySelector('[data-multi-picker-empty]'),!connected?'Connexion interrompue — reconnecte-toi pour modifier les cibles.':!list.length?'Aucune cible disponible depuis Encounter.':'');
   dialog.querySelector('[data-multi-clear]').disabled=!connected;dialog.querySelector('[data-multi-done]').disabled=!connected||!!(choice&&choice.ids.length<choice.min);
  }
- function openPicker(source=''){if(!net.getStatus().connected)return false;dialogSource=source;net.prepareTargets({targetMode:'multi',open:false});if(!dialog.open)dialog.showModal();renderPicker();return true}
+ function openPicker(source=''){if(!net.getStatus().controlled)return false;dialogSource=source;net.prepareTargets({targetMode:'multi',open:false});if(!dialog.open)dialog.showModal();renderPicker();return true}
  dialog.addEventListener('click',e=>{if(choice){const b=e.target.closest('button');if(!b)return;if(b.dataset.multiTarget){const id=b.dataset.multiTarget;if(choice.ids.includes(id))choice.ids=choice.ids.filter(x=>x!==id);else if(choice.ids.length<choice.max)choice.ids.push(id);renderPicker()}else if(b.hasAttribute('data-multi-clear')){choice.ids=[];renderPicker()}else if(b.hasAttribute('data-multi-done')){if(choice.ids.length<choice.min)return;finishChoice(choice.ids)}else if(b.hasAttribute('data-multi-close'))finishChoice([]);return;}const card=e.target.closest('[data-multi-target]');if(card){const previous=latest(dialogSource);if(previous&&!pending(previous)){previous.dismissed=true;persist()}const ids=selected().map(t=>String(t.id)),id=card.dataset.multiTarget;net.selectTargets(ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]);render();return}if(e.target.closest('[data-multi-clear]')){const previous=latest(dialogSource);if(previous&&!pending(previous)){previous.dismissed=true;persist()}net.clearSelectedTargets();render()}if(e.target.closest('[data-multi-close],[data-multi-done]')){dialog.close();render()}});
  const originalPicker=net.openTargetPicker.bind(net);net.openTargetPicker=()=>net.getStatus().targetMode==='single'?originalPicker():openPicker();
  function renderFields(source,connected,a){
@@ -37,7 +37,7 @@
   for(const el of document.querySelectorAll(config.manualHelp||'[data-unused-multi-help]'))el.hidden=connected||pending(a);
  }
  function render(){
-  const connected=!!net.getStatus().connected;
+  const connected=!!net.getStatus().controlled;
   for(const {binding,button,source}of bindings()){
    const host=(binding.container&&button.closest(binding.container))||button.parentElement;
    let group=host.querySelector(':scope > [data-multi-ui="'+button.dataset.multiUiId+'"]');
@@ -59,14 +59,14 @@
   const buttons=new Set(bindings().map(x=>x.button.dataset.multiUiId));for(const el of document.querySelectorAll('[data-multi-ui]'))if(!buttons.has(el.dataset.multiUi))el.hidden=true;
   renderPicker();
  }
- document.addEventListener('click',e=>{
+ document.addEventListener('click',e=>{if(e.target.closest?.('[data-resolution-controls]'))return;
   const match=bindings().find(x=>x.button===e.target.closest('button'));if(!match)return;
-  const a=latest(match.source),connected=net.getStatus().connected;
+  const a=latest(match.source),connected=net.getStatus().controlled;
   if(pending(a)||(!connected&&actions.some(pending))){e.preventDefault();e.stopImmediatePropagation();render();return}
   if(connected){net.prepareTargets({targetMode:'multi',open:false});if(!selected().length){e.preventDefault();e.stopImmediatePropagation();openPicker(match.source)}}
  },true);
  document.addEventListener('change',()=>setTimeout(render,0));
- document.addEventListener('input',e=>{if(net.getStatus().connected||actions.some(pending))return;for(const selector of Object.keys(config.fields||{}))if(e.target.matches(selector)){offlineValues[selector]=e.target.value;persist()}});
+ document.addEventListener('input',e=>{if(net.getStatus().controlled||actions.some(pending))return;for(const selector of Object.keys(config.fields||{}))if(e.target.matches(selector)){offlineValues[selector]=e.target.value;persist()}});
  api.subscribe(event=>{
   const p=event.payload||{};
   if(event.type==='save:request'&&p.targetMode!=='single'&&Array.isArray(p.targets)){

@@ -10,7 +10,7 @@
  const spell=()=>api.getState().concentration;
  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  function incapacitated(list){return(list||[]).some(c=>['incapacite','inconscient','paralyse','etourdi','petrifie','mort','dead'].includes(norm(c.name)))}
- function send(item){if(!item.cancelled&&item.result&&Object.hasOwn(item.result,'concentrationAfter')&&!item.ack&&window.RPGConnect?.getStatus().connected)api.emitLocal('concentration:result',item.result);}
+ function send(item){if(!item.cancelled&&item.result&&Object.hasOwn(item.result,'concentrationAfter')&&!item.ack&&window.RPGConnect?.getStatus().controlled)api.emitLocal('concentration:result',item.result);}
  function clean(item){if(!item.cancelled&&item.result&&!item.result.success&&spell()===item.result.spell&&(!item.request.concentrationInstance||api.getState().concentrationInstance===item.request.concentrationInstance))api.clearConcentration();}
  function next(){if(current)return;const item=Object.values(ledger).find(x=>!x.cancelled&&!x.result);if(!item)return;current=item;
   if(incapacitated(item.request.conditions)||api.getState().hp.current===0)return finish(item,{success:false,automatic:true,reason:'incapacitation'});
@@ -35,4 +35,5 @@
  function restore(payload){conditions(payload.conditions);for(const q of payload.concentrationPending||[])receive('concentration:request',q);for(const item of Object.values(ledger))if(item.request.combatId===payload.combatId){if(item.result&&!item.finalized&&current!==item)finish(item,item.result);else{clean(item);send(item)}}next()}
  setInterval(()=>{for(const item of Object.values(ledger))send(item)},3000);
  window.RPGConcentration={cancelRequests:ids=>{for(const item of Object.values(ledger))if(ids.includes(item.request.requestId)){item.cancelled=true;item.ack=true;item.finalized=true;if(current===item){current=null;if(dialog.open)dialog.close()}}persist()},receive,conditions,restore,pending:()=>Object.values(ledger).filter(x=>!x.result).map(x=>copy(x.request))};
+window.RPGResolution.register('RPGConcentration',{detach:()=>{const old=JSON.parse(JSON.stringify(Object.values(ledger)));window.RPGConcentration.cancelRequests(Object.values(ledger).map(x=>x.request.requestId));return old;}});
 })();
