@@ -272,9 +272,9 @@ function acInfo(){
   if(S.linceul.state==='dormant')return {ac:16,label:'Linceul dormant'};
   return {ac:14,label:'Cuir'};
 }
-function setConcentration(name,source=''){S.rpgConcentrationInstance=crypto.randomUUID();
+async function setConcentration(name,source=''){S.rpgConcentrationInstance=crypto.randomUUID();
   if(S.concentration&&S.concentration.name!==name){
-    const ok=confirm('Mettre fin à « '+S.concentration.name+' » pour maintenir « '+name+' » ?');
+    const ok=(await RPGDialogs.confirm('Mettre fin à « '+S.concentration.name+' » pour maintenir « '+name+' » ?'));
     if(!ok)return false;
   }
   S.concentration={name,source};
@@ -301,11 +301,11 @@ function applyHp(kind,n){
     commit('Dégâts reçus',n+' dégâts',()=>{
       let remaining=n;const absorbed=Math.min(S.tempHp,remaining);S.tempHp-=absorbed;remaining-=absorbed;S.hp=clamp(S.hp-remaining,0,S.maxHp);
     },'raven');
-    if(before&&!window.__RPGNetworkConcentration) setTimeout(()=>{if(confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?'))concentrationCheck(n);},50);
+    if(before&&!window.__RPGNetworkConcentration) setTimeout(async ()=>{if((await RPGDialogs.confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?')))concentrationCheck(n);},50);
     if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
   }else commit('Soins reçus',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
 }
-function changeHp(kind){const n=Number(prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :',''));applyHp(kind,n)}
+async function changeHp(kind){const n=Number((await RPGDialogs.prompt(kind==='damage'?'Dégâts reçus :':'Soins reçus :','')));applyHp(kind,n)}
 function bindHpInputs(){
   $('#hpInput').addEventListener('change',e=>{const v=clamp(e.target.value,0,53);commit('PV ajustés',S.hp+' → '+v,()=>{S.hp=v;});});
   const setTemp=e=>{const v=clamp(e.target.value,0,999);if(v===S.tempHp){render();return;}commit('PV temporaires',S.tempHp+' → '+v,()=>{S.tempHp=v;});};
@@ -367,13 +367,13 @@ function startAttack(key,context='own'){
   });
   beginPendingTransaction();
 }
-function spendLuckyPending(){
+async function spendLuckyPending(){
   if(window.RufusCombat?.online())return window.RufusCombat.luckyPending();
   if(!S.pending||S.pending.kind!=='attack')return;
   if(S.lucky<=0)return toast('Plus de points de Chance.');
-  const r=die(20),old=S.pending.nat;
+  const pending=S.pending,r=die(20),old=pending.nat;
   pushHistory();S.lucky--;S.pending.luckyRoll=r;logEvent('Chanceux','Nouveau d20 : '+r+' · jet initial '+old);save();render();
-  if(confirm('Chanceux a donné '+r+'. Utiliser ce d20 à la place de '+old+' ?')){
+  if((await RPGDialogs.confirm('Chanceux a donné '+r+'. Utiliser ce d20 à la place de '+old+' ?'))&&S.pending===pending){
     S.pending.nat=r;S.pending.total=r+S.pending.bonus;save();render();
   }
 }
@@ -492,11 +492,11 @@ function renderPending(){
     '</div>';
 }
 
-function useWound(){
+async function useWound(){
   if(window.RPGConnect?.getStatus()?.controlled&&!window.RPGConnect.getStatus().target){window.RPGConnect.openTargetPicker();return false;}
   if(!S.woundReady)return toast('Blessure déjà utilisée aujourd’hui.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
-  const raw=prompt('Bonus d’attaque de sort pour Blessure :','');
+  const raw=(await RPGDialogs.prompt('Bonus d’attaque de sort pour Blessure :',''));
   if(raw===null)return;
   const bonus=Number(String(raw).trim());
   if(!Number.isInteger(bonus)||bonus<-20||bonus>30)return toast('Bonus d’attaque invalide.');
@@ -515,18 +515,20 @@ function resolveWound(hit){window.__lastAttackHit=hit;
   if(!hit){window.__lastDamageComponents=null;logEvent('Blessure ratée','Jet '+(p.total??'—')+' · aucun dégât.');save();render();return;}
   const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');
 }
-function useInvisibility(){
-  if(window.RufusCombat?.online()&&!window.RufusCombat.consuming())return window.RufusCombat.invisibility(()=>useInvisibility());
+async function useInvisibility(confirmed=false){
   if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
-  if(S.concentration&&S.concentration.name!=='Invisibilité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  if(!confirmed&&S.concentration&&S.concentration.name!=='Invisibilité'&&!(await RPGDialogs.confirm('Mettre fin à « '+S.concentration.name+' » ?')))return;
+  if(!S.invisibilityReady||!S.economy.action)return;
+  if(window.RufusCombat?.online()&&!window.RufusCombat.consuming())return window.RufusCombat.invisibility(()=>useInvisibility(true));
   commit('Invisibilité','Concentration jusqu’à 1 h.',()=>{S.economy.action=false;S.invisibilityReady=false;S.concentration={name:'Invisibilité',source:'quotidien'};S.vision.active=false;},'raven');
 }
-function useVision(){
-  if(window.RufusCombat?.online()&&!window.RufusCombat.consuming())return window.RufusCombat.vision(()=>useVision());
+async function useVision(confirmed=false){
   if(!S.economy.action)return toast('Action déjà utilisée.');
   const selected=window.RPGConnect?.getStatus()?.controlled?window.RPGConnect.getStatus().target:null,target=selected?.name||$('#visionTarget').value.trim()||'cible';
-  if(S.concentration&&S.concentration.name!=='Vision de la Vérité'&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  if(!confirmed&&S.concentration&&S.concentration.name!=='Vision de la Vérité'&&!(await RPGDialogs.confirm('Mettre fin à « '+S.concentration.name+' » ?')))return;
+  if(!S.economy.action)return;
+  if(window.RufusCombat?.online()&&!window.RufusCombat.consuming())return window.RufusCombat.vision(()=>useVision(true));
   const previous=S.vision.uses,dc=10+previous,r1=die(20),r2=S.vision.wisPenalty>0?die(20):null,r=r2===null?r1:Math.min(r1,r2),total=r+2,failed=total<dc;
   const rollText=r2===null?String(r1):(r1+' / '+r2+' → '+r+' · désavantage Vision');
   commit('Vision de la Vérité','Cible : '+target+' · JdS SAG '+rollText+' +2 = '+total+' / DD '+dc+(failed?' · échec':' · réussite'),()=>{
@@ -534,12 +536,12 @@ function useVision(){
     S.concentration={name:'Vision de la Vérité',source:'pouvoir maison'};
   },'raven');
 }
-function castHex(name,cost,concentration){
+async function castHex(name,cost,concentration){
   if(name==='Image miroir'&&window.RufusCombat?.online()&&!window.RufusCombat.consuming())return window.RufusCombat.effect({kind:'rufus-mirror',source:name},()=>castHex(name,cost,concentration));
   if(name==='Motif hypnotique')window.RPGConnect?.prepareTargets?.({targetMode:'multi',open:false});const saveNet=name==='Motif hypnotique'?rufusEncounterSaveContext('Motif hypnotique'):{connected:false,target:null};if(saveNet.connected&&!saveNet.target){window.RPGConnect?.openTargetPicker?.();return;}
   if(S.hexCharges<cost)return toast('Pas assez de charges Hexen Blade.');
   if(!S.economy.action)return toast('Action déjà utilisée.');
-  if(concentration&&S.concentration&&S.concentration.name!==name&&!confirm('Mettre fin à « '+S.concentration.name+' » ?'))return;
+  if(concentration&&S.concentration&&S.concentration.name!==name&&!(await RPGDialogs.confirm('Mettre fin à « '+S.concentration.name+' » ?')))return;
   commit('Hexen Blade · '+name,cost+' charge'+(cost>1?'s':''),()=>{
     S.hexCharges-=cost;S.economy.action=false;
     if(concentration){S.concentration={name,source:'Hexen Blade'};S.vision.active=false;}
@@ -618,11 +620,11 @@ const skills=[
   ['Dressage','SAG',2,''],['Intuition','SAG',2,''],['Médecine','SAG',2,''],['Perception','SAG',6,'Maîtrise'],['Survie','SAG',2,''],
   ['Intimidation','CHA',7,'Maîtrise'],['Persuasion','CHA',11,'Expertise'],['Représentation','CHA',3,''],['Tromperie','CHA',7,'Maîtrise']
 ];
-function socialRoll(label,bonus,isSave=false,ability=''){
+async function socialRoll(label,bonus,isSave=false,ability=''){
   const visionDis=ability==='SAG'&&S.vision.wisPenalty>0;
   const mode=visionDis?(S.socialMode==='adv'?'normal':'dis'):S.socialMode;
   const a=die(20),b=mode==='normal'?null:die(20),chosen=mode==='adv'?Math.max(a,b):mode==='dis'?Math.min(a,b):a;
-  let raven=0;if(isSave&&S.ravenMemoryBonus&&confirm('Utiliser le +1d8 d’Ombre du Corbeau sur ce JdS ?')){raven=die(8);pushHistory();S.ravenMemoryBonus=false;}
+  let raven=0;if(isSave&&S.ravenMemoryBonus&&(await RPGDialogs.confirm('Utiliser le +1d8 d’Ombre du Corbeau sur ce JdS ?'))){raven=die(8);pushHistory();S.ravenMemoryBonus=false;}
   const total=chosen+bonus+raven,details=(b===null?'d20 '+a:'d20 '+a+' / '+b+' → '+chosen)+' '+fmt(bonus)+(raven?' + Ombre '+raven:'')+' = '+total+(visionDis?' · Vision : désavantage SAG ('+S.vision.wisPenalty+')':'');
   logEvent('Social · '+label,details);save();renderSocial();const out=$('#socialResult');out.hidden=false;out.textContent=label+' : '+details;window.CompanionSocialDice?.show({label,dice:b===null?a:[a,b],bonus:bonus+raven,total,mode});
 }
@@ -633,11 +635,11 @@ function renderSocial(){
   $('#socialSheetPane').hidden=inventoryMode;$('#socialInventoryPane').hidden=!inventoryMode;if(inventoryMode){renderInventory();return;}
   if(tab==='skills'){
     c.innerHTML='<div class="social-passives"><span>Perception passive <b>16</b></span><span>Intuition passive <b>12</b></span><span>Investigation passive <b>15</b></span><span>Maîtrise <b>+4</b></span></div><div class="skills-grid">'+skills.map((s,i)=>'<button class="skill-btn '+(s[3]==='Expertise'?'expert':'')+'" data-skill="'+i+'"><span><b>'+esc(s[0])+'</b><small>'+s[1]+(s[3]?' · '+s[3]:'')+'</small></span><strong>'+fmt(s[2])+'</strong></button>').join('')+'</div>';
-    $$('[data-skill]',c).forEach(b=>b.onclick=()=>{const s=skills[Number(b.dataset.skill)];socialRoll(s[0],s[2],false,s[1]);});
+    $$('[data-skill]',c).forEach(b=>b.onclick=async ()=>{const s=skills[Number(b.dataset.skill)];(await socialRoll(s[0],s[2],false,s[1]));});
   }else if(tab==='abilities'){
     c.innerHTML='<div class="social-passives"><span>JdS maîtrisés <b>DEX, INT</b></span><span>DEX <b>16</b></span><span>CHA <b>16</b></span></div><div class="abilities-grid">'+abilities.map((a,i)=>'<div class="ability-card"><div class="ability-card-head"><div><span>'+a.abbr+'</span><h3>'+a.name+'</h3></div><strong>'+a.score+'</strong></div><div class="ability-values"><span>Mod.<b>'+fmt(a.mod)+'</b></span><span>Test<b>'+fmt(a.mod)+'</b></span><span class="'+(a.prof?'proficient':'')+'">JdS<b>'+fmt(a.save)+'</b></span></div><div class="ability-actions"><button class="ability" data-check="'+i+'">Tester</button><button class="ability" data-save="'+i+'">JdS</button></div></div>').join('')+'</div>';
-    $$('[data-check]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.check)];socialRoll('Test de '+a.name,a.mod,false,a.abbr);});
-    $$('[data-save]',c).forEach(b=>b.onclick=()=>{const a=abilities[Number(b.dataset.save)];socialRoll('JdS de '+a.name,a.save,true,a.abbr);});
+    $$('[data-check]',c).forEach(b=>b.onclick=async ()=>{const a=abilities[Number(b.dataset.check)];(await socialRoll('Test de '+a.name,a.mod,false,a.abbr));});
+    $$('[data-save]',c).forEach(b=>b.onclick=async ()=>{const a=abilities[Number(b.dataset.save)];(await socialRoll('JdS de '+a.name,a.save,true,a.abbr));});
   }else{
     c.innerHTML='<div class="social-passives"><span>Perception passive <b>16</b></span><span>Intuition passive <b>12</b></span><span>Investigation passive <b>15</b></span><span>Initiative <b>+3</b></span></div><div class="rp-grid"><div class="rp-box"><b>Expertises</b><span>Discrétion +11 · Persuasion +11</span></div><div class="rp-box"><b>Maîtrises clés</b><span>Acrobaties +7 · Escamotage +7 · Investigation +5 · Perception +6 · Intimidation +7 · Tromperie +7</span></div><div class="rp-box"><b>Langues</b><span>Commun · Elfique · jargon des voleurs</span></div><div class="rp-box"><b>Outils & infiltration</b><span>Outils de voleur · accessoires de déguisement · matériel de contrefaçon · kit d’empoisonneur</span></div><div class="rp-box"><b>Jets de sauvegarde</b><span>DEX +7 · INT +5 maîtrisés</span></div><div class="rp-box"><b>Défense</b><span>Résistance nécrotique · Esquive totale · Esquive instinctive</span></div><div class="rp-box"><b>Âme Acérée</b><span>Talent psionique · Murmures psychiques · Frappes autoguidées · Téléportation psychique</span></div><div class="rp-box"><b>Rôle</b><span>Éclaireur · infiltration · burst mono-cible · visage social</span></div><div class="rp-box"><b>Identité</b><span>Rufus « Le Renard » · Ruvius D. Medani</span></div></div>';
   }
@@ -709,8 +711,8 @@ function saveItem(e){
   pushHistory();if(index>=0)S.inventory[index]=item;else S.inventory.push(item);
   logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
-function deleteItem(){
-  const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!confirm('Supprimer cet objet ?'))return;
+async function deleteItem(){
+  const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!(await RPGDialogs.confirm('Supprimer cet objet ?')))return;
   const name=S.inventory[index]?.name||'Objet';pushHistory();S.inventory.splice(index,1);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
 }
 function pickImage(){$('#imageFile').click();}
@@ -769,8 +771,8 @@ function importData(file){
 function restoreBackup(){
   try{const raw=localStorage.getItem(BACKUP);if(!raw)return toast('Aucune copie disponible.');const current=JSON.stringify(S);S=normalize(JSON.parse(raw));localStorage.setItem(BACKUP,current);save();render();toast('Copie restaurée.');}catch{toast('Copie illisible.');}
 }
-function resetAll(){
-  if(!confirm('Remettre Rufus à zéro ? Un backup de l’état actuel sera conservé.'))return;
+async function resetAll(){
+  if(!(await RPGDialogs.confirm('Remettre Rufus à zéro ? Un backup de l’état actuel sera conservé.')))return;
   try{localStorage.setItem(BACKUP,JSON.stringify(S));}catch{}S=defaults();save();render();toast('État initial restauré.');
 }
 
@@ -821,17 +823,17 @@ function bind(){
   $$('[data-subtabs]').forEach(root=>root.querySelectorAll('.subtab').forEach(b=>b.onclick=()=>setSubtab(root.dataset.subtabs,b.dataset.subtab)));
   $$('.economy').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.econ;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});}));
   $$('[data-mobile-econ]').forEach(b=>b.onclick=()=>{const k=b.dataset.mobileEcon;commit('Économie · '+k,S.economy[k]?'marquée utilisée':'rendue disponible',()=>{S.economy[k]=!S.economy[k];});});
-  $('#damageBtn').onclick=$('#mobileDamage').onclick=()=>changeHp('damage');$('#healBtn').onclick=$('#mobileHeal').onclick=()=>changeHp('heal');bindHpInputs();
+  $('#damageBtn').onclick=$('#mobileDamage').onclick=async ()=>(await changeHp('damage'));$('#healBtn').onclick=$('#mobileHeal').onclick=async ()=>(await changeHp('heal'));bindHpInputs();
 
-  $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=()=>{if(S.concentration&&confirm('Mettre fin à « '+S.concentration.name+' » ?'))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
+  $('#nextTurn').onclick=$('#mobileNextTurn').onclick=nextTurn;const stopConc=async ()=>{if(S.concentration&&(await RPGDialogs.confirm('Mettre fin à « '+S.concentration.name+' » ?')))endConcentration('arrêt manuel');};$('#turnConcentration').onclick=stopConc;$('#mobileConcentration').onclick=stopConc;
   $$('[data-roll-mode]').forEach(b=>b.onclick=()=>{const before=sneakEligible(attacks.psychic,'own');S.rollMode=b.dataset.rollMode;save();render();if(!before&&sneakEligible(attacks.psychic,'own'))playFx('sneak-ready','');});
   $$('[data-cond]').forEach(b=>b.onclick=()=>{const before=sneakEligible(attacks.psychic,'own');const k=b.dataset.cond;if(k==='agony'&&window.RufusCombat?.online())return window.RufusCombat.requestAgony();if(k==='agony'&&S.linceul.state!=='awakened')return;S.conditions[k]=!S.conditions[k];save();render();if(k==='allyAdjacent'&&!before&&sneakEligible(attacks.psychic,'own'))playFx('sneak-ready','');});
   $('#sharpshooterToggle').onclick=()=>{S.sharpshooter=!S.sharpshooter;save();render();};
   $$('[data-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.attack,'own'));$$('[data-reaction-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.reactionAttack,'reaction'));
-  $('#pendingAttack').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))spendLuckyPending();else if(b.hasAttribute('data-guided-psi'))useGuidedStrikePending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
+  $('#pendingAttack').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))(await spendLuckyPending());else if(b.hasAttribute('data-guided-psi'))useGuidedStrikePending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
   $$('[data-cunning]').forEach(b=>b.onclick=()=>useCunning(b.dataset.cunning));$$('.reaction-action').forEach(b=>b.onclick=()=>useReaction(b.textContent.trim().split('·')[0].trim()));
   $('#fireBladeBtn').onclick=toggleFireBlade;$('#visionBtn').onclick=useVision;$('#woundBtn').onclick=useWound;$('#invisibilityBtn').onclick=useInvisibility;
-  $$('.hex-spell').forEach(b=>b.onclick=()=>castHex(b.dataset.hexSpell,Number(b.dataset.cost),b.dataset.concentration==='true'));
+  $$('.hex-spell').forEach(b=>b.onclick=async ()=>(await castHex(b.dataset.hexSpell,Number(b.dataset.cost),b.dataset.concentration==='true')));
   $('#hexDawnBtn').onclick=()=>commit('Aube · Hexen Blade','Recharge 1d4+1.',()=>{hexDawn();});
   $('#linceulState').onchange=e=>commit('Linceul · état','État : '+e.target.value,()=>{S.linceul.state=e.target.value;if(e.target.value!=='awakened')S.conditions.agony=false;});
   $$('.linceul-use').forEach(b=>b.onclick=()=>useLinceul(b.dataset.linceulUse));$('#luckSpendBtn').onclick=spendLucky;
@@ -843,7 +845,7 @@ function bind(){
   $('#ribbonUndo').onclick=undo;$('#ribbonToggle').onclick=()=>$('#resultRibbon').classList.toggle('collapsed');$('#resultRibbon').addEventListener('click',e=>{if(e.target.closest('button'))return;if($('#resultRibbon').classList.contains('collapsed'))$('#resultRibbon').classList.remove('collapsed');});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#itemEditor').hidden)closeItemEditor();});
   $('#notesInput').addEventListener('input',e=>{S.notes=e.target.value.slice(0,150000);save();});$('#togglePreviewBtn').onclick=()=>{S.notesPreview=!S.notesPreview;save();renderJournal();};
-  $('#clearJournalBtn').onclick=()=>{if(confirm('Vider le journal mécanique ?')){S.journal=[];save();renderJournal();}};
+  $('#clearJournalBtn').onclick=async ()=>{if((await RPGDialogs.confirm('Vider le journal mécanique ?'))){S.journal=[];save();renderJournal();}};
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
