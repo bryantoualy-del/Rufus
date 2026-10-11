@@ -3,7 +3,7 @@
  const key='rpg-connect:undo:v1:'+bridge.id;let ledger={actions:{},cancelled:{},revision:0,lock:null};try{ledger={...ledger,...JSON.parse(localStorage.getItem(key)||'{}')}}catch{}for(const x of Object.values(ledger.actions))x.patches=M.merge([],x.patches||[]);
  let queued=[],active=null;
  const persist=()=>localStorage.setItem(key,JSON.stringify(ledger));
- const skip=path=>path.length===1&&(['rpgCombatEffectMirror','rpgRufusMirror','rpgZephyrAttack','rpgZephyrDamageOutbox','pending','pendingHit','undoBefore','rpgSneakTurnStamp','hp','maxHp','tempHp','temp','tempSource','tempMetadata','history','log','undo','rpgHealthRevision','rpgHealthEpoch','rpgHealthRetiredEpochs','rpgHealthAuthorityActive','rpgHealthAuthority'].includes(path[0])||path[0].startsWith('rpgConnect'));
+ const skip=path=>path.length===1&&(['rpgCombatEffectMirror','rpgRufusMirror','rpgZephyrAttack','rpgZephyrDamageOutbox','pending','pendingHit','undoBefore','rpgSneakTurnStamp','hp','maxHp','tempHp','temp','tempSource','tempMetadata','history','log','undo','rpgCorrectionVersion','rpgHealthRevision','rpgHealthEpoch','rpgHealthRetiredEpochs','rpgHealthAuthorityActive','rpgHealthAuthority'].includes(path[0])||path[0].startsWith('rpgConnect'));
  const raw=()=>M.copy(bridge.read());
  function record(id,before,after){if(!id||ledger.cancelled[id])return;const x=ledger.actions[id]||(ledger.actions[id]={patches:[],stamp:String(api.getState().turn.number),at:Date.now()});x.patches=M.merge(x.patches,M.diff(before,after,[],skip));persist()}
  function reserve(id,before){record(id,before,raw());if(ledger.actions[id]){ledger.actions[id].originCaptured=true;persist()}}
