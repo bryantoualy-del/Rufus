@@ -33,7 +33,7 @@
  function acceptConditions(payload){const epoch=String(payload.syncEpoch||lastSyncEpoch||'legacy'),revision=Number(payload.conditionRevision??payload.syncRevision??0);if(epoch===conditionEpoch&&revision<conditionRevision)return false;conditionEpoch=epoch;conditionRevision=revision;selfConditions=Array.isArray(payload.conditions)?payload.conditions:[];conditionMechanics=payload.mechanics||{};renderSelfConditions();window.RPGConcentration?.conditions(selfConditions);return true}
  function setConditionActors(){conditionActors=window.RPGGroup?.getActors()||[];}
 
- function renderSelfConditions(){const list=selfConditions||[];selfConditionsNode.hidden=!list.length;if(!list.length){conditionListNode.innerHTML='';conditionWarningNode.hidden=true;return}conditionListNode.innerHTML=list.map(conditionLabel).join('');const warnings=[];if(conditionMechanics.incapacitated)warnings.push('Actions fortement limitées');if(conditionMechanics.attackDisadvantage)warnings.push('Attaques : désavantage à appliquer');if(conditionMechanics.restrained)warnings.push('Entravé');if(conditionMechanics.prone)warnings.push('À terre');conditionWarningNode.textContent=warnings.join(' · ');conditionWarningNode.hidden=!warnings.length}
+ function renderSelfConditions(){const list=selfConditions||[];selfConditionsNode.hidden=true;if(!list.length){conditionListNode.innerHTML='';conditionWarningNode.hidden=true;return}conditionListNode.innerHTML=list.map(conditionLabel).join('');const warnings=[];if(conditionMechanics.incapacitated)warnings.push('Actions fortement limitées');if(conditionMechanics.attackDisadvantage)warnings.push('Attaques : désavantage à appliquer');if(conditionMechanics.restrained)warnings.push('Entravé');if(conditionMechanics.prone)warnings.push('À terre');conditionWarningNode.textContent=warnings.join(' · ');conditionWarningNode.hidden=!warnings.length}
  function renderTargets(){
    const dock=installTargetDock();
    if(!targets.length){targetBlock.hidden=true;activeTargetNode.hidden=true;targetList.innerHTML='';dock.hidden=!connected;const empty=dock.querySelector('[data-rpg-target-empty]');if(empty){empty.hidden=false;empty.textContent='Aucune cible disponible depuis Encounter'}return}
@@ -69,7 +69,7 @@
   rpgJournalEntries=rpgJournalEntries.slice(0,100);try{localStorage.setItem(rpgLogKey,JSON.stringify(rpgJournalEntries))}catch{}renderRpgJournal();
  }
  function journalHost(){return document.querySelector('#journalList,#log.journal-feed,#log,.journal-list,.journal-feed')}
- function renderRpgJournal(){
+ function renderRpgJournal(){if(window.RPGJournalUI)return;
   const host=journalHost();if(!host)return;
   host.querySelectorAll('[data-rpg-journal-entry]').forEach(n=>n.remove());
   const frag=document.createDocumentFragment();
