@@ -363,7 +363,7 @@ function startAttack(key,context='own'){
     S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={attackKind:'weapon',kind:'attack',key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
+    S.pending={attackKind:'weapon',kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
   beginPendingTransaction();
 }
