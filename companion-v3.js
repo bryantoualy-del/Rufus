@@ -357,13 +357,13 @@ function startAttack(key,context='own'){
   if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Lame psychique.');
   const mode=window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode();const rr=rollAttackD20(mode);$('#manualRoll').value='';
   const bonus=spec.bonus+(key==='crossbow'&&S.sharpshooter?-5:0);
-  const total=rr.nat+bonus;
-  commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
+  const bless=window.RPGPlayerSaves?.takeAttackBless?.()||0;const total=rr.nat+bonus+bless;
+  commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode,()=>{
     breakInvisibilityForAttack();
     if(cost!=='haste')S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={attackKind:'weapon',kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
+    S.pending={attackKind:'weapon',kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
   beginPendingTransaction();
 }
@@ -503,7 +503,7 @@ async function useWound(){
   window.__lastDamageComponents=null;
   const mode=window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode(),rr=rollAttackD20(mode);$('#manualRoll').value='';
   const total=rr.nat+bonus,crit=rr.nat===20||(visionMatches()&&rr.nat>=17);
-  commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+' = '+total+' · '+mode,()=>{
+  commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode,()=>{
     breakInvisibilityForAttack();S.economy.action=false;S.woundReady=false;
     S.pending={attackKind:'spell',kind:'wound',name:'Blessure',useSneak:false,targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
   });
