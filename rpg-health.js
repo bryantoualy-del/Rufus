@@ -23,7 +23,7 @@
   redraw();queueMicrotask(()=>{window.__RPGHealthApplying=false});
  }
  function applyDamageConsequences(run,before,after){const s=bridge.read(),latest={epoch:s.rpgHealthEpoch||'',current:s.hp,max:s.maxHp,temp:s.temp??s.tempHp??0,tempSource:s.tempSource||'',tempMetadata:copy(s.tempMetadata||{}),revision:s.rpgHealthRevision||0};applyHealth(before,true);try{window.__RPGHealthApplying=true;run()}finally{applyHealth(latest.revision>after.revision?latest:after,true);queueMicrotask(()=>{window.__RPGHealthApplying=false})}}
- function setContext(value){if(window.RPGResolution?.free()&&!window.RPGResolution.controlled())return;if(value.healthCapabilities?.includes('HEAL'))bridge.read().rpgHealthAuthorityActive=true;context={...context,...value};if(value.health)applyHealth(value.health);}
+ function setContext(value){if(window.RPGTable?.active()){context={...context,...value};return;}if(window.RPGResolution?.free()&&!window.RPGResolution.controlled())return;if(value.healthCapabilities?.includes('HEAL'))bridge.read().rpgHealthAuthorityActive=true;context={...context,...value};if(value.health)applyHealth(value.health);}
  async function choose({min=1,max=1,title='Choisir les alliés',self=false,lifeStatus='living',filter=()=>true}={}){
   if(!online()||busy()){notice('Termine le soin en attente avant une autre capacité');return []}
   if(self)return context.healthActorId?[context.healthActorId]:[];
