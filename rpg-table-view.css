@@ -8,3 +8,16 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 @media(max-width:767px){.rpg-group-view:not([hidden]){grid-template-columns:1fr}.rpg-quick-column [data-group-quick]{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rpg-group-meta{font-size:10px}.rpg-initiative-row{gap:7px}}
 
 .rpg-journal-action[data-type=temp]{--type:#70a9e5}
+
+/* Native cards span a 12-column combat grid; the new two-column group owns its placement. */
+#rpgGroupView>.card{grid-column:auto!important;width:auto;min-width:0;align-self:start}
+#rpgGroupView>.rpg-quick-column{grid-column:1!important}
+#rpgGroupView>.rpg-initiative{grid-column:2!important}
+#rpgGroupView [data-initiative-list]{max-height:calc(100dvh - 390px);min-height:160px;overflow:auto;overscroll-behavior:contain}
+#rpgGroupView .rpg-initiative-row{min-height:64px;padding:8px;gap:9px}
+#rpgGroupView .rpg-initiative-row>img{width:36px;height:36px}
+#rpgGroupView .rpg-quick-item{margin-bottom:10px}
+.rpg-group-visible #rpg-target-dock,.rpg-group-visible .samoth-desktop-subnav-row{display:none!important}
+.nav:has(>[data-rpg-group-tab]),.samoth-desktop-nav:has(>[data-rpg-group-tab]),.mobile-nav:has(>[data-rpg-group-tab]),.v3-dock:has(>[data-rpg-group-tab]),.kentaro-dock:has(>[data-rpg-group-tab]){grid-template-columns:repeat(var(--rpg-nav-count,5),minmax(0,1fr))}
+.rpg-self-editor input:not([type=checkbox]),.rpg-self-editor button{background:var(--panel,#17191b);color:inherit;border:1px solid currentColor;border-radius:8px;padding:7px}
+@media(max-width:767px){#rpgGroupView>.rpg-quick-column,#rpgGroupView>.rpg-initiative{grid-column:1!important}#rpgGroupView [data-initiative-list]{max-height:65dvh}}
