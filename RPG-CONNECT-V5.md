@@ -22,4 +22,4 @@ Recette et audit centralisés dans `bryantoualy-del/Encounter`, `docs/RPG-CONNEC
 
 Contrôles locaux : 348 tests de régression Encounter, 7 tests serveur canonique, 7 parcours DOM (six HTML réels + sept applications connectées au vrai serveur). Riposte, Esquive instinctive, Bouclier, Protection, correction de réaction, ordre mixte, confidentialité ennemie, restauration et journal sont exercés.
 
-**Validation visuelle non acquise.** Aucun navigateur exécutable disponible localement ; téléchargement Playwright invalide. Les tests DOM ne constituent pas une preuve de rendu Safari/iPad. Conserver la PR en brouillon, ne pas fusionner/déployer avant les captures et leur revue.
+La validation visuelle est une condition de fusion distincte des tests DOM. Son état courant et les liens vers les captures Chromium/WebKit sont centralisés dans le [dossier de livraison Encounter](https://github.com/bryantoualy-del/Encounter/blob/feat/rpg-connect-v5-table-libre/docs/RPG-CONNECT-V5-LIVRAISON.md). Ne pas considérer une recette écrite ou un test DOM comme une preuve de rendu Safari/iPad.
