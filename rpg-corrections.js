@@ -57,6 +57,6 @@
   if(!k)return;e.preventDefault();e.stopImmediatePropagation();if(v===null)open(k);else request(k,v);
  },true);
  window.addEventListener('rpg-resolution:change',()=>{if(window.RPGResolution.free())cancel();});
- window.RPGCorrections={values,request,cancel,receive,apply,open,getPending:()=>pending&&clone(pending),getRemote:()=>remote&&clone(remote),redraw,resume:transmit};
+ window.RPGCorrections={acknowledge:q=>{if(!Number.isSafeInteger(q?.version)||q.version<(b.read().rpgCorrectionVersion||0))return false;b.read().rpgCorrectionVersion=q.version;remote={...clone(q),values:values()};return true;},values,request,cancel,receive,apply,open,getPending:()=>pending&&clone(pending),getRemote:()=>remote&&clone(remote),redraw,resume:transmit};
  setInterval(transmit,4000);
 })();
