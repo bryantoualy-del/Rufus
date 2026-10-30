@@ -1,0 +1,23 @@
+/* Only new group layout and contextual outlines; no native button fill or geometry. */
+.rpg-group-visible #combat,.rpg-group-visible [data-panel=combat]{display:none!important}
+.rpg-group-view:not([hidden]){display:grid;grid-template-columns:minmax(210px,27%) minmax(0,1fr);gap:14px;margin:14px 0}
+.rpg-group-view [hidden]{display:none!important}.rpg-group-view h2{font-size:1.05rem;margin:0 0 12px}.rpg-quick-column,.rpg-initiative{padding:16px;min-width:0}.rpg-quick-column{align-self:start}.rpg-quick-item{margin:0 0 14px}.rpg-quick-action{width:100%;min-height:44px}.rpg-quick-item label{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:11px;line-height:1.35;opacity:.8}.rpg-quick-item input{width:18px;height:18px;flex:none}.rpg-initiative header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.rpg-initiative-row{display:flex;align-items:center;gap:12px;min-height:83px;padding:12px 8px;border-bottom:1px solid currentColor;border-color:color-mix(in srgb,currentColor 18%,transparent);border-radius:8px}.rpg-initiative-row>img{width:42px;height:42px;object-fit:contain}.rpg-initiative-row>div:not(.rpg-group-meta){flex:1;min-width:0}.rpg-initiative-row strong,.rpg-initiative-row small,.rpg-initiative-row span{display:block}.rpg-initiative-value{font-size:1.3rem;min-width:27px}.rpg-initiative-row progress{display:block;width:100%;height:7px;margin:6px 0;accent-color:#70ad89}.rpg-group-meta{font-size:12px;text-align:right;line-height:1.65}.rpg-initiative-row.is-current-turn{outline:2px solid var(--copper,var(--violet,var(--sun,var(--gold,currentColor))));outline-offset:-2px;background:color-mix(in srgb,currentColor 6%,transparent)}.rpg-active-label{opacity:.8;font-size:11px}.rpg-concentration-label{color:#10b981}.rpg-self-editor{background:var(--panel,var(--card,#17191b));color:inherit;border:1px solid currentColor;border-radius:12px;max-width:480px;max-height:80dvh;overflow:auto;padding:20px}.rpg-self-editor form>label{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:10px 0}.rpg-self-editor input{max-width:220px;min-height:32px}.rpg-self-editor [data-self-conditions]{display:grid;grid-template-columns:1fr 1fr;gap:7px}.rpg-self-editor [data-self-conditions] label{display:flex;align-items:center;gap:6px;font-size:12px}.rpg-self-editor button{min-height:44px;margin:12px 8px 0 0}
+#cc-turnbar-standard .cc-turn-cell[data-rpg-economy-glow],.rpg-quick-action[data-rpg-economy-glow],#quick-second[data-rpg-economy-glow],#quick-riposte[data-rpg-economy-glow],#quick-dwarf[data-rpg-economy-glow],#quick-breath[data-rpg-economy-glow],#quick-command[data-rpg-economy-glow]{outline:2px solid var(--rpg-economy-glow);outline-offset:1px;box-shadow:0 0 9px var(--rpg-economy-glow)}
+[data-rpg-economy-glow=action]{--rpg-economy-glow:#f5c542}[data-rpg-economy-glow=bonus]{--rpg-economy-glow:#22d3ee}[data-rpg-economy-glow=reaction]{--rpg-economy-glow:#e879f9}[data-rpg-economy-glow=concentration]{--rpg-economy-glow:#10b981}
+body.rpg-table-free .cc-turn-next{display:flex!important}
+@media(max-width:767px){.rpg-group-view:not([hidden]){grid-template-columns:1fr}.rpg-quick-column [data-group-quick]{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rpg-group-meta{font-size:10px}.rpg-initiative-row{gap:7px}}
+
+.rpg-journal-action[data-type=temp]{--type:#70a9e5}
+
+/* Native cards span a 12-column combat grid; the new two-column group owns its placement. */
+#rpgGroupView>.card{grid-column:auto!important;width:auto;min-width:0;align-self:start}
+#rpgGroupView>.rpg-quick-column{grid-column:1!important}
+#rpgGroupView>.rpg-initiative{grid-column:2!important}
+#rpgGroupView [data-initiative-list]{max-height:calc(100dvh - 390px);min-height:160px;overflow:auto;overscroll-behavior:contain}
+#rpgGroupView .rpg-initiative-row{min-height:64px;padding:8px;gap:9px}
+#rpgGroupView .rpg-initiative-row>img{width:36px;height:36px}
+#rpgGroupView .rpg-quick-item{margin-bottom:10px}
+.rpg-group-visible #rpg-target-dock,.rpg-group-visible .samoth-desktop-subnav-row{display:none!important}
+.nav:has(>[data-rpg-group-tab]),.samoth-desktop-nav:has(>[data-rpg-group-tab]),.mobile-nav:has(>[data-rpg-group-tab]),.v3-dock:has(>[data-rpg-group-tab]),.kentaro-dock:has(>[data-rpg-group-tab]){grid-template-columns:repeat(var(--rpg-nav-count,5),minmax(0,1fr))}
+.rpg-self-editor input:not([type=checkbox]),.rpg-self-editor button{background:var(--panel,#17191b);color:inherit;border:1px solid currentColor;border-radius:8px;padding:7px}
+@media(max-width:767px){#rpgGroupView>.rpg-quick-column,#rpgGroupView>.rpg-initiative{grid-column:1!important}#rpgGroupView [data-initiative-list]{max-height:65dvh}}

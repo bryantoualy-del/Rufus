@@ -34,7 +34,7 @@
         reaction:available(bridge.ecoKeys?.reaction||'reaction'),movement:available(bridge.ecoKeys?.movement||'move'),damage:s.turnDamage??s.dmg??0},
       undoCapability:window.RPGUndo?1:0,concentrationInstance:s.rpgConcentrationInstance||null,concentration:(()=>{const c=s.concentration??s.concSpell??s.conc;return typeof c==='string'?c.trim()||null:c&&typeof c==='object'?String(c.name||c.spell||'').trim()||null:c===true?'Concentration':null})(),resources,
       inventorySummary:inventory.map(i=>({id:i.id??i.name,name:i.name,quantity:i.qty??i.quantity??1})),
-      statuses:bridge.statuses?.(s)||[],
+      statuses:[...new Set([...(bridge.statuses?.(s)||[]),...(s.rpgTableConditions||[])])],
       defenses:(()=>{const d=bridge.defenses?.(s)||{};const arr=v=>[...new Set((Array.isArray(v)?v:[]).map(x=>String(x||'').trim().toLowerCase()).filter(Boolean))];return{resistances:arr(d.resistances),immunities:arr(d.immunities),vulnerabilities:arr(d.vulnerabilities),conditionImmunities:arr(d.conditionImmunities),sources:Array.isArray(d.sources)?copy(d.sources):[]}})(),
       custom:bridge.custom?.(s)||{},updatedAt:lastUpdated});
   }

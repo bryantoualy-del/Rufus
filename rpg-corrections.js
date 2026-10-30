@@ -31,7 +31,7 @@
  const economyControls={ecoA:'action',ecoAction:'action',ecoB:'bonus',ecoBonus:'bonus',ecoR:'reaction',ecoReaction:'reaction',ecoM:'movement',ecoMove:'movement','v3-movement':'movement',actionChip:'action',bonusChip:'bonus',reactionChip:'reaction'};
  const economySelector='.cc-turn-action,.cc-turn-bonus,.cc-turn-reaction,.cc-turn-move,[data-econ],'+Object.keys(economyControls).map(id=>'#'+id).join(',');
  const economyKey=t=>t.matches('.cc-turn-action')?'action':t.matches('.cc-turn-bonus')?'bonus':t.matches('.cc-turn-reaction')?'reaction':t.matches('.cc-turn-move')?'movement':economyControls[t.id]||(t.dataset.econ==='move'?'movement':t.dataset.econ);
- function decorateEconomy(){const vs=values();for(const t of document.querySelectorAll(economySelector)){const key=economyKey(t),spent=vs[key]===false,title=spent?'Cliquer pour restaurer · '+(authority()?'accord du MJ requis':'sans changer de tour'):'Disponible · aucune consommation au clic';if(t.title!==title)t.title=title;if(t.tagName!=='BUTTON'){t.setAttribute('role','button');t.tabIndex=0;}t.style.cursor=spent?'pointer':'default';}}
+ function decorateEconomy(){const vs=values();for(const t of document.querySelectorAll(economySelector)){const key=economyKey(t),spent=vs[key]===false,title=window.RPGTable?.active()&&key==='reaction'?(spent?'Cliquer pour restaurer librement la réaction':'Cliquer pour consommer librement la réaction'):spent?'Cliquer pour restaurer · '+(authority()?'accord du MJ requis':'sans changer de tour'):'Disponible · aucune consommation au clic';if(t.title!==title)t.title=title;if(t.tagName!=='BUTTON'){t.setAttribute('role','button');t.tabIndex=0;}t.style.cursor=spent?'pointer':'default';}}
  function mount(){const pane=document.querySelector('[data-rpg-pane="corrections"]');if(pane&&dialog.parentNode!==pane){pane.append(dialog);dialog.hidden=false;}renderAc();decorateEconomy();}
  new MutationObserver(mount).observe(document.body,{childList:true,subtree:true});mount();
  // Capture edits before legacy manual handlers; normal abilities keep their native costs.
@@ -57,6 +57,6 @@
   if(!k)return;e.preventDefault();e.stopImmediatePropagation();if(v===null)open(k);else request(k,v);
  },true);
  window.addEventListener('rpg-resolution:change',()=>{if(window.RPGResolution.free())cancel();});
- window.RPGCorrections={values,request,cancel,receive,apply,open,getPending:()=>pending&&clone(pending),getRemote:()=>remote&&clone(remote),redraw,resume:transmit};
+ window.RPGCorrections={acknowledge:q=>{if(!Number.isSafeInteger(q?.version)||q.version<(b.read().rpgCorrectionVersion||0))return false;b.read().rpgCorrectionVersion=q.version;remote={...clone(q),values:values()};return true;},values,request,cancel,receive,apply,open,getPending:()=>pending&&clone(pending),getRemote:()=>remote&&clone(remote),redraw,resume:transmit};
  setInterval(transmit,4000);
 })();
