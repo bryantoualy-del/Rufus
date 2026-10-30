@@ -502,7 +502,7 @@ async function useWound(){
   if(!Number.isInteger(bonus)||bonus<-20||bonus>30)return toast('Bonus d’attaque invalide.');
   window.__lastDamageComponents=null;
   const mode=window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode(),rr=rollAttackD20(mode);$('#manualRoll').value='';
-  const total=rr.nat+bonus,crit=rr.nat===20||(visionMatches()&&rr.nat>=17);
+  const bless=window.RPGPlayerSaves?.takeAttackBless?.()||0;const total=rr.nat+bonus+bless,crit=rr.nat===20||(visionMatches()&&rr.nat>=17);
   commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode,()=>{
     breakInvisibilityForAttack();S.economy.action=false;S.woundReady=false;
     S.pending={attackKind:'spell',kind:'wound',name:'Blessure',useSneak:false,targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
