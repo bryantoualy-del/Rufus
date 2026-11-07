@@ -21,3 +21,8 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 .nav:has(>[data-rpg-group-tab]),.samoth-desktop-nav:has(>[data-rpg-group-tab]),.mobile-nav:has(>[data-rpg-group-tab]),.v3-dock:has(>[data-rpg-group-tab]),.kentaro-dock:has(>[data-rpg-group-tab]){grid-template-columns:repeat(var(--rpg-nav-count,5),minmax(0,1fr))}
 .rpg-self-editor input:not([type=checkbox]),.rpg-self-editor button{background:var(--panel,#17191b);color:inherit;border:1px solid currentColor;border-radius:8px;padding:7px}
 @media(max-width:767px){#rpgGroupView>.rpg-quick-column,#rpgGroupView>.rpg-initiative{grid-column:1!important}#rpgGroupView [data-initiative-list]{max-height:65dvh}}
+
+.rpg-group-view .rpg-group-state{display:inline-flex;align-items:center;gap:4px;max-width:100%;overflow-wrap:anywhere}
+.rpg-group-view .rpg-group-state .rpg-condition-icon,
+.rpg-self-editor [data-self-conditions] .rpg-condition-icon{display:block;width:20px;height:20px;object-fit:contain;flex:none}
+.rpg-self-editor [data-self-conditions] input{flex:none}
