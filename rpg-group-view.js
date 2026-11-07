@@ -20,12 +20,30 @@
   if(cost==='reaction'){const tag=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.onchange=()=>{check.checked?triggers.add(selector):triggers.delete(selector);refresh()};tag.append(check,document.createTextNode('Déclencheur confirmé à la table'));wrap.append(tag);}quickHost.append(wrap);quick.push({selector,source,button,cost});
  }
  function text(tag,value,cls){const n=document.createElement(tag);n.textContent=value;if(cls)n.className=cls;return n;}
+ function conditionIcon(name){
+  const source=window.RPGConnectIcons?.condition(name);
+  if(!source)return null;
+  const icon=document.createElement('img');
+  icon.className='rpg-condition-icon';
+  icon.src=source;
+  icon.alt='';
+  icon.width=icon.height=20;
+  return icon;
+ }
  function render(){if(view.hidden)return;const context=(window.RPGTable?.active()?window.RPGTable.getContext():window.RPGResolution?.getState().shadow),session=context?.session||{},status=view.querySelector('[data-group-status]');status.textContent=context?.stale?'Connexion interrompue · tour partagé non confirmé':session.round?'Round '+session.round:'Tour partagé non confirmé';
   const list=view.querySelector('[data-initiative-list]');list.replaceChildren();const self=api.getState();const rows=group.getActors().map(a=>a.companionId===b.id?{...a,health:self.hp,ac:self.ac,reaction:self.turn.reaction,concentration:self.concentration,conditions:(self.statuses||[]).map(name=>({name}))}:a).sort((a,c)=>(Number(c.initiative)||0)-(Number(a.initiative)||0));
   for(const a of rows){const row=document.createElement('article');row.className='rpg-initiative-row';row.dataset.groupActor=a.id;const active=!!a.activeTurn&&!context?.stale;row.classList.toggle('is-current-turn',active);row.append(text('strong',Number.isFinite(a.initiative)?a.initiative:'—','rpg-initiative-value'));
    if(a.portrait){const img=document.createElement('img');img.src=a.portrait;img.alt='';row.append(img);}const body=document.createElement('div');body.append(text('strong',a.name));if(active)body.append(text('small','Tour actif','rpg-active-label'));
    if(a.health){body.append(text('span',a.health.current+' / '+a.health.max+' PV'+(a.health.temp?' · +'+a.health.temp+' PV temp.':'')));const bar=document.createElement('progress');bar.max=Math.max(1,a.health.max);bar.value=a.health.current;bar.setAttribute('aria-label','PV de '+a.name);body.append(bar);}
-   const states=document.createElement('div');states.className='rpg-group-states';for(const c of a.conditions||[]){const name=typeof c==='string'?c:c.name;if(name)states.append(text('span',name,'rpg-group-state'));}body.append(states);row.append(body);
+   const states=document.createElement('div');states.className='rpg-group-states';
+   for(const condition of a.conditions||[]){
+    const name=typeof condition==='string'?condition:condition?.name;
+    if(!name)continue;
+    const badge=text('span',name,'rpg-group-state'),icon=conditionIcon(name);
+    if(icon)badge.prepend(icon);
+    states.append(badge);
+   }
+   body.append(states);row.append(body);
    const meta=document.createElement('div');meta.className='rpg-group-meta';if(Number.isFinite(a.ac))meta.append(text('span','CA '+a.ac));if(a.kind!=='enemy'){meta.append(text('span',a.reaction===true?'Réaction disponible':a.reaction===false?'Réaction utilisée':'Réaction —'));if(a.concentration)meta.append(text('span','Concentration','rpg-concentration-label'));}row.append(meta);list.append(row);
   }
   if(!rows.length)list.append(text('p','Aucun ordre partagé par Encounter. Le personnage reste utilisable en local.'));refresh();
@@ -39,7 +57,7 @@
   glow(document.querySelector('#cc-turnbar-standard .cc-turn-conc'),'concentration',!!state.concentration);
  }
  const editor=document.createElement('dialog');editor.className='rpg-self-editor';editor.innerHTML='<h2>Mon personnage</h2><form method="dialog"><label>PV <input name="hp" type="number" min="0"></label><label>PV temporaires <input name="temp" type="number" min="0"></label><label>CA <input name="ac" type="number" min="0"></label><label><input name="reaction" type="checkbox"> Réaction disponible</label><label>Concentration <input name="concentration"></label><p>États personnels</p><div data-self-conditions></div><button value="save">Appliquer</button><button value="cancel">Fermer</button></form>';
- document.body.append(editor);const conditions=['À terre','Agrippé','Assourdi','Aveuglé','Charmé','Effrayé','Empoisonné','Entravé','Étourdi','Incapable d’agir','Inconscient','Invisible','Paralysé','Pétrifié'];for(const name of conditions){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.dataset.selfCondition=name;label.append(check,document.createTextNode(name));editor.querySelector('[data-self-conditions]').append(label);}
+ document.body.append(editor);const conditions=['À terre','Agrippé','Assourdi','Aveuglé','Charmé','Effrayé','Empoisonné','Entravé','Étourdi','Incapable d’agir','Inconscient','Invisible','Paralysé','Pétrifié'];for(const name of conditions){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.dataset.selfCondition=name;label.append(check);const icon=conditionIcon(name);if(icon)label.append(icon);label.append(document.createTextNode(name));editor.querySelector('[data-self-conditions]').append(label);}
  view.querySelector('[data-edit-self]').onclick=()=>{const s=api.getState(),form=editor.querySelector('form');form.elements.hp.value=s.hp.current;form.elements.temp.value=s.hp.temp;form.elements.ac.value=s.ac;form.elements.reaction.checked=s.turn.reaction===true;form.elements.concentration.value=s.concentration||'';editor.querySelectorAll('[data-self-condition]').forEach(x=>x.checked=(b.read().rpgTableConditions||[]).includes(x.dataset.selfCondition));editor.showModal();};
  editor.addEventListener('close',()=>{if(editor.returnValue!=='save')return;const f=editor.querySelector('form');window.RPGCorrections?.request('hp',Number(f.elements.hp.value),'Correction personnelle');window.RPGCorrections?.request('tempHp',Number(f.elements.temp.value),'Correction personnelle');const base=api.getState().baseAc;window.RPGCorrections?.request('acAdjustment',Number(f.elements.ac.value)-base,'Correction personnelle');window.RPGReactions?.setAvailable(f.elements.reaction.checked);if(f.elements.concentration.value!==String(api.getState().concentration||''))api.setConcentration(f.elements.concentration.value);window.RPGConnect?.setOwnConditions?.([...editor.querySelectorAll('[data-self-condition]:checked')].map(x=>x.dataset.selfCondition));});
  window.addEventListener('rpg-group:updated',render);window.addEventListener('rpg-table:context',render);api.subscribe(()=>{refresh();if(!view.hidden)render();});window.RPGGroupView={open,close,refresh};refresh();
