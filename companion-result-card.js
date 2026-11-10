@@ -44,7 +44,7 @@
     const box=doc.createElement('div');box.className='crf-figure crf-'+kind;
     const caption=doc.createElement('span');caption.textContent=label;
     const amount=doc.createElement('strong');amount.textContent=String(value);
-    if(type&&semanticColors[type]){box.style?.setProperty('--crf-semantic',semanticColors[type]);box.classList.add('crf-typed');}
+    if(type&&semanticColors[type]){box.style?.setProperty('--crf-semantic',semanticColors[type]);box.classList?.add('crf-typed');}
     box.append(caption,amount);return box;
   }
   function show(title,parsed,raw){
