@@ -96,3 +96,14 @@ test('later ribbon observer cannot overwrite structured result for the same acti
 test('Rufus attack retains natural and sneak/fire dice without changing resolution',()=>{const s=fs.readFileSync(path.join(root,'companion-v3.js'),'utf8');new vm.Script(s);assert.match(s,/resultId:crypto\.randomUUID\(\)/);assert.match(s,/sneakDice=sneak\.arr/);assert.match(s,/fireDice=fire\.arr/);assert.match(s,/dice:base\.arr/);assert.match(s,/if\(!shown\)toast\(detail\)/);});
 
 test('Rufus Wound retains actual d20 and necrotic dice',()=>{const s=fs.readFileSync(path.join(root,'companion-v3.js'),'utf8');new vm.Script(s);assert.match(s,/resultId:crypto\.randomUUID\(\),kind:'wound'/);assert.match(s,/title:'Blessure — RATÉ'/);assert.match(s,/formula:diceCount\+'d10',dice:r\.arr/);});
+
+
+test('V1.4: structured result stays visible until explicit close and uses no emoji damage glyphs',()=>{
+ assert.doesNotMatch(source,/setTimeout\(hide,\s*8500\)/);
+ assert.doesNotMatch(source,/[🔥❄⚡💥🧪☠✨🧠🔮🪨🗡]/u);
+ const {normalizeType,semanticColors}=ctx.module.exports;
+ for(const [label,type] of [['feu','fire'],['froid','cold'],['foudre','lightning'],['tonnerre','thunder'],['acide','acid'],['poison','poison'],['nécrotiques','necrotic'],['radiants','radiant'],['psychiques','psychic'],['force','force'],['contondants','bludgeoning'],['perforants','piercing'],['tranchants','slashing']]){
+  assert.equal(normalizeType(label),type);
+  assert.match(semanticColors[type],/^#[0-9A-Fa-f]{6}$/);
+ }
+});
