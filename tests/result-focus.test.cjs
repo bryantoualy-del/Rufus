@@ -8,3 +8,30 @@ test('healing never confused with damage',()=>{const v=read('Soins reçus : +12 
 test('d20 total extracted instead of natural d20',()=>{assert.equal(read('Jet : 18 + 9 = 27 · Touché').roll,27);assert.equal(read('attaque 18+9 = 27').roll,27)});
 test('potential semantics and irrelevant messages',()=>{assert.equal(read('Dégâts potentiels : 25').potential,true);assert.equal(read('Pas de ressource disponible').hasValue,false)});
 test('presentation links are isolated from journal code',()=>{const h=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.match(h,/companion-result-card\.js\?v=20261110/);assert.match(h,/companion-result-card\.css\?v=20261110/);assert.match(h,/CompanionResultFocusConfig/);});
+
+test('universal typed damage palette and bilingual normalization',()=>{
+ const {semanticColors,normalizeType}=ctx.module.exports;
+ assert.equal(semanticColors.fire,'#FF6538');
+ assert.equal(semanticColors.healing,'#34D399');
+ assert.equal(semanticColors.temporary,'#38BDF8');
+ assert.equal(semanticColors.attack,'#E5B963');
+ assert.equal(normalizeType('nécrotiques'),'necrotic');
+ assert.equal(normalizeType('contondants'),'bludgeoning');
+ assert.equal(normalizeType('lightning'),'lightning');
+ const mixed=read('22 contondants + 8 radiants');
+ assert.equal(mixed.parts.length,2);
+ assert.equal(mixed.parts[0].amount,22);
+ assert.equal(mixed.parts[0].type,'bludgeoning');
+});
+test('temporary HP remains distinct from healing and social roll is excluded',()=>{
+ const {isSocial}=ctx.module.exports;
+ const temporary=read('11 PV temporaires');
+ assert.equal(temporary.temp,11);
+ assert.equal(temporary.heal,null);
+ assert.equal(isSocial('Persuasion'),true);
+ assert.equal(isSocial('Jet social'),true);
+ assert.equal(isSocial('Sauvegarde Constitution'),false);
+});
+test('results never infer a past d20 roll from click history',()=>{
+ assert.doesNotMatch(source,/previousRoll|captureRoll/);
+});
