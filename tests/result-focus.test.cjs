@@ -92,3 +92,5 @@ test('later ribbon observer cannot overwrite structured result for the same acti
  mutation(); // Different action without structured payload still has legacy fallback.
  assert.equal(card.children[2].children[0].children[1].textContent,'13');
 });
+
+test('Rufus attack retains natural and sneak/fire dice without changing resolution',()=>{const s=fs.readFileSync(path.join(root,'companion-v3.js'),'utf8');new vm.Script(s);assert.match(s,/resultId:crypto\.randomUUID\(\)/);assert.match(s,/sneakDice=sneak\.arr/);assert.match(s,/fireDice=fire\.arr/);assert.match(s,/dice:base\.arr/);assert.match(s,/if\(!shown\)toast\(detail\)/);});
