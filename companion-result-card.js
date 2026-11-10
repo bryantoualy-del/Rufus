@@ -3,6 +3,8 @@
   'use strict';
   const config=root.CompanionResultFocusConfig||{};
   const semanticColors=Object.freeze({"fire":"#FF6538","cold":"#65D9F5","lightning":"#F6D44B","thunder":"#568BEB","acid":"#A4D64F","poison":"#39B87B","necrotic":"#9461BC","radiant":"#FFE19A","psychic":"#E577D6","force":"#B18BFF","bludgeoning":"#B49B7B","piercing":"#A9BAC8","slashing":"#E17A80","healing":"#34D399","temporary":"#38BDF8","regeneration":"#86EFAC","blocked":"#94A3B8","attack":"#E5B963"});
+  const damageLabels=Object.freeze({fire:'FEU',cold:'FROID',lightning:'FOUDRE',thunder:'TONNERRE',acid:'ACIDE',poison:'POISON',necrotic:'NÉCROTIQUE',radiant:'RADIANT',psychic:'PSYCHIQUE',force:'FORCE',bludgeoning:'CONTONDANT',piercing:'PERFORANT',slashing:'TRANCHANT'});
+  const damageIcons=Object.freeze({fire:'🔥',cold:'❄️',lightning:'⚡',thunder:'🔊',acid:'🧪',poison:'☠️',necrotic:'🌑',radiant:'☀️',psychic:'🧠',force:'✦',bludgeoning:'🔨',piercing:'🏹',slashing:'⚔️'});
   const aliases=Object.fromEntries("feu:fire,froid:cold,foudre:lightning,tonnerre:thunder,acide:acid,nécrotique:necrotic,necrotique:necrotic,psychique:psychic,contondant:bludgeoning,perforant:piercing,tranchant:slashing".split(',').map(x=>x.split(':')));
   function normalizeType(v){const s=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/s$/,'');return aliases[s]|| (semanticColors[s]?s:null);}
   const socialName=/^(?:jet\s+)?(?:social|persuasion|tromperie|representation|représentation|intimidation|charisme|performance|deception)\b/i;
@@ -113,6 +115,7 @@
       detailLine(entry,[
         natural.length?'d20 : ['+natural.join(', ')+']':'',
         Number.isFinite(roll.bonus)?'Bonus : '+(roll.bonus>=0?'+':'')+roll.bonus:'',
+        Number.isFinite(roll.extra)&&roll.extra!==0?'Autres bonus : '+(roll.extra>=0?'+':'')+roll.extra:'',
         roll.mode==='adv'?'Avantage':roll.mode==='dis'?'Désavantage':'',
         roll.critical?'Critique':''
       ].filter(Boolean).join(' · '));
@@ -123,7 +126,7 @@
       if(!Number.isFinite(part.amount)||part.amount<0)continue;
       totalDamage+=part.amount;
       const type=normalizeType(part.type);
-      const entry=figure(type?type.toUpperCase():'DÉGÂTS',part.amount,'damage',type);
+      const entry=figure(type?(damageIcons[type]+' '+damageLabels[type]):'DÉGÂTS',part.amount,'damage',type);
       const rolls=Array.isArray(part.dice)?part.dice.filter(Number.isFinite):[];
       detailLine(entry,[
         part.formula?String(part.formula):'',
