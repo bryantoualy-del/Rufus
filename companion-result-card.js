@@ -4,7 +4,7 @@
   const config=root.CompanionResultFocusConfig||{};
   const semanticColors=Object.freeze({"fire":"#FF6538","cold":"#65D9F5","lightning":"#F6D44B","thunder":"#568BEB","acid":"#A4D64F","poison":"#39B87B","necrotic":"#9461BC","radiant":"#FFE19A","psychic":"#E577D6","force":"#B18BFF","bludgeoning":"#B49B7B","piercing":"#A9BAC8","slashing":"#E17A80","healing":"#34D399","temporary":"#38BDF8","regeneration":"#86EFAC","blocked":"#94A3B8","attack":"#E5B963"});
   const damageLabels=Object.freeze({fire:'FEU',cold:'FROID',lightning:'FOUDRE',thunder:'TONNERRE',acid:'ACIDE',poison:'POISON',necrotic:'NÉCROTIQUE',radiant:'RADIANT',psychic:'PSYCHIQUE',force:'FORCE',bludgeoning:'CONTONDANT',piercing:'PERFORANT',slashing:'TRANCHANT'});
-  const damageIcons=Object.freeze({fire:'🔥',cold:'❄️',lightning:'⚡',thunder:'🔊',acid:'🧪',poison:'☠️',necrotic:'🌑',radiant:'☀️',psychic:'🧠',force:'✦',bludgeoning:'🔨',piercing:'🏹',slashing:'⚔️'});
+  const damageIcons=Object.freeze({});
   const aliases=Object.fromEntries("feu:fire,froid:cold,foudre:lightning,tonnerre:thunder,acide:acid,nécrotique:necrotic,necrotique:necrotic,psychique:psychic,contondant:bludgeoning,perforant:piercing,tranchant:slashing".split(',').map(x=>x.split(':')));
   function normalizeType(v){const s=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/s$/,'');return aliases[s]|| (semanticColors[s]?s:null);}
   const socialName=/^(?:jet\s+)?(?:social|persuasion|tromperie|representation|représentation|intimidation|charisme|performance|deception)\b/i;
@@ -43,9 +43,19 @@
     card.append(head,heading,body,notice);doc.body.appendChild(card);
   }
   function hide(){if(card)card.hidden=true;root.clearTimeout(clock);}
+
+  // Inline SVG, never emoji: icons are decorative and do not alter result semantics.
+  const damagePaths=Object.freeze({fire:'M12 2c3 4-1 6 2 9 1 3-1 7-5 7s-7-3-7-7c0-4 3-6 5-9 0 4 3 4 5 0Z',cold:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',lightning:'m13 2-9 12h7l-1 8 10-13h-7l1-7',thunder:'M3 12h3l3-7 5 14 3-7h4',acid:'M12 2c-3 5-7 9-7 13a7 7 0 0 0 14 0c0-4-4-8-7-13Z',poison:'M8 9a4 4 0 1 1 8 0M5 16h14M8 19h8',necrotic:'M4 5c4-3 12-3 16 0M5 19c4 3 10 3 14 0M12 4v16',radiant:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',psychic:'M4 14c-2-8 6-13 10-8 7-2 9 8 4 11-3 4-8 3-10 0',force:'M12 2 3 7v10l9 5 9-5V7z',bludgeoning:'M5 6h14v6H5zM12 12v10',piercing:'m12 2 5 9-5 11-5-11z',slashing:'M3 21 21 3M8 21 21 8'});
+  function iconFor(type){
+    if(!damagePaths[type]||typeof doc.createElementNS!=='function')return null;
+    const ns='http://www.w3.org/2000/svg';
+    const svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','17');svg.setAttribute('height','17');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.style.verticalAlign='middle';svg.style.marginRight='5px';
+    const path=doc.createElementNS(ns,'path');path.setAttribute('d',damagePaths[type]);path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.8');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.appendChild(path);return svg;
+  }
   function figure(label,value,kind,type){
     const box=doc.createElement('div');box.className='crf-figure crf-'+kind;
     const caption=doc.createElement('span');caption.textContent=label;
+    const icon=iconFor(type);if(icon)caption.prepend(icon);
     const amount=doc.createElement('strong');amount.textContent=String(value);
     if(type&&semanticColors[type]){box.style?.setProperty('--crf-semantic',semanticColors[type]);box.classList?.add('crf-typed');}
     box.append(caption,amount);return box;
@@ -56,11 +66,11 @@
     heading.textContent=safe(title)||'Résultat de combat';
     if(parsed.roll!==null)body.appendChild(figure('JET D’ATTAQUE',parsed.roll,'roll','attack'));
     if(parsed.damage!==null)body.appendChild(figure(parsed.potential?'DÉGÂTS POTENTIELS':'TOTAL DÉGÂTS',parsed.damage,'damage'));
-    for(const part of parsed.parts||[])body.appendChild(figure(part.type.toUpperCase(),part.amount,'damage',part.type));
+    for(const part of parsed.parts||[])body.appendChild(figure((damageLabels[part.type]||part.type.toUpperCase()),part.amount,'damage',part.type));
     if(parsed.heal!==null)body.appendChild(figure(parsed.potential?'SOINS POTENTIELS':'SOINS OBTENUS',parsed.heal,'heal','healing'));
     if(parsed.temp!==null)body.appendChild(figure('PV TEMPORAIRES',parsed.temp,'temp','temporary'));
     // Never claim an effect or HP delta was applied: only the underlying Companion can do that.
-    card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
+    card.hidden=false;root.clearTimeout(clock);clock=0;
   }
   function activeSource(){
     for(const selector of sources){const el=doc.querySelector(selector);if(el)return el;}return null;
@@ -76,7 +86,7 @@
     lastSignature=sig;
     const parent=source.closest('[hidden]');
     if(parent)return;
-    if(isSocial(sourceTitle(),source))return;
+    if(isSocial(sourceTitle(),source)){hide();return;}
     const value=read(raw);
     if(value.hasValue)show(sourceTitle(),value,raw);
   }
@@ -101,7 +111,8 @@
   // Consumes numbers and individual dice from the already executed action.
   // Never rolls a die, infers missing dice, logs an action, or mutates combat.
   function showStructured(action) {
-    if(!action||typeof action!=='object'||action.domain==='social'||isSocial(action.title))return false;
+    if(!action||typeof action!=='object')return false;
+    if(action.domain==='social'||isSocial(action.title)){hide();return false;}
     const id=action.eventId==null?'':String(action.eventId);
     if(id&&renderedActionIds.has(id))return false;
     if(!Array.isArray(action.damages)&&!Array.isArray(action.heals)&&!action.attack&&!Array.isArray(action.protections))return false;
@@ -126,7 +137,7 @@
       if(!Number.isFinite(part.amount)||part.amount<0)continue;
       totalDamage+=part.amount;
       const type=normalizeType(part.type);
-      const entry=figure(type?(damageIcons[type]+' '+damageLabels[type]):'DÉGÂTS',part.amount,'damage',type);
+      const entry=figure(type?(damageLabels[type]):'DÉGÂTS',part.amount,'damage',type);
       const rolls=Array.isArray(part.dice)?part.dice.filter(Number.isFinite):[];
       detailLine(entry,[
         part.formula?String(part.formula):'',
@@ -152,7 +163,7 @@
     // The ribbon observer runs in a later microtask. Mark this action's ribbon text
     // as already presented so it cannot replace the structured result.
     if(source)lastSignature=String(source.textContent||'').trim();
-    card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
+    card.hidden=false;root.clearTimeout(clock);clock=0;
     return true;
   }
   root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType,showStructured};
