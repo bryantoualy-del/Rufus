@@ -18,3 +18,11 @@
 
 /* Native confirmation remains above the presentation; never block Touché/Raté. */
 #hitModal:not([hidden]),.hit-modal.show,#kentaro-hit-modal.show{z-index:10050!important}
+
+/* Universal semantic palette: local identity colors remain unchanged. */
+#companion-result-focus .crf-typed{border-color:var(--crf-semantic)!important;}
+#companion-result-focus .crf-typed span,
+#companion-result-focus .crf-typed strong{color:var(--crf-semantic)!important;}
+#companion-result-focus .crf-temp{background:rgba(56,189,248,.12);border-color:#38BDF8;}
+#companion-result-focus .crf-temp span,
+#companion-result-focus .crf-temp strong{color:#38BDF8;}

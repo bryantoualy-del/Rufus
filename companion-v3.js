@@ -363,7 +363,7 @@ function startAttack(key,context='own'){
     if(cost!=='haste')S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={attackKind:'weapon',kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
+    S.pending={attackKind:'weapon',resultId:crypto.randomUUID(),kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
   beginPendingTransaction();
 }
@@ -423,7 +423,7 @@ function rufusRequestSave(effect){return window.RPGConnect?.requestSave?.(effect
 function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='attack')return;const spec=attacks[p.key];
   if(!hit){
-    window.__lastDamageComponents=null;resolvePendingHistory(p);S.pending=null;logEvent('Attaque ratée · '+spec.name,'Jet '+p.total);save();render();
+    window.__lastDamageComponents=null;resolvePendingHistory(p);S.pending=null;logEvent('Attaque ratée · '+spec.name,'Jet '+p.total);save();render();window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:spec.name+' — RATÉ',attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:(p.guidedPsiRoll||0)+(p.ravenRoll||0),total:p.total}});
     return;
   }
   resolvePendingHistory(p);
@@ -433,14 +433,14 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const base=rollDamage(spec.count*multiplier,spec.sides);
   const sharp=p.key==='crossbow'&&S.sharpshooter?10:0;
   const primaryBase=base.total+spec.mod+sharp,parts=[primaryBase+' '+spec.type];
-  let total=primaryBase,sneakAmount=0,fireAmount=0;
+  let total=primaryBase,sneakAmount=0,fireAmount=0,sneakDice=[],fireDice=[];
   let sneakText='',fireText='';
   const eligible=sneakEligible(spec,p.context);
   if(useSneak&&eligible){
-    const sneak=rollDamage(5*multiplier,6);sneakAmount=sneak.total;total+=sneakAmount;sneakText=sneakAmount+' Sournoise';
+    const sneak=rollDamage(5*multiplier,6);sneakAmount=sneak.total;sneakDice=sneak.arr;total+=sneakAmount;sneakText=sneakAmount+' Sournoise';
     S[sneakBucket(p.context)]=true;
     if(S.fireBlade.armed&&S.fireBlade.ready){
-      const fire=rollDamage(2*multiplier,6);fireAmount=fire.total;total+=fireAmount;fireText=fireAmount+' feu';
+      const fire=rollDamage(2*multiplier,6);fireAmount=fire.total;fireDice=fire.arr;total+=fireAmount;fireText=fireAmount+' feu';
       S.fireBlade.ready=false;S.fireBlade.armed=false;
     }
   }
@@ -459,7 +459,8 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
     if(fireText)fxKinds.push('fire');
     playFx(fxKinds.join(' '),useSneak&&eligible?'':crit?'Critique':spec.name);
   }
-  toast(detail);
+  const shown=window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:spec.name+(crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:(p.guidedPsiRoll||0)+(p.ravenRoll||0),total:p.total,critical:crit},damages:[{type:spec.type,amount:primaryBase,formula:(spec.count*multiplier)+'d'+spec.sides,dice:base.arr,bonus:spec.mod+sharp},...(sneakAmount?[{type:spec.type,amount:sneakAmount,formula:(5*multiplier)+'d6',dice:sneakDice}]:[]),...(fireAmount?[{type:'feu',amount:fireAmount,formula:(2*multiplier)+'d6',dice:fireDice}]:[])],potential:true});
+  if(!shown)toast(detail);
 }
 function renderPending(){
   const el=$('#pendingAttack');const p=S.pending;
@@ -505,15 +506,15 @@ async function useWound(){
   const bless=window.RPGPlayerSaves?.takeAttackBless?.()||0;const total=rr.nat+bonus+bless,crit=rr.nat===20||(visionMatches()&&rr.nat>=17);
   commit('Jet d’attaque · Blessure',(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode,()=>{
     breakInvisibilityForAttack();S.economy.action=false;S.woundReady=false;
-    S.pending={attackKind:'spell',kind:'wound',name:'Blessure',useSneak:false,targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,total,bonus,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
+    S.pending={attackKind:'spell',resultId:crypto.randomUUID(),kind:'wound',name:'Blessure',useSneak:false,targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,total,bonus,blessRoll:bless,mode,crit,detail:(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:String(rr.nat))+' '+fmt(bonus)+' = '+total};
   });
   beginPendingTransaction();
 }
 function resolveWound(hit){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='wound')return;
   resolvePendingHistory(p);S.pending=null;
-  if(!hit){window.__lastDamageComponents=null;logEvent('Blessure ratée','Jet '+(p.total??'—')+' · aucun dégât.');save();render();return;}
-  const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');
+  if(!hit){window.__lastDamageComponents=null;logEvent('Blessure ratée','Jet '+(p.total??'—')+' · aucun dégât.');save();render();window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:'Blessure — RATÉ',attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:p.blessRoll,total:p.total}});return;}
+  const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:'Blessure'+(p.crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:p.blessRoll,total:p.total,critical:p.crit},damages:[{type:'nécrotiques',amount:r.total,formula:diceCount+'d10',dice:r.arr}],potential:true});
 }
 async function useInvisibility(confirmed=false){
   if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
