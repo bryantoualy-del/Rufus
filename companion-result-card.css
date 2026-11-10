@@ -1,0 +1,20 @@
+/* Result Focus: short-lived presentation only; each Companion supplies its own palette. */
+#companion-result-focus{position:fixed;z-index:9900;top:max(70px,env(safe-area-inset-top,0px) + 60px);left:50%;transform:translateX(-50%);box-sizing:border-box;width:min(570px,calc(100vw - 28px));max-height:min(50dvh,380px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:13px 16px 16px;border:1px solid var(--crf-line,#8d6235);border-radius:15px;background:linear-gradient(145deg,var(--crf-panel,#181b1e),var(--crf-deep,#0e1115));color:var(--crf-text,#f0e5ce);box-shadow:0 14px 46px #000b;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#companion-result-focus[hidden]{display:none!important}
+#companion-result-focus .crf-head{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--crf-accent,#e5b963);font-size:10px;font-weight:850;letter-spacing:.12em}
+#companion-result-focus .crf-head button{display:grid;place-items:center;flex:0 0 auto;min-height:44px;min-width:44px;padding:0;border:1px solid var(--crf-line,#8d6235);border-radius:9px;background:transparent;color:var(--crf-text,#f0e5ce);font-size:25px;cursor:pointer;touch-action:manipulation}
+#companion-result-focus .crf-title{display:block;font-size:clamp(17px,2.3vw,24px);margin:0 0 9px;line-height:1.2}
+#companion-result-focus .crf-figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:9px}
+#companion-result-focus .crf-figure{min-width:0;border:1px solid var(--crf-line,#8d6235);border-radius:11px;padding:10px 13px;background:#161922}
+#companion-result-focus .crf-figure span{display:block;font-size:10px;letter-spacing:.075em;font-weight:850;margin-bottom:4px;line-height:1.2}
+#companion-result-focus .crf-figure strong{display:block;font-size:clamp(36px,5vw,51px);font-variant-numeric:tabular-nums;line-height:1}
+#companion-result-focus .crf-roll span,#companion-result-focus .crf-roll strong{color:var(--crf-accent,#e5b963)}
+#companion-result-focus .crf-damage{background:rgba(138,55,47,.16);border-color:var(--crf-damage,#ffab95)}
+#companion-result-focus .crf-damage span,#companion-result-focus .crf-damage strong{color:var(--crf-damage,#ffab95)}
+#companion-result-focus .crf-heal{background:rgba(36,106,65,.15);border-color:var(--crf-heal,#97e5b6)}
+#companion-result-focus .crf-heal span,#companion-result-focus .crf-heal strong{color:var(--crf-heal,#97e5b6)}
+#companion-result-focus .crf-note{display:block;font-size:11px;margin-top:11px;color:var(--crf-muted,#afafb9);line-height:1.35}
+@media(max-width:530px){#companion-result-focus{top:max(54px,env(safe-area-inset-top,0px) + 46px);padding:10px 12px}#companion-result-focus .crf-figures{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}#companion-result-focus .crf-figure{padding:9px 7px}#companion-result-focus .crf-figure strong{font-size:clamp(28px,9vw,43px)}}
+
+/* Native confirmation remains above the presentation; never block Touché/Raté. */
+#hitModal:not([hidden]),.hit-modal.show,#kentaro-hit-modal.show{z-index:10050!important}
