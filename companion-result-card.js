@@ -86,7 +86,7 @@
     lastSignature=sig;
     const parent=source.closest('[hidden]');
     if(parent)return;
-    if(isSocial(sourceTitle(),source))return;
+    if(isSocial(sourceTitle(),source)){hide();return;}
     const value=read(raw);
     if(value.hasValue)show(sourceTitle(),value,raw);
   }
@@ -111,7 +111,8 @@
   // Consumes numbers and individual dice from the already executed action.
   // Never rolls a die, infers missing dice, logs an action, or mutates combat.
   function showStructured(action) {
-    if(!action||typeof action!=='object'||action.domain==='social'||isSocial(action.title))return false;
+    if(!action||typeof action!=='object')return false;
+    if(action.domain==='social'||isSocial(action.title)){hide();return false;}
     const id=action.eventId==null?'':String(action.eventId);
     if(id&&renderedActionIds.has(id))return false;
     if(!Array.isArray(action.damages)&&!Array.isArray(action.heals)&&!action.attack&&!Array.isArray(action.protections))return false;
