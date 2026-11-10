@@ -43,9 +43,19 @@
     card.append(head,heading,body,notice);doc.body.appendChild(card);
   }
   function hide(){if(card)card.hidden=true;root.clearTimeout(clock);}
+
+  // Inline SVG, never emoji: icons are decorative and do not alter result semantics.
+  const damagePaths=Object.freeze({fire:'M12 2c3 4-1 6 2 9 1 3-1 7-5 7s-7-3-7-7c0-4 3-6 5-9 0 4 3 4 5 0Z',cold:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',lightning:'m13 2-9 12h7l-1 8 10-13h-7l1-7',thunder:'M3 12h3l3-7 5 14 3-7h4',acid:'M12 2c-3 5-7 9-7 13a7 7 0 0 0 14 0c0-4-4-8-7-13Z',poison:'M8 9a4 4 0 1 1 8 0M5 16h14M8 19h8',necrotic:'M4 5c4-3 12-3 16 0M5 19c4 3 10 3 14 0M12 4v16',radiant:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',psychic:'M4 14c-2-8 6-13 10-8 7-2 9 8 4 11-3 4-8 3-10 0',force:'M12 2 3 7v10l9 5 9-5V7z',bludgeoning:'M5 6h14v6H5zM12 12v10',piercing:'m12 2 5 9-5 11-5-11z',slashing:'M3 21 21 3M8 21 21 8'});
+  function iconFor(type){
+    if(!damagePaths[type]||typeof doc.createElementNS!=='function')return null;
+    const ns='http://www.w3.org/2000/svg';
+    const svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('width','17');svg.setAttribute('height','17');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');svg.style.verticalAlign='middle';svg.style.marginRight='5px';
+    const path=doc.createElementNS(ns,'path');path.setAttribute('d',damagePaths[type]);path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.8');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.appendChild(path);return svg;
+  }
   function figure(label,value,kind,type){
     const box=doc.createElement('div');box.className='crf-figure crf-'+kind;
     const caption=doc.createElement('span');caption.textContent=label;
+    const icon=iconFor(type);if(icon)caption.prepend(icon);
     const amount=doc.createElement('strong');amount.textContent=String(value);
     if(type&&semanticColors[type]){box.style?.setProperty('--crf-semantic',semanticColors[type]);box.classList?.add('crf-typed');}
     box.append(caption,amount);return box;
