@@ -149,6 +149,9 @@
     }
     if(!body.children.length)return false;
     if(id) { renderedActionIds.add(id);if(renderedActionIds.size>300)renderedActionIds.delete(renderedActionIds.values().next().value); }
+    // The ribbon observer runs in a later microtask. Mark this action's ribbon text
+    // as already presented so it cannot replace the structured result.
+    if(source)lastSignature=String(source.textContent||'').trim();
     card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
     return true;
   }
