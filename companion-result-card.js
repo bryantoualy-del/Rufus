@@ -87,5 +87,67 @@
     return true;
   }
   if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',attach,{once:true});else attach();
-  root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType};
+
+  const renderedActionIds=new Set();
+  function detailLine(host,description) {
+    if(!description)return;
+    const line=doc.createElement('small');
+    line.className='crf-dice-detail';
+    line.textContent=String(description);
+    host.appendChild(line);
+  }
+  // Consumes numbers and individual dice from the already executed action.
+  // Never rolls a die, infers missing dice, logs an action, or mutates combat.
+  function showStructured(action) {
+    if(!action||typeof action!=='object'||action.domain==='social'||isSocial(action.title))return false;
+    const id=action.eventId==null?'':String(action.eventId);
+    if(id&&renderedActionIds.has(id))return false;
+    if(!Array.isArray(action.damages)&&!Array.isArray(action.heals)&&!action.attack&&!Array.isArray(action.protections))return false;
+    create();
+    body.replaceChildren();
+    heading.textContent=safe(action.title)||'Résultat de combat';
+    const roll=action.attack;
+    if(roll&&Number.isFinite(roll.total)) {
+      const entry=figure('JET D’ATTAQUE',roll.total,'roll','attack');
+      const natural=Array.isArray(roll.dice)?roll.dice.filter(Number.isFinite):[];
+      detailLine(entry,[
+        natural.length?'d20 : ['+natural.join(', ')+']':'',
+        Number.isFinite(roll.bonus)?'Bonus : '+(roll.bonus>=0?'+':'')+roll.bonus:'',
+        roll.mode==='adv'?'Avantage':roll.mode==='dis'?'Désavantage':'',
+        roll.critical?'Critique':''
+      ].filter(Boolean).join(' · '));
+      body.appendChild(entry);
+    }
+    let totalDamage=0;
+    for(const part of action.damages||[]) {
+      if(!Number.isFinite(part.amount)||part.amount<0)continue;
+      totalDamage+=part.amount;
+      const type=normalizeType(part.type);
+      const entry=figure(type?type.toUpperCase():'DÉGÂTS',part.amount,'damage',type);
+      const rolls=Array.isArray(part.dice)?part.dice.filter(Number.isFinite):[];
+      detailLine(entry,[
+        part.formula?String(part.formula):'',
+        rolls.length?'['+rolls.join(', ')+']':'',
+        Number.isFinite(part.bonus)?'Bonus '+(part.bonus>=0?'+':'')+part.bonus:''
+      ].filter(Boolean).join(' · '));
+      body.appendChild(entry);
+    }
+    if((action.damages||[]).length)body.appendChild(figure(action.potential?'TOTAL POTENTIEL':'TOTAL DÉGÂTS',totalDamage,'damage'));
+    for(const heal of action.heals||[]){
+      if(!Number.isFinite(heal.amount)||heal.amount<0)continue;
+      const temp=heal.kind==='temporary',type=temp?'temporary':heal.kind==='regeneration'?'regeneration':heal.kind==='blocked'?'blocked':'healing';
+      const entry=figure(temp?'PV TEMPORAIRES':type==='regeneration'?'RÉGÉNÉRATION':type==='blocked'?'SOINS BLOQUÉS':'SOINS',heal.amount,temp?'temp':'heal',type);
+      detailLine(entry,[heal.formula||'',Array.isArray(heal.dice)&&heal.dice.length?'['+heal.dice.join(', ')+']':'',Number.isFinite(heal.bonus)?'Bonus '+(heal.bonus>=0?'+':'')+heal.bonus:''].filter(Boolean).join(' · '));
+      body.appendChild(entry);
+    }
+    for(const effect of action.protections||[]){
+      if(!Number.isFinite(effect.amount))continue;
+      body.appendChild(figure(safe(effect.label)||'PROTECTION',effect.amount,'temp','temporary'));
+    }
+    if(!body.children.length)return false;
+    if(id) { renderedActionIds.add(id);if(renderedActionIds.size>300)renderedActionIds.delete(renderedActionIds.values().next().value); }
+    card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
+    return true;
+  }
+  root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType,showStructured};
 })(typeof window!=='undefined'?window:globalThis);
