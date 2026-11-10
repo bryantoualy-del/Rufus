@@ -19,7 +19,8 @@
     const roll=find([/\battaque\s+\d{1,2}\s*[+−-]\s*\d{1,2}\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*[^\n]{0,55}?\s=\s*(\d{1,3})\b/i,/\bd20\s*\d{1,2}(?:\s*[+−-]\s*\d{1,2})?\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*(\d{1,3})\b/i]);
     const parts=[...s.matchAll(/\b(\d{1,4})\s+(feu|froid|foudre|tonnerre|acide|poison|n[eé]crotiques?|radiants?|psychiques?|force|contondants?|tranchants?|perforants?|fire|cold|lightning|thunder|acid|necrotic|bludgeoning|piercing|slashing)\b/gi)].map(m=>({amount:number(m[1]),type:normalizeType(m[2])})).filter(x=>x.type&&x.amount!==null);
     const temp=find([/\b(\d{1,4})\s*PV\s*temporaires?\b/i,/\bPV\s*temporaires?\s*[:=+]\s*(\d{1,4})/i]);
-    return {roll,damage,heal,temp,parts,potential:/potentiel(?:le)?s?/i.test(s),hasValue:roll!==null||damage!==null||heal!==null||temp!==null};
+    const resolvedDamage=statedDamage??(parts.length?parts.reduce((total,p)=>total+p.amount,0):damage);
+    return {roll,damage:resolvedDamage,heal,temp,parts,potential:/potentiel(?:le)?s?/i.test(s),hasValue:roll!==null||damage!==null||heal!==null||temp!==null};
   }
   if(typeof module!=='undefined'&&module.exports)module.exports={read,semanticColors,normalizeType,isSocial};
   if(!root.document)return;
