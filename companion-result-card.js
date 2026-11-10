@@ -152,7 +152,7 @@
     // The ribbon observer runs in a later microtask. Mark this action's ribbon text
     // as already presented so it cannot replace the structured result.
     if(source)lastSignature=String(source.textContent||'').trim();
-    card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
+    card.hidden=false;root.clearTimeout(clock);clock=0;
     return true;
   }
   root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType,showStructured};
