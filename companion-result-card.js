@@ -4,7 +4,7 @@
   const config=root.CompanionResultFocusConfig||{};
   const semanticColors=Object.freeze({"fire":"#FF6538","cold":"#65D9F5","lightning":"#F6D44B","thunder":"#568BEB","acid":"#A4D64F","poison":"#39B87B","necrotic":"#9461BC","radiant":"#FFE19A","psychic":"#E577D6","force":"#B18BFF","bludgeoning":"#B49B7B","piercing":"#A9BAC8","slashing":"#E17A80","healing":"#34D399","temporary":"#38BDF8","regeneration":"#86EFAC","blocked":"#94A3B8","attack":"#E5B963"});
   const damageLabels=Object.freeze({fire:'FEU',cold:'FROID',lightning:'FOUDRE',thunder:'TONNERRE',acid:'ACIDE',poison:'POISON',necrotic:'NÉCROTIQUE',radiant:'RADIANT',psychic:'PSYCHIQUE',force:'FORCE',bludgeoning:'CONTONDANT',piercing:'PERFORANT',slashing:'TRANCHANT'});
-  const damageIcons=Object.freeze({fire:'🔥',cold:'❄️',lightning:'⚡',thunder:'🔊',acid:'🧪',poison:'☠️',necrotic:'🌑',radiant:'☀️',psychic:'🧠',force:'✦',bludgeoning:'🔨',piercing:'🏹',slashing:'⚔️'});
+  const damageIcons=Object.freeze({});
   const aliases=Object.fromEntries("feu:fire,froid:cold,foudre:lightning,tonnerre:thunder,acide:acid,nécrotique:necrotic,necrotique:necrotic,psychique:psychic,contondant:bludgeoning,perforant:piercing,tranchant:slashing".split(',').map(x=>x.split(':')));
   function normalizeType(v){const s=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/s$/,'');return aliases[s]|| (semanticColors[s]?s:null);}
   const socialName=/^(?:jet\s+)?(?:social|persuasion|tromperie|representation|représentation|intimidation|charisme|performance|deception)\b/i;
@@ -56,11 +56,11 @@
     heading.textContent=safe(title)||'Résultat de combat';
     if(parsed.roll!==null)body.appendChild(figure('JET D’ATTAQUE',parsed.roll,'roll','attack'));
     if(parsed.damage!==null)body.appendChild(figure(parsed.potential?'DÉGÂTS POTENTIELS':'TOTAL DÉGÂTS',parsed.damage,'damage'));
-    for(const part of parsed.parts||[])body.appendChild(figure(part.type.toUpperCase(),part.amount,'damage',part.type));
+    for(const part of parsed.parts||[])body.appendChild(figure((damageLabels[part.type]||part.type.toUpperCase()),part.amount,'damage',part.type));
     if(parsed.heal!==null)body.appendChild(figure(parsed.potential?'SOINS POTENTIELS':'SOINS OBTENUS',parsed.heal,'heal','healing'));
     if(parsed.temp!==null)body.appendChild(figure('PV TEMPORAIRES',parsed.temp,'temp','temporary'));
     // Never claim an effect or HP delta was applied: only the underlying Companion can do that.
-    card.hidden=false;root.clearTimeout(clock);clock=root.setTimeout(hide,8500);
+    card.hidden=false;root.clearTimeout(clock);clock=0;
   }
   function activeSource(){
     for(const selector of sources){const el=doc.querySelector(selector);if(el)return el;}return null;
@@ -126,7 +126,7 @@
       if(!Number.isFinite(part.amount)||part.amount<0)continue;
       totalDamage+=part.amount;
       const type=normalizeType(part.type);
-      const entry=figure(type?(damageIcons[type]+' '+damageLabels[type]):'DÉGÂTS',part.amount,'damage',type);
+      const entry=figure(type?(damageLabels[type]):'DÉGÂTS',part.amount,'damage',type);
       const rolls=Array.isArray(part.dice)?part.dice.filter(Number.isFinite):[];
       detailLine(entry,[
         part.formula?String(part.formula):'',
