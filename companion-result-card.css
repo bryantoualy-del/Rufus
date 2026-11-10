@@ -26,3 +26,6 @@
 #companion-result-focus .crf-temp{background:rgba(56,189,248,.12);border-color:#38BDF8;}
 #companion-result-focus .crf-temp span,
 #companion-result-focus .crf-temp strong{color:#38BDF8;}
+
+/* V1.4: avoid duplicate legacy results; preserve interactive confirmation and undo controls. */
+body:has(#companion-result-focus:not([hidden])) #resultRibbonTitle,body:has(#companion-result-focus:not([hidden])) #resultRibbonText{visibility:hidden!important;}
