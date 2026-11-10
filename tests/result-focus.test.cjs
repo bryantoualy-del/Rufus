@@ -66,3 +66,29 @@ test('structured actual dice, typed mixed damage, one display per event, social 
  assert.equal(card.children[2].children[0].children[1].textContent,'24');
  assert.equal(card.children[2].children[1].children[1].textContent,'11');
 });
+
+test('later ribbon observer cannot overwrite structured result for the same action',()=>{
+ let mutation;
+ class Node {
+  constructor(){this.children=[];this.textContent='';this.parentElement=null;this.hidden=false;this.className='';this.style={setProperty(){}};this.classList={add(){}};}
+  append(...nodes){this.children.push(...nodes)}
+  appendChild(node){this.children.push(node);return node}
+  replaceChildren(...nodes){this.children=[...nodes]}
+  setAttribute(){}
+  closest(){return null}
+ }
+ const root=new Node(),sourceNode=new Node(),titleNode=new Node();
+ sourceNode.textContent='Initial';sourceNode.parentElement=new Node();titleNode.textContent='Action';
+ const doc={readyState:'complete',body:root,createElement:()=>new Node(),addEventListener(){},querySelector:selector=>selector==='#raw'?sourceNode:selector==='#title'?titleNode:null};
+ const w={document:doc,CompanionResultFocusConfig:{sources:['#raw'],labels:['#title']},setTimeout:()=>1,clearTimeout(){}};
+ vm.runInNewContext(source,{window:w,Date,MutationObserver:class{constructor(cb){mutation=cb}observe(){}}});
+ sourceNode.textContent='24 PV récupérés';
+ assert.equal(w.CompanionResultFocus.showStructured({eventId:'heal-123',title:'Khar-Vek',heals:[{kind:'healing',amount:24,formula:'3d8',dice:[5,6,8],bonus:5}]}),true);
+ mutation(); // MutationObserver callback arrives after the structured render.
+ const card=root.children[0];
+ assert.equal(card.children[2].children[0].children[1].textContent,'24');
+ assert.equal(card.children[2].children[0].children[2].textContent,'3d8 · [5, 6, 8] · Bonus +5');
+ sourceNode.textContent='Jet : 9 + 4 = 13';
+ mutation(); // Different action without structured payload still has legacy fallback.
+ assert.equal(card.children[2].children[0].children[1].textContent,'13');
+});
