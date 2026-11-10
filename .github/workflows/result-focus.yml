@@ -1,0 +1,12 @@
+name: Short-term Companion result cards
+on: [push, pull_request]
+jobs:
+  result-focus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Parse combat values and verify isolated UI integration
+        run: node --test tests/result-focus.test.cjs

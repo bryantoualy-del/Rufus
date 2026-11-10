@@ -6,9 +6,9 @@
   function read(source){
     const s=String(source||'').replace(/\s+/g,' ').trim();
     const find=(expressions)=>{for(const re of expressions){const m=re.exec(s);if(m){const n=number(m[1]);if(n!==null)return n;}}return null;};
-    const damage=find([/\b(\d{1,4})\s*(?:dégâts?|dommages?)\b/i,/\bdégâts?\s*(?:obtenus?|infligés?|potentiels?|bruts?)?\s*[:=+]\s*(\d{1,4})\b/i]);
+    const damage=find([/\b(\d{1,4})\s*(?:dégâts?|dommages?)\b/i,/\bdégâts?\s*(?:obtenus?|infligés?|potentiels?|bruts?)?\s*[:=+]\s*(\d{1,4})\b/i,/\b(\d{1,4})\s+(?:feu|froid|foudre|acide|poison|radiants?|nécrotiques?|psychiques?|contondants?|tranchants?|perforants?)\s+bruts?\b/i]);
     const heal=find([/\+?(\d{1,4})\s*(?:PV\s*(?:soignés?|récupérés?|rendus?)|soins?)\b/i,/\b(?:soins?|guérison|PV\s*récupérés?)\s*(?:reçus?|obtenus?|effectués?)?\s*[:=+]\s*\+?(\d{1,4})(?:\s*PV)?\b/i,/\b\+?(\d{1,4})\s*PV\b/i]);
-    const roll=find([/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*[^\n]{0,55}?\s=\s*(\d{1,3})\b/i,/\bd20\s*\d{1,2}(?:\s*[+−-]\s*\d{1,2})?\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*(\d{1,3})\b/i]);
+    const roll=find([/\battaque\s+\d{1,2}\s*[+−-]\s*\d{1,2}\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*[^\n]{0,55}?\s=\s*(\d{1,3})\b/i,/\bd20\s*\d{1,2}(?:\s*[+−-]\s*\d{1,2})?\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*(\d{1,3})\b/i]);
     return {roll,damage,heal,potential:/potentiel(?:le)?s?/i.test(s),hasValue:roll!==null||damage!==null||heal!==null};
   }
   if(typeof module!=='undefined'&&module.exports)module.exports={read};
