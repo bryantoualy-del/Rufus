@@ -7,7 +7,7 @@
   const damageIcons=Object.freeze({});
   const aliases=Object.fromEntries("feu:fire,froid:cold,foudre:lightning,tonnerre:thunder,acide:acid,nécrotique:necrotic,necrotique:necrotic,psychique:psychic,contondant:bludgeoning,perforant:piercing,tranchant:slashing".split(',').map(x=>x.split(':')));
   function normalizeType(v){const s=String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/s$/,'');return aliases[s]|| (semanticColors[s]?s:null);}
-  const socialName=/^(?:jet\s+)?(?:social|persuasion|tromperie|representation|représentation|intimidation|charisme|performance|deception)\b/i;
+  const socialName=/^(?:jet\s+)?(?:social|athl[eé]tisme|acrobaties|discr[eé]tion|escamotage|arcanes|histoire|investigation|nature|religion|dressage|intuition|m[eé]decine|perception|survie|persuasion|tromperie|repr[eé]sentation|intimidation|charisme|performance|deception)\b/i;
   function isSocial(title,source){return socialName.test(String(title||'').trim())||!!source?.closest?.('[data-roll-domain="social"],[data-roll-kind="social"],#socialDice,#social-dice,.social-dice');}
 
   const number=(value)=>{const n=Number(value);return Number.isFinite(n)&&n>=0&&n<=9999?Math.trunc(n):null};
