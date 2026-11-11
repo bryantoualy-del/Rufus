@@ -107,3 +107,6 @@ test('V1.4: structured result stays visible until explicit close and uses no emo
   assert.match(semanticColors[type],/^#[0-9A-Fa-f]{6}$/);
  }
 });
+
+
+test('configuration toggles are excluded from result observer',()=>{assert.match(source,/configuration&&\!resolved/);assert.match(source,/cogneur lourd/);assert.match(source,/great weapon master/);});
