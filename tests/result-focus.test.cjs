@@ -110,3 +110,34 @@ test('V1.4: structured result stays visible until explicit close and uses no emo
 
 
 test('configuration toggles are excluded from result observer',()=>{assert.match(source,/configuration&&\!resolved/);assert.match(source,/cogneur lourd/);assert.match(source,/great weapon master/);});
+
+
+test('PASSIVE TOGGLE: Cogneur lourd does not render a result, actual dice do, journal untouched',()=>{
+ let mutation;
+ class FakeNode {
+  constructor(){this.children=[];this.textContent='';this.hidden=false;this.parentElement=null;this.className='';this.style={setProperty(){}};this.classList={add(){}};}
+  append(...nodes){this.children.push(...nodes)}
+  appendChild(node){this.children.push(node);return node}
+  replaceChildren(...nodes){this.children=[...nodes]}
+  setAttribute(){}
+  closest(){return null}
+ }
+ const sourceNode=new FakeNode(),titleNode=new FakeNode(),page=new FakeNode();
+ sourceNode.textContent='Prêt';sourceNode.parentElement=new FakeNode();titleNode.textContent='Cogneur lourd';
+ const doc={readyState:'complete',body:page,querySelector:s=>s==='#source'?sourceNode:s==='#title'?titleNode:null,createElement:()=>new FakeNode(),addEventListener(){}};
+ const win={document:doc,CompanionResultFocusConfig:{sources:['#source'],labels:['#title']},setTimeout:()=>1,clearTimeout(){}};
+ vm.runInNewContext(source,{window:win,Date,MutationObserver:class{constructor(cb){mutation=cb}observe(){}}});
+ sourceNode.textContent='Cogneur lourd activé : -5 au toucher, +10 dégâts';
+ mutation();
+ assert.equal(page.children.length,0,'a passive toggle must not create any combat card');
+ titleNode.textContent='Attaque à deux mains';
+ sourceNode.textContent='Jet : 12 + 7 = 19 · 21 dégâts';
+ mutation();
+ assert.equal(page.children.length,1,'a real roll must produce one card');
+ assert.equal(page.children[0].hidden,false);
+ assert.equal(page.children[0].children[2].children[0].children[1].textContent,'19');
+ titleNode.textContent='Cogneur lourd';
+ sourceNode.textContent='Cogneur lourd désactivé : -5 au toucher, +10 dégâts';
+ mutation();
+ assert.equal(page.children.length,1,'toggle must not create a second result card');
+});
