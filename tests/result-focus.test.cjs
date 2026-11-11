@@ -127,6 +127,15 @@ test('PASSIVE TOGGLE: Cogneur lourd does not render a result, actual dice do, jo
  const doc={readyState:'complete',body:page,querySelector:s=>s==='#source'?sourceNode:s==='#title'?titleNode:null,createElement:()=>new FakeNode(),addEventListener(){}};
  const win={document:doc,CompanionResultFocusConfig:{sources:['#source'],labels:['#title']},setTimeout:()=>1,clearTimeout(){}};
  vm.runInNewContext(source,{window:win,Date,MutationObserver:class{constructor(cb){mutation=cb}observe(){}}});
+ titleNode.textContent='RAGE ACTIVÉE';
+ sourceNode.textContent='Résistance C/P/T · +3 dégâts de Rage · avantage FOR';
+ mutation();
+ assert.equal(page.children.length,0,'rage toggle is configuration, not damage');
+ titleNode.textContent='Cible à 0 PV';
+ sourceNode.textContent='Attaque bonus débloquée : cible à 0 PV';
+ mutation();
+ assert.equal(page.children.length,0,'target at zero HP is not a healing action');
+ titleNode.textContent='Cogneur lourd';
  sourceNode.textContent='Cogneur lourd activé : -5 au toucher, +10 dégâts';
  mutation();
  assert.equal(page.children.length,0,'a passive toggle must not create any combat card');
@@ -141,3 +150,5 @@ test('PASSIVE TOGGLE: Cogneur lourd does not render a result, actual dice do, jo
  mutation();
  assert.equal(page.children.length,1,'toggle must not create a second result card');
 });
+
+test('abbreviated temporary HP is not healing',()=>{const parsed=read('Écorce du Serment : 20 PV temp · échardes 1d6');assert.equal(parsed.temp,20);assert.equal(parsed.heal,null)});
