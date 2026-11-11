@@ -26,3 +26,27 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 .rpg-group-view .rpg-group-state .rpg-condition-icon,
 .rpg-self-editor [data-self-conditions] .rpg-condition-icon{display:block;width:20px;height:20px;object-fit:contain;flex:none}
 .rpg-self-editor [data-self-conditions] input{flex:none}
+
+/* Retour de session V1.6 : hauteur Groupe variable, états compacts et A/B/R. */
+#rpgGroupView [data-initiative-list]{max-height:none!important;min-height:0!important;overflow:visible!important}
+#rpgGroupView .rpg-initiative-row{min-height:clamp(54px,calc((100dvh - 260px)/var(--rpg-group-count,7)),80px);padding:6px 8px}
+#rpgGroupView .rpg-group-body{flex:1;min-width:0}
+#rpgGroupView .rpg-group-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:56px}
+#rpgGroupView .rpg-group-info{min-width:0}
+#rpgGroupView .rpg-group-info>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#rpgGroupView .rpg-group-states{display:flex;flex-wrap:wrap;align-content:center;justify-content:flex-end;gap:3px;width:88px;max-height:52px;overflow:hidden}
+#rpgGroupView .rpg-group-state{display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;padding:0;font-size:10px;overflow:hidden}
+#rpgGroupView .rpg-group-state .rpg-condition-icon{width:23px;height:23px;object-fit:contain}
+#rpgGroupView .rpg-group-state-more{font-weight:750}
+#rpgGroupView .rpg-group-meta{flex:none;min-width:90px}
+#rpgGroupView .rpg-group-economy{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px}
+#rpgGroupView .rpg-economy-indicator{display:inline-flex!important;align-items:center;justify-content:center;width:24px;height:25px;border-radius:7px;border:1px solid currentColor;font-size:14px;font-weight:900;line-height:1}
+#rpgGroupView .rpg-economy-indicator[data-economy=A]{color:#e5b963}
+#rpgGroupView .rpg-economy-indicator[data-economy=B]{color:#55b9e7}
+#rpgGroupView .rpg-economy-indicator[data-economy=R]{color:#e777c5}
+#rpgGroupView .rpg-economy-indicator[data-available=no]{opacity:.28;text-decoration:line-through}
+#rpgGroupView .rpg-economy-indicator[data-available=unknown]{opacity:.4;border-style:dashed}
+#rpgGroupView .rpg-initiative-row progress{accent-color:var(--rpg-hp-color,#6bc79e)}
+#rpgGroupView .rpg-initiative-row progress::-webkit-progress-value{background:var(--rpg-hp-color,#6bc79e)}
+#rpgGroupView .rpg-initiative-row progress::-moz-progress-bar{background:var(--rpg-hp-color,#6bc79e)}
+@media(max-width:780px){#rpgGroupView .rpg-group-states{width:58px}#rpgGroupView .rpg-group-main{gap:5px}#rpgGroupView .rpg-group-meta{min-width:86px}}
