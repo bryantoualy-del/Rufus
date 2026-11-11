@@ -7,7 +7,7 @@ test('mixed typed damage sums separately stated components',()=>{assert.equal(re
 test('healing never confused with damage',()=>{const v=read('Soins reçus : +12 PV');assert.equal(v.heal,12);assert.equal(v.damage,null);assert.equal(read('Khar-Vek : 18 PV').heal,18)});
 test('d20 total extracted instead of natural d20',()=>{assert.equal(read('Jet : 18 + 9 = 27 · Touché').roll,27);assert.equal(read('attaque 18+9 = 27').roll,27)});
 test('potential semantics and irrelevant messages',()=>{assert.equal(read('Dégâts potentiels : 25').potential,true);assert.equal(read('Pas de ressource disponible').hasValue,false)});
-test('presentation links are isolated from journal code',()=>{const h=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.match(h,/companion-result-card\.js\?v=20261110/);assert.match(h,/companion-result-card\.css\?v=20261110/);assert.match(h,/CompanionResultFocusConfig/);});
+test('presentation links are isolated from journal code',()=>{const h=fs.readFileSync(path.join(root,'index.html'),'utf8');assert.match(h,/companion-result-card\.js\?v=[\w-]+/);assert.match(h,/companion-result-card\.css\?v=[\w-]+/);assert.match(h,/CompanionResultFocusConfig/);});
 
 test('universal typed damage palette and bilingual normalization',()=>{
  const {semanticColors,normalizeType}=ctx.module.exports;
@@ -152,3 +152,11 @@ test('PASSIVE TOGGLE: Cogneur lourd does not render a result, actual dice do, jo
 });
 
 test('abbreviated temporary HP is not healing',()=>{const parsed=read('Écorce du Serment : 20 PV temp · échardes 1d6');assert.equal(parsed.temp,20);assert.equal(parsed.heal,null)});
+
+test('all D&D skill results, including Histoire, are excluded from the combat popup',()=>{
+ const {isSocial}=ctx.module.exports;
+ for(const skill of ['Histoire','Athlétisme','Acrobaties','Discrétion','Escamotage','Arcanes','Investigation','Nature','Religion','Dressage','Intuition','Médecine','Perception','Survie','Intimidation','Persuasion','Représentation','Tromperie']){
+   assert.equal(isSocial(skill),true,skill);
+ }
+ assert.equal(isSocial('Trait de feu'),false);
+});
