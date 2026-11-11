@@ -17,10 +17,10 @@
     const statedDamage=find([/\b(\d{1,4})\s*(?:dégâts?|dommages?)\b/i,/\bdégâts?\s*(?:obtenus?|infligés?|potentiels?|bruts?)?\s*[:=+]\s*(\d{1,4})\b/i]);
     const typedAmounts=[...s.matchAll(/\b(\d{1,4})\s+(?:feu|froid|foudre|acide|poison|radiants?|nécrotiques?|psychiques?|contondants?|tranchants?|perforants?)\b/gi)].map(m=>number(m[1]));
     const damage=statedDamage??(typedAmounts.length?typedAmounts.reduce((total,value)=>total+value,0):null);
-    const heal=/PV\s+temporaires?\b/i.test(s)?null:find([/\+?(\d{1,4})\s*(?:PV\s*(?:soignés?|récupérés?|rendus?)|soins?)\b/i,/\b(?:soins?|guérison|PV\s*récupérés?)\s*(?:reçus?|obtenus?|effectués?)?\s*[:=+]\s*\+?(\d{1,4})(?:\s*PV)?\b/i,/\b\+?(\d{1,4})\s*PV\b/i]);
+    const heal=/PV\s*temp(?:oraires?)?\b/i.test(s)?null:find([/\+?(\d{1,4})\s*(?:PV\s*(?:soignés?|récupérés?|rendus?)|soins?)\b/i,/\b(?:soins?|guérison|PV\s*récupérés?)\s*(?:reçus?|obtenus?|effectués?)?\s*[:=+]\s*\+?(\d{1,4})(?:\s*PV)?\b/i,/\b\+?(\d{1,4})\s*PV\b/i]);
     const roll=find([/\battaque\s+\d{1,2}\s*[+−-]\s*\d{1,2}\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*[^\n]{0,55}?\s=\s*(\d{1,3})\b/i,/\bd20\s*\d{1,2}(?:\s*[+−-]\s*\d{1,2})?\s*=\s*(\d{1,3})\b/i,/\b(?:jet(?:\s+d.attaque)?|attaque|toucher)\s*[:=]\s*(\d{1,3})\b/i]);
     const parts=[...s.matchAll(/\b(\d{1,4})\s+(feu|froid|foudre|tonnerre|acide|poison|n[eé]crotiques?|radiants?|psychiques?|force|contondants?|tranchants?|perforants?|fire|cold|lightning|thunder|acid|necrotic|bludgeoning|piercing|slashing)\b/gi)].map(m=>({amount:number(m[1]),type:normalizeType(m[2])})).filter(x=>x.type&&x.amount!==null);
-    const temp=find([/\b(\d{1,4})\s*PV\s*temporaires?\b/i,/\bPV\s*temporaires?\s*[:=+]\s*(\d{1,4})/i]);
+    const temp=find([/\b(\d{1,4})\s*PV\s*temp(?:oraires?)?\b/i,/\bPV\s*temp(?:oraires?)?\s*[:=+]\s*(\d{1,4})/i]);
     const resolvedDamage=statedDamage??(parts.length?parts.reduce((total,p)=>total+p.amount,0):damage);
     return {roll,damage:resolvedDamage,heal,temp,parts,potential:/potentiel(?:le)?s?/i.test(s),hasValue:roll!==null||damage!==null||heal!==null||temp!==null};
   }
@@ -91,7 +91,7 @@
     // must never be interpreted as a resolved attack merely because their
     // description contains numeric damage modifiers.
     const title=sourceTitle();
-    const configuration=/(?:cogneur lourd|great weapon master|attaque t[eé]m[eé]raire|posture|mode d.attaque)/i.test(title+' '+raw);
+    const configuration=/(?:cogneur lourd|great weapon master|attaque t[eé]m[eé]raire|rage\s*(?:activ[eé]e|fr[eé]n[eé]tique)|cible\s+[àa]\s+0\s*PV|posture|mode d.attaque)/i.test(title+' '+raw);
     const resolved=/(?:\bd20\b|\bjet\s*[:=]|touch[eé](?!r)|rat[eé](?!e)|critique|d[eé]g[aâ]ts?\s*(?:inflig[eé]s?|obtenus?)\s*[:=])/i.test(raw);
     if(configuration&&!resolved)return;
     const value=read(raw);
