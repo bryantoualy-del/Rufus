@@ -30,23 +30,56 @@
   icon.width=icon.height=20;
   return icon;
  }
- function render(){if(view.hidden)return;const context=(window.RPGTable?.active()?window.RPGTable.getContext():window.RPGResolution?.getState().shadow),session=context?.session||{},status=view.querySelector('[data-group-status]');status.textContent=context?.stale?'Connexion interrompue · tour partagé non confirmé':session.round?'Round '+session.round:'Tour partagé non confirmé';
-  const list=view.querySelector('[data-initiative-list]');list.replaceChildren();const self=api.getState();const rows=group.getActors().map(a=>a.companionId===b.id?{...a,health:self.hp,ac:self.ac,reaction:self.turn.reaction,concentration:self.concentration,conditions:(self.statuses||[]).map(name=>({name}))}:a).sort((a,c)=>(Number(c.initiative)||0)-(Number(a.initiative)||0));
-  for(const a of rows){const row=document.createElement('article');row.className='rpg-initiative-row';row.dataset.groupActor=a.id;const active=!!a.activeTurn&&!context?.stale;row.classList.toggle('is-current-turn',active);row.append(text('strong',Number.isFinite(a.initiative)?a.initiative:'—','rpg-initiative-value'));
-   if(a.portrait){const img=document.createElement('img');img.src=a.portrait;img.alt='';row.append(img);}const body=document.createElement('div');body.append(text('strong',a.name));if(active)body.append(text('small','Tour actif','rpg-active-label'));
-   if(a.health){body.append(text('span',a.health.current+' / '+a.health.max+' PV'+(a.health.temp?' · +'+a.health.temp+' PV temp.':'')));const bar=document.createElement('progress');bar.max=Math.max(1,a.health.max);bar.value=a.health.current;bar.setAttribute('aria-label','PV de '+a.name);body.append(bar);}
-   const states=document.createElement('div');states.className='rpg-group-states';
-   for(const condition of a.conditions||[]){
-    const name=typeof condition==='string'?condition:condition?.name;
-    if(!name)continue;
-    const badge=text('span',name,'rpg-group-state'),icon=conditionIcon(name);
-    if(icon)badge.prepend(icon);
-    states.append(badge);
-   }
-   body.append(states);row.append(body);
-   const meta=document.createElement('div');meta.className='rpg-group-meta';if(Number.isFinite(a.ac))meta.append(text('span','CA '+a.ac));if(a.kind!=='enemy'){meta.append(text('span',a.reaction===true?'Réaction disponible':a.reaction===false?'Réaction utilisée':'Réaction —'));if(a.concentration)meta.append(text('span','Concentration','rpg-concentration-label'));}row.append(meta);list.append(row);
+
+ function render(){
+  if(view.hidden)return;
+  const context=window.RPGTable?.active()?window.RPGTable.getContext():window.RPGResolution?.getState().shadow;
+  const session=context?.session||{},status=view.querySelector('[data-group-status]');
+  status.textContent=context?.stale?'Connexion interrompue · tour partagé non confirmé':session.round?'Round '+session.round:'Tour partagé non confirmé';
+  const list=view.querySelector('[data-initiative-list]');list.replaceChildren();
+  const self=api.getState();
+  const rows=group.getActors().map(a=>a.companionId===b.id?
+    {...a,health:self.hp,ac:self.ac,action:self.turn.action,bonus:self.turn.bonus,reaction:self.turn.reaction,
+     concentration:self.concentration,conditions:(self.statuses||[]).map(name=>({name}))}:a)
+    .sort((a,c)=>(Number(c.initiative)||0)-(Number(a.initiative)||0));
+  list.style.setProperty('--rpg-group-count',String(Math.max(1,rows.length)));
+  const frLabels={charmed:'Charmé',blinded:'Aveuglé',deafened:'Assourdi',frightened:'Effrayé',poisoned:'Empoisonné',restrained:'Entravé',stunned:'Étourdi',unconscious:'Inconscient',invisible:'Invisible',paralyzed:'Paralysé',petrified:'Pétrifié',prone:'À terre',grappled:'Agrippé',incapacitated:'Neutralisé',exhaustion:'Épuisé'};
+  const fr=name=>frLabels[String(name||'').toLowerCase().trim()]||name;
+  for(const a of rows){
+    const row=document.createElement('article');row.className='rpg-initiative-row';row.dataset.groupActor=a.id;
+    const active=!!a.activeTurn&&!context?.stale;row.classList.toggle('is-current-turn',active);
+    row.append(text('strong',Number.isFinite(a.initiative)?a.initiative:'—','rpg-initiative-value'));
+    if(a.portrait){const img=document.createElement('img');img.src=a.portrait;img.alt='';row.append(img);}
+    const body=document.createElement('div');body.className='rpg-group-body';
+    const info=document.createElement('div');info.className='rpg-group-info';info.append(text('strong',a.name));
+    if(active)info.append(text('small','Tour actif','rpg-active-label'));
+    if(a.health){info.append(text('span',a.health.current+' / '+a.health.max+' PV'+(a.health.temp?' · +'+a.health.temp+' PV temp.':'')));
+      const bar=document.createElement('progress');bar.max=Math.max(1,a.health.max);bar.value=a.health.current;
+      bar.setAttribute('aria-label','PV de '+a.name);
+      const ratio=Math.max(0,Math.min(1,a.health.current/Math.max(1,a.health.max)));
+      bar.style.setProperty('--rpg-hp-color',ratio>.6?'#6bc79e':ratio>.3?'#dfbb68':'#dc7779');info.append(bar);}
+    const states=document.createElement('div');states.className='rpg-group-states';
+    const conditions=(a.conditions||[]).filter(Boolean);
+    for(const condition of conditions.slice(0,3)){
+      const name=typeof condition==='string'?condition:condition?.name;if(!name)continue;
+      const icon=conditionIcon(name),caption=fr(name),badge=text('span',icon?'':caption,'rpg-group-state');
+      badge.title=caption;badge.setAttribute('aria-label',caption);if(icon)badge.prepend(icon);states.append(badge);}
+    if(conditions.length>3){const more=text('span','+'+(conditions.length-3),'rpg-group-state rpg-group-state-more');more.title=conditions.slice(3).map(v=>fr(typeof v==='string'?v:v.name)).join(', ');states.append(more);}
+    const main=document.createElement('div');main.className='rpg-group-main';main.append(info,states);body.append(main);row.append(body);
+    const meta=document.createElement('div');meta.className='rpg-group-meta';
+    if(Number.isFinite(a.ac))meta.append(text('span','CA '+a.ac));
+    if(a.kind!=='enemy'){const economy=document.createElement('div');economy.className='rpg-group-economy';
+      economy.setAttribute('aria-label','Économie d’action');
+      for(const [code,title,value] of [['A','Action',a.action],['B','Action bonus',a.bonus],['R','Réaction',a.reaction]]){
+        const tag=text('span',code,'rpg-economy-indicator');tag.dataset.economy=code;
+        tag.dataset.available=value===true?'yes':value===false?'no':'unknown';
+        tag.title=title+' · '+(value===true?'disponible':value===false?'utilisée':'non communiquée');
+        tag.setAttribute('aria-label',tag.title);economy.append(tag);}
+      meta.append(economy);if(a.concentration)meta.append(text('span','Concentration','rpg-concentration-label'));}
+    row.append(meta);list.append(row);
   }
-  if(!rows.length)list.append(text('p','Aucun ordre partagé par Encounter. Le personnage reste utilisable en local.'));refresh();
+  if(!rows.length)list.append(text('p','Aucun ordre partagé par Encounter. Le personnage reste utilisable en local.'));
+  refresh();
  }
  function glow(node,cost,on){if(!node)return;if(on)node.dataset.rpgEconomyGlow=cost;else delete node.dataset.rpgEconomyGlow;}
  function refresh(){const state=api.getState(),c=(window.RPGTable?.active()?window.RPGTable.getContext():window.RPGResolution?.getState().shadow),session=c?.session||{},mine=!c?.stale&&session.phase==='fight'&&session.activeCharacterId===b.id;
