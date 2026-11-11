@@ -91,8 +91,8 @@
     // must never be interpreted as a resolved attack merely because their
     // description contains numeric damage modifiers.
     const title=sourceTitle();
-    const configuration=/\b(?:cogneur lourd|great weapon master|attaque t[eé]m[eé]raire|posture|mode d.attaque)\b/i.test(title+' '+raw);
-    const resolved=/\b(?:d20|jet\s*[:=]|touch[eé]|rat[eé]|critique|d[eé]g[aâ]ts?\s*(?:inflig[eé]s?|obtenus?)\s*[:=])\b/i.test(raw);
+    const configuration=/(?:cogneur lourd|great weapon master|attaque t[eé]m[eé]raire|posture|mode d.attaque)/i.test(title+' '+raw);
+    const resolved=/(?:\bd20\b|\bjet\s*[:=]|touch[eé]|rat[eé]|critique|d[eé]g[aâ]ts?\s*(?:inflig[eé]s?|obtenus?)\s*[:=])/i.test(raw);
     if(configuration&&!resolved)return;
     const value=read(raw);
     if(value.hasValue)show(sourceTitle(),value,raw);
