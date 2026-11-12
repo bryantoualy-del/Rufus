@@ -156,7 +156,7 @@ function save(){
 }
 function combatSnapshot(){
   return {
-    hp:S.hp,tempHp:S.tempHp,turn:S.turn,round:S.round,turnDamage:S.turnDamage,economy:clone(S.economy),
+    hp:S.hp,maxHp:S.maxHp,tempHp:S.tempHp,turn:S.turn,round:S.round,turnDamage:S.turnDamage,economy:clone(S.economy),
     concentration:S.concentration?clone(S.concentration):null,rollMode:S.rollMode,conditions:clone(S.conditions),
     sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
     lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,psiReconstitutionReady:S.psiReconstitutionReady,psiKnackLast:S.psiKnackLast,psiWhispersLast:S.psiWhispersLast,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
@@ -232,13 +232,13 @@ function undo(){
   if(!snap)return toast('Aucune action mécanique à annuler.');
   const remaining=S.history;
   Object.assign(S,{
-    hp:snap.hp,tempHp:snap.tempHp,turn:snap.turn,round:snap.round,turnDamage:snap.turnDamage,economy:snap.economy,
+    hp:snap.hp,maxHp:snap.maxHp||S.maxHp,tempHp:snap.tempHp,turn:snap.turn,round:snap.round,turnDamage:snap.turnDamage,economy:snap.economy,
     concentration:snap.concentration,rollMode:snap.rollMode,conditions:snap.conditions,sneakOwn:snap.sneakOwn,
     sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
     hexCharges:snap.hexCharges,psiDie:snap.psiDie,psiReconstitutionReady:snap.psiReconstitutionReady,psiKnackLast:snap.psiKnackLast,psiWhispersLast:snap.psiWhispersLast,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
     pending:snap.pending,inventory:snap.inventory||S.inventory
-  });
+  });syncVeilleHp(S);
   if(snap.journalLength===0)S.journal=[];
   else if(snap.journalHeadId){
     const idx=S.journal.findIndex(e=>e.id===snap.journalHeadId);
@@ -720,11 +720,11 @@ function saveItem(e){
   const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,icon:f.elements.icon.value,equipped:f.elements.equipped.checked});
   if(!item.name.trim())return;
   pushHistory();if(index>=0)S.inventory[index]=item;else S.inventory.push(item);syncVeilleHp(S);
-  logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
+  logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();render();renderJournal();renderResultRibbon();
 }
 async function deleteItem(){
   const index=Number($('#itemEditor').elements.index.value);if(index<0)return;if(!(await RPGDialogs.confirm('Supprimer cet objet ?')))return;
-  const name=S.inventory[index]?.name||'Objet';pushHistory();S.inventory.splice(index,1);syncVeilleHp(S);logEvent('Objet supprimé',name);save();closeItemEditor();renderInventory();renderJournal();renderResultRibbon();
+  const name=S.inventory[index]?.name||'Objet';pushHistory();S.inventory.splice(index,1);syncVeilleHp(S);logEvent('Objet supprimé',name);save();closeItemEditor();render();renderJournal();renderResultRibbon();
 }
 function pickImage(){$('#imageFile').click();}
 function handleImage(file){
