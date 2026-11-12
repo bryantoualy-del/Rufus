@@ -317,7 +317,7 @@ function bindHpInputs(){
 const attacks={
   veille:{name:'Veille-songe',bonus:9,count:1,sides:4,mod:5,type:'perforants',cost:'action',finesse:true,extraPsychic:6},
   psychic:{name:'Lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'action',finesse:true,psychic:true},
-  psychic2:{name:'Seconde lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
+  psychic2:{name:'Seconde lame psychique',bonus:7,count:1,sides:4,mod:3,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
   spectral:{name:'Dague spectrale',bonus:8,count:1,sides:4,mod:4,type:'perforants',cost:'action',finesse:true},
   hexen:{name:'Hexen Blade',bonus:8,count:1,sides:6,mod:4,type:'perforants',cost:'action',finesse:true},
   crossbow:{name:'Arbalète légère duergar',bonus:7,count:1,sides:8,mod:3,type:'perforants',cost:'action',ranged:true}
@@ -384,7 +384,7 @@ function useRavenPending(){
   if(!S.pending||!['attack','wound'].includes(S.pending.kind)||!S.ravenMemoryBonus)return;
   const r=die(8);commit('Ombre du Corbeau','+'+r+' au jet d’attaque',()=>{S.pending.ravenRoll=r;S.pending.total+=r;S.ravenMemoryBonus=false;},'raven');
 }
-function psiStepDown(size){return size>=8?6:size>=6?4:size>=4?0:0;}
+function psiStepDown(size){return size>=10?8:size>=8?6:size>=6?4:size>=4?0:0;}
 function psiStepUp(size){return size<=0?4:size<=4?6:size<=6?8:size<=8?10:10;}
 function psiRollWithFlux(){
   if(!S.psiDie)return null;
