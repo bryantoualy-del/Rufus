@@ -50,3 +50,13 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 #rpgGroupView .rpg-initiative-row progress::-webkit-progress-value{background:var(--rpg-hp-color,#6bc79e)}
 #rpgGroupView .rpg-initiative-row progress::-moz-progress-bar{background:var(--rpg-hp-color,#6bc79e)}
 @media(max-width:780px){#rpgGroupView .rpg-group-states{width:58px}#rpgGroupView .rpg-group-main{gap:5px}#rpgGroupView .rpg-group-meta{min-width:86px}}
+
+/* Tablet landscape: keep participant states legible without growing the group panel. */
+@media (min-width:781px) and (orientation:landscape){
+ #rpgGroupView>.rpg-initiative{min-height:0;min-width:0;overflow:hidden}
+ #rpgGroupView [data-initiative-list]{max-height:clamp(190px,55dvh,640px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}
+ #rpgGroupView .rpg-group-main{min-width:0;grid-template-columns:minmax(0,1fr) auto}
+ #rpgGroupView .rpg-group-states{width:auto;max-width:100px;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;max-height:30px}
+ #rpgGroupView .rpg-group-state{flex:0 0 25px}
+ #rpgGroupView .rpg-group-info>strong{display:block;max-width:100%}
+}
