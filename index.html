@@ -41,7 +41,7 @@
     <div class="vitals">
       <div class="stat hpstat">
         <small>Points de vie</small>
-        <div class="hp-current"><input id="hpInput" class="num" type="number" min="0" max="58" value="58"><b>/ <span id="maxHpValue">58</span></b></div>
+        <div class="hp-current"><input id="hpInput" class="num" type="number" min="0" max="80" value="80"><b>/ <span id="maxHpValue">80</span></b></div>
         <div class="hp-actions"><button class="mini dangerish" id="damageBtn">Dégâts</button><button class="mini healish" id="healBtn">Soins</button></div>
       </div>
       <div class="stat temp-hpstat">
@@ -119,11 +119,11 @@
           <button class="fire-ribbon-action" id="fireBladeBtn">Armer</button>
         </div>
         <article class="card wide weapon psychic weapon-psychic"><div class="attack-head"><div><div class="eyebrow">Âme Acérée · action</div><h2>Lame psychique</h2></div><div class="attack-dice">+7 · 1d6+3 psy</div></div><p class="meta">Finesse · lancer 18 m · main libre. Une seconde lame peut suivre avec l’autre main libre.</p><div class="weapon-actions"><button class="primary attack-btn" data-attack="psychic">Attaquer — Lame psychique</button><button class="ability psi-secondary" data-attack="psychic2" disabled>Seconde lame · bonus · 1d4+3</button></div></article>
-        <article class="card weapon weapon-veille"><div class="eyebrow">Arme principale · dague très rare</div><h2>🗡 Veille-songe</h2><div class="attack-dice">+9 · 1d4+5 perforants + 1d6 psychiques</div><p class="meta">Dague +2 · finesse · légère · lancer (6/18 m). Harmonisée : Constitution +4 (max. 20). Rêve lucide durant le sommeil naturel.</p><button class="primary attack-btn" data-attack="veille">Attaquer avec Veille-songe</button></article>
-        <article class="card weapon weapon-spectral"><div class="eyebrow">Corps à corps · action</div><h2>Dague spectrale +1</h2><div class="attack-dice">+8 · 1d4+4 perforants</div><details class="rules-mini"><summary>Détails</summary><p>Sur une créature vivante touchée : JdS CON DD 13 ou désavantage à sa prochaine attaque.</p></details><button class="primary attack-btn" data-attack="spectral">Attaquer</button></article>
+        <article class="card weapon weapon-veille"><div class="eyebrow">Arme principale · dague très rare</div><h2>🗡 Veille-songe</h2><div class="attack-dice">+9 · 1d4+5 perforants + 1d6 psychiques</div><p class="meta">Dague +2 · finesse · légère · lancer (6/18 m). Constitution 14 (+2) et 80 PV maximum tant que Veille-songe est harmonisée et portée. Rêve lucide durant le sommeil naturel.</p><button class="primary attack-btn" data-attack="veille">Attaquer avec Veille-songe</button></article>
+        
         <article class="card weapon weapon-hexen"><div class="eyebrow">Corps à corps · action</div><h2>Hexen Blade</h2><div class="attack-dice">+8 · 1d6+4 perforants</div><p class="meta">Épée courte +1 · 5 charges pour ses illusions.</p><button class="primary attack-btn" data-attack="hexen">Attaquer</button></article>
         <article class="card weapon ranged weapon-ranged"><div class="eyebrow">Distance · action</div><h2>Arbalète légère duergar</h2><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div><p class="meta">24/96 m · chargement · deux mains.</p><details class="rules-mini"><summary>Tireur d’élite</summary><p>Pas de désavantage à longue portée, ignore les abris concernés ; option −5 attaque / +10 dégâts.</p></details><button class="toggle sharpshooter" id="sharpshooterToggle">Tireur d’élite · −5 / +10</button><button class="primary attack-btn" data-attack="crossbow">Tirer</button></article>
-        <article class="card reaction-card weapon-reaction"><div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2><details class="rules-mini"><summary>Sournoise sur réaction</summary><p>Une réaction pendant le tour d’un autre peut déclencher une nouvelle Sournoise.</p></details><button class="ability" id="opportunityMain" aria-expanded="false" onclick="const options=document.getElementById('opportunityOptions');options.hidden=!options.hidden;this.setAttribute('aria-expanded',String(!options.hidden))">ATTAQUE D’OPPORTUNITÉ</button><div class="two-actions" id="opportunityOptions" hidden><button class="ability reaction-attack" data-reaction-attack="veille">Veille-songe</button><button class="ability reaction-attack" data-reaction-attack="spectral">Dague spectrale</button><button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button></div></article>
+        <article class="card reaction-card weapon-reaction"><div class="eyebrow">Tour adverse · réaction</div><h2>Attaque d’opportunité</h2><details class="rules-mini"><summary>Sournoise sur réaction</summary><p>Une réaction pendant le tour d’un autre peut déclencher une nouvelle Sournoise.</p></details><button class="ability" id="opportunityMain" aria-expanded="false" onclick="const options=document.getElementById('opportunityOptions');options.hidden=!options.hidden;this.setAttribute('aria-expanded',String(!options.hidden))">ATTAQUE D’OPPORTUNITÉ</button><div class="two-actions" id="opportunityOptions" hidden><button class="ability reaction-attack" data-reaction-attack="veille">Veille-songe</button><button class="ability reaction-attack" data-reaction-attack="hexen">Hexen Blade</button></div></article>
       </div>
       <div class="pending" id="pendingAttack" hidden aria-live="polite" role="dialog" aria-modal="true" aria-label="Résolution de l’attaque"></div>
     </div>
@@ -304,7 +304,7 @@
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="companion-v3.js?v=level11-veille-songe-20261112"></script>
+<script src="companion-v3.js?v=level11-veille-songe-hp80-20261112"></script>
 <link rel="stylesheet" href="companion-feedback.css?v=audit1"><script src="companion-feedback.js?v=4-lot1-dialogs"></script>
 <script src="companion-api.js?v=5-table-free-1"></script>
 <script src="rpg-table-session.js?v=5-table-free"></script><script src="rpg-resolution.js?v=5-table-free-1"></script><script src="rpg-condition-icons.js?v=1"></script><script src="rpg-connect-icon-registry.js?v=5-condition-icons"></script><script src="rpg-reactions.js?v=4-lot1-dialogs"></script><script src="rpg-rufus-defenses.js?v=4-lot1-dialogs"></script><script src="rpg-concentration.js?v=20261014-lot4-final"></script><script src="rpg-player-saves.js?v=table-only-20261014-lot4-final"></script>
@@ -350,7 +350,7 @@
 })();
 </script>
 <script src="rpg-health.js?v=5-table-free-1"></script>
-<script>window.RPGOpportunityConfig=[{"id": "opportunity-spectral", "label": "Opportunité · Dague spectrale", "selector": "[data-reaction-attack=\"spectral\"]"}, {"id": "opportunity-hexen", "label": "Opportunité · Hexen Blade", "selector": "[data-reaction-attack=\"hexen\"]"}];</script><script src="rpg-opportunities.js?v=4-lot1-dialogs"></script><script src="rpg-triggered-effects.js?v=4-lot1-dialogs"></script>
+<script>window.RPGOpportunityConfig=[{"id": "opportunity-veille", "label": "Opportunité · Veille-songe", "selector": "[data-reaction-attack=\"veille\"]"}, {"id": "opportunity-hexen", "label": "Opportunité · Hexen Blade", "selector": "[data-reaction-attack=\"hexen\"]"}];</script><script src="rpg-opportunities.js?v=4-lot1-dialogs"></script><script src="rpg-triggered-effects.js?v=4-lot1-dialogs"></script>
 <script src="mj-journal-model.js?v=4-lot1-dialogs"></script><script src="rpg-undo.js?v=v5-undo-revision-2"></script><script src="rpg-group.js?v=5-table-free-1"></script>
 <script src="rpg-resources.js?v=4-lot3v2"></script>
 <style id="rufus-compact-group-nav">
