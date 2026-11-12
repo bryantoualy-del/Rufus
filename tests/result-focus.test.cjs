@@ -160,3 +160,17 @@ test('all D&D skill results, including Histoire, are excluded from the combat po
  }
  assert.equal(isSocial('Trait de feu'),false);
 });
+
+test('level 11 Rufus: Veille-songe HP, CON and undo are synchronized',()=>{
+ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+ const companion=fs.readFileSync(path.join(root,'companion-v3.js'),'utf8');
+ assert.match(html,/Roublard 11/);
+ assert.match(companion,/function veilleWorn\(/);
+ assert.match(companion,/function syncVeilleHp\(/);
+ assert.match(companion,/function effectiveAbilities\(/);
+ assert.match(companion,/concentrationProfile:\(\)=>\(\{modifier:veilleWorn/);
+ assert.match(companion,/maxHp:S\.maxHp,tempHp:S\.tempHp/);
+ assert.match(companion,/syncVeilleHp\(S\)/);
+ assert.match(companion,/get maxHp\(\)\{return S\.maxHp\}/);
+ new vm.Script(companion,{filename:'Rufus companion v3'});
+});
