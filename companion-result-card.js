@@ -30,7 +30,7 @@
   const sources=config.sources||['#ribbon .rb','#resultText','#resultRibbonText','#lastResult','#ribbonText','#rb'];
   const labels=config.labels||['#rtitle','#resultTitle','#resultRibbonTitle','#kentaro-ribbon .title','#rt'];
   const safe=(s)=>String(s||'').trim().slice(0,200);
-  let card=null,body=null,heading=null,close=null,clock=0,lastSignature='',source=null;
+  let card=null,body=null,heading=null,close=null,clock=0,revealClock=0,lastSignature='',source=null;
   function create(){
     if(card)return;
     card=doc.createElement('aside');card.id='companion-result-focus';card.setAttribute('role','status');card.setAttribute('aria-label','Résultat de l’action');
@@ -42,7 +42,18 @@
     const notice=doc.createElement('small');notice.className='crf-note';notice.textContent='Valeur annoncée · résolution et application inchangées';
     card.append(head,heading,body,notice);doc.body.appendChild(card);
   }
-  function hide(){if(card)card.hidden=true;root.clearTimeout(clock);}
+  function hide(){if(card)card.hidden=true;root.clearTimeout(clock);root.clearTimeout(revealClock);doc.body.classList?.remove?.('cc-result-fx-pending');}
+  // Damage presentation waits for the attack/spell FX to become visible.
+  // Presentation only: combat resolution, journal, hit confirmation and dice are immediate.
+  function revealResult(hasDamage){
+    root.clearTimeout(revealClock);
+    card.hidden=true;
+    const reduceMotion=typeof root.matchMedia==='function'&&root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const waitForFx=hasDamage&&!reduceMotion;
+    doc.body.classList?.toggle?.('cc-result-fx-pending',waitForFx);
+    if(!waitForFx){card.hidden=false;return;}
+    revealClock=root.setTimeout(()=>{doc.body.classList?.remove?.('cc-result-fx-pending');if(card)card.hidden=false;revealClock=0;},850);
+  }
 
   // Inline SVG, never emoji: icons are decorative and do not alter result semantics.
   const damagePaths=Object.freeze({fire:'M12 2c3 4-1 6 2 9 1 3-1 7-5 7s-7-3-7-7c0-4 3-6 5-9 0 4 3 4 5 0Z',cold:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',lightning:'m13 2-9 12h7l-1 8 10-13h-7l1-7',thunder:'M3 12h3l3-7 5 14 3-7h4',acid:'M12 2c-3 5-7 9-7 13a7 7 0 0 0 14 0c0-4-4-8-7-13Z',poison:'M8 9a4 4 0 1 1 8 0M5 16h14M8 19h8',necrotic:'M4 5c4-3 12-3 16 0M5 19c4 3 10 3 14 0M12 4v16',radiant:'M12 2v20M2 12h20M5 5l14 14M19 5 5 19',psychic:'M4 14c-2-8 6-13 10-8 7-2 9 8 4 11-3 4-8 3-10 0',force:'M12 2 3 7v10l9 5 9-5V7z',bludgeoning:'M5 6h14v6H5zM12 12v10',piercing:'m12 2 5 9-5 11-5-11z',slashing:'M3 21 21 3M8 21 21 8'});
@@ -70,7 +81,7 @@
     if(parsed.heal!==null)body.appendChild(figure(parsed.potential?'SOINS POTENTIELS':'SOINS OBTENUS',parsed.heal,'heal','healing'));
     if(parsed.temp!==null)body.appendChild(figure('PV TEMPORAIRES',parsed.temp,'temp','temporary'));
     // Never claim an effect or HP delta was applied: only the underlying Companion can do that.
-    card.hidden=false;root.clearTimeout(clock);clock=0;
+    revealResult(parsed.damage!==null);root.clearTimeout(clock);clock=0;
   }
   function activeSource(){
     for(const selector of sources){const el=doc.querySelector(selector);if(el)return el;}return null;
@@ -170,7 +181,7 @@
     // The ribbon observer runs in a later microtask. Mark this action's ribbon text
     // as already presented so it cannot replace the structured result.
     if(source)lastSignature=String(source.textContent||'').trim();
-    card.hidden=false;root.clearTimeout(clock);clock=0;
+    revealResult(totalDamage>0);root.clearTimeout(clock);clock=0;
     return true;
   }
   root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType,showStructured};
