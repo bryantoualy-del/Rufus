@@ -45,14 +45,14 @@
   function hide(){if(card)card.hidden=true;root.clearTimeout(clock);root.clearTimeout(revealClock);doc.body.classList?.remove?.('cc-result-fx-pending');}
   // Damage presentation waits for the attack/spell FX to become visible.
   // Presentation only: combat resolution, journal, hit confirmation and dice are immediate.
-  function revealResult(hasDamage){
+  function revealResult(hasDamage,fxDuration=850){
     root.clearTimeout(revealClock);
     card.hidden=true;
     const reduceMotion=typeof root.matchMedia==='function'&&root.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const waitForFx=hasDamage&&!reduceMotion;
     doc.body.classList?.toggle?.('cc-result-fx-pending',waitForFx);
     if(!waitForFx){card.hidden=false;return;}
-    revealClock=root.setTimeout(()=>{doc.body.classList?.remove?.('cc-result-fx-pending');if(card)card.hidden=false;revealClock=0;},850);
+    revealClock=root.setTimeout(()=>{doc.body.classList?.remove?.('cc-result-fx-pending');if(card)card.hidden=false;revealClock=0;},fxDuration);
   }
 
   // Inline SVG, never emoji: icons are decorative and do not alter result semantics.
@@ -176,12 +176,13 @@
       if(!Number.isFinite(effect.amount))continue;
       body.appendChild(figure(safe(effect.label)||'PROTECTION',effect.amount,'temp','temporary'));
     }
+    detailLine(body,action.note);
     if(!body.children.length)return false;
     if(id) { renderedActionIds.add(id);if(renderedActionIds.size>300)renderedActionIds.delete(renderedActionIds.values().next().value); }
     // The ribbon observer runs in a later microtask. Mark this action's ribbon text
     // as already presented so it cannot replace the structured result.
     if(source)lastSignature=String(source.textContent||'').trim();
-    revealResult(totalDamage>0);root.clearTimeout(clock);clock=0;
+    revealResult(totalDamage>0,action.fxDuration? action.fxDuration+32:undefined);root.clearTimeout(clock);clock=0;
     return true;
   }
   root.CompanionResultFocus={show:(title,description)=>{if(!isSocial(title))show(title,read(description),description);},read,hide,semanticColors,normalizeType,showStructured};

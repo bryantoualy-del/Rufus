@@ -5,6 +5,8 @@ const BACKUP=KEY+':backup';
 const OLD_COMBAT='rufus-combat-v3';
 const MAX_JOURNAL=250;
 const MAX_HISTORY=24;
+const ammo=window.RufusAmmo;
+let renderAmmo=()=>{};
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,Number(n)||0));
@@ -34,7 +36,8 @@ const defaultItems=[
   {name:'Kit d’empoisonneur',category:'misc',qty:1,note:'Poison & infiltration.',image:'',icon:'poison',equipped:false},
   {name:'Sérum de vérité',category:'consumable',qty:1,note:'Consommable.',image:'',icon:'poison',equipped:false},
   {name:'Venin de vipère à tête noire',category:'consumable',qty:1,note:'Poison.',image:'',icon:'poison',equipped:false},
-  {name:'Carreaux d’arbalète',category:'consumable',qty:20,note:'Munitions.',image:'',icon:'ammo',equipped:false}
+  {name:'Carreaux d’arbalète',category:'consumable',qty:20,note:'Munitions.',image:'',icon:'ammo',equipped:false},
+  {name:'Flèches',category:'consumable',qty:30,note:'Munitions.',image:'',icon:'ammo',equipped:false}
 ];
 const inventoryIcons={auto:'✦',blade:'🗡',raven:'◆',armor:'◈',bow:'➶',poison:'☠',ring:'◉',boots:'⌁',amulet:'◇',bag:'▣',globe:'◌',elephant:'♜',disguise:'◐',ammo:'⋙',misc:'✦'};
 const inventoryCategoryLabels={equipment:'Équipement',misc:'Objet',consumable:'Consommable'};
@@ -53,9 +56,9 @@ function defaults(){
     linceul:{state:'unequipped',judgment:true,lastBreath:true,ravenShadow:2,pilgrim:true},
     ravenMemoryBonus:false,
     pending:null,
-    inventory:clone(defaultItems),inventoryTab:'equipment',
+    inventory:clone(defaultItems),inventoryTab:'equipment',ammo:ammo.normalize(),
     notes:'',notesPreview:false,journal:[],history:[],
-    ui:{view:'combat',socialTab:'skills',subtabs:{combat:'attacks',arsenal:'psi',journal:'mechanics'}}
+    ui:{view:'combat',socialTab:'skills',subtabs:{arsenal:'psi',journal:'mechanics'}}
   };
 }
 let S=defaults();
@@ -70,7 +73,8 @@ function sanitizeItem(i){
     note:String(i?.note||'').slice(0,3000),
     image:/^(https:\/\/|data:image\/)/.test(String(i?.image||''))?String(i.image).slice(0,350000):'',
     icon:Object.prototype.hasOwnProperty.call(inventoryIcons,String(i?.icon||'auto'))?String(i?.icon||'auto'):'auto',
-    equipped:!!(i?.equipped??i?.active)
+    equipped:!!(i?.equipped??i?.active),
+    ...(/^(bolt|arrow|explosive|fire|lightning|poison|custom-[a-z0-9-]{1,53})$/.test(i?.ammoId||'')?{ammoId:i.ammoId}:{})
   };
 }
 function veilleWorn(inventory){return Array.isArray(inventory)&&inventory.some(i=>i.name?.trim().toLocaleLowerCase('fr')==='veille-songe'&&i.equipped&&Number(i.qty)>0)}
@@ -104,7 +108,8 @@ function normalize(x){
   o.ui={...d.ui,...(o.ui||{}),subtabs:{...d.ui.subtabs,...(o.ui?.subtabs||{})}};
   if(!['combat','arsenal','social','journal'].includes(o.ui.view))o.ui.view='combat';
   if(!['skills','abilities','inventory','rp'].includes(o.ui.socialTab))o.ui.socialTab='skills';
-  if(!['attacks','defense','resources'].includes(o.ui.subtabs.combat))o.ui.subtabs.combat='attacks';
+  delete o.ui.subtabs.combat;
+  o.ammo=ammo.normalize(o.ammo);
   if(!['psi','hexen','linceul','powers'].includes(o.ui.subtabs.arsenal))o.ui.subtabs.arsenal='psi';
   if(!['mechanics','notes','backup'].includes(o.ui.subtabs.journal))o.ui.subtabs.journal='mechanics';
   o.inventory=Array.isArray(o.inventory)?o.inventory.slice(0,200).map(sanitizeItem):clone(defaultItems);o.inventory=o.inventory.filter(i=>i.name.trim().toLocaleLowerCase('fr')!=='dague spectrale');if(!o.inventory.some(i=>i.name.trim().toLocaleLowerCase('fr')==='veille-songe'))o.inventory.unshift(clone(defaultItems[0]));syncVeilleHp(o);
@@ -164,8 +169,10 @@ function combatSnapshot(){
     pending:S.pending?clone(S.pending):null,inventory:clone(S.inventory),journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
   };
 }
-function pushHistory(){
-  S.history.push(combatSnapshot());
+function pushHistory(includeAmmo=false){
+  const snapshot=combatSnapshot();
+  if(includeAmmo)snapshot.ammo=clone(S.ammo);
+  S.history.push(snapshot);
   if(S.history.length>MAX_HISTORY)S.history.shift();
 }
 let lastRibbonEventId='';
@@ -209,8 +216,8 @@ function renderResultRibbon(){
     setTimeout(()=>ribbon.classList.remove('pop'),420);
   }
 }
-function commit(title,detail,mutate,fx){
-  pushHistory();mutate();logEvent(title,detail);save();render();if(fx)playFx(fx,title);
+function commit(title,detail,mutate,fx,includeAmmo=false){
+  pushHistory(includeAmmo);mutate();logEvent(title,detail);save();render();if(fx)playFx(fx,title);
 }
 function beginPendingTransaction(){
   const p=S.pending;if(!p)return;
@@ -237,7 +244,7 @@ function undo(){
     sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
     hexCharges:snap.hexCharges,psiDie:snap.psiDie,psiReconstitutionReady:snap.psiReconstitutionReady,psiKnackLast:snap.psiKnackLast,psiWhispersLast:snap.psiWhispersLast,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
-    pending:snap.pending,inventory:snap.inventory||S.inventory
+    pending:snap.pending,inventory:snap.inventory||S.inventory,ammo:snap.ammo?ammo.normalize(snap.ammo):S.ammo
   });syncVeilleHp(S);
   if(snap.journalLength===0)S.journal=[];
   else if(snap.journalHeadId){
@@ -328,8 +335,13 @@ const attacks={
   psychic:{name:'Lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'action',finesse:true,psychic:true},
   psychic2:{name:'Seconde lame psychique',bonus:7,count:1,sides:4,mod:3,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
   hexen:{name:'Hexen Blade',bonus:8,count:1,sides:6,mod:4,type:'perforants',cost:'action',finesse:true},
-  crossbow:{name:'Arbalète légère duergar',bonus:7,count:1,sides:8,mod:3,type:'perforants',cost:'action',ranged:true}
+  crossbow:{name:'Arbalète légère duergar',bonus:7,count:1,sides:8,mod:3,type:'perforants',cost:'action',ranged:true},
+  bow:{name:'Arc standard',bonus:7,count:1,sides:6,mod:3,type:'perforants',cost:'action',ranged:true}
 };
+function equippedRanged(){
+  return ['crossbow','bow'].filter(key=>S.inventory.some(item=>item.name===attacks[key].name&&item.equipped&&item.qty>0));
+}
+function controlledCombat(){return !!window.RPGConnect?.getStatus()?.controlled;}
 function visionMatches(targetId=window.RPGConnect?.getStatus()?.target?.id){return !!S.vision.active&&(!window.RPGConnect?.getStatus()?.controlled||!!targetId&&S.vision.targetId===targetId);}
 function effectiveRollMode(){
   const situAdv=visionMatches()||(window.RPGConnect?.getStatus()?.controlled?window.RufusCombat?.agonyEligible():S.conditions.agony)&&S.linceul.state==='awakened';
@@ -357,25 +369,37 @@ function breakInvisibilityForAttack(){
   }
 }
 function startAttack(key,context='own'){
- if(window.RPGConnect?.getStatus()?.controlled&&!window.RPGConnect.getStatus().target){window.RPGConnect.openTargetPicker();toast('Choisis une cible Encounter avant de lancer cette attaque.');return false;}
-  window.__lastDamageComponents=null;
-  const spec=attacks[key];if(!spec)return;
+  if(S.pending)return false;
+  if(window.RPGConnect?.getStatus()?.controlled&&!window.RPGConnect.getStatus().target){window.RPGConnect.openTargetPicker();toast('Choisis une cible Encounter avant de lancer cette attaque.');return false;}
+  const spec=attacks[key];if(!spec)return false;
+  const guided=controlledCombat();
+  if(spec.ranged&&!equippedRanged().includes(key))return false;
+  const projectile=spec.ranged&&!guided
+    ?ammo.options(S,key).find(row=>row.id===S.ammo.selected[key])||ammo.ordinary[key]
+    :null;
+  const stock=projectile?ammo.stock(S.inventory,projectile.id):0;
+  if(projectile&&!stock){toast('Projectile épuisé.');return false;}
   const cost=context==='haste'?'haste':context==='reaction'?'reaction':spec.cost;
   if(cost==='action'&&!S.economy.action)return toast('Action déjà utilisée.');
   if(cost==='bonus'&&!S.economy.bonus)return toast('Action bonus déjà utilisée.');
   if(cost==='reaction'&&!S.economy.reaction)return toast('Réaction déjà utilisée.');
   if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Lame psychique.');
+  window.__lastDamageComponents=null;
+  window.__lastAttackHit=null;
   const mode=window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode();const rr=rollAttackD20(mode);$('#manualRoll').value='';
-  const bonus=spec.bonus+(key==='crossbow'&&S.sharpshooter?-5:0);
+  const sharp=spec.ranged&&S.sharpshooter;
+  const bonus=spec.bonus+(sharp?-5:0);
   const bless=window.RPGPlayerSaves?.takeAttackBless?.()||0;const total=rr.nat+bonus+bless;
-  commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode,()=>{
+  commit('Jet d’attaque · '+spec.name,(rr.rolls.length>1?rr.rolls.join(' / ')+' → '+rr.nat:rr.nat)+' '+fmt(bonus)+(bless?' + Bénédiction (1d4 = '+bless+')':'')+' = '+total+' · '+mode+(projectile?' · '+projectile.name+' · stock '+(stock-1):''),()=>{
+    if(projectile)ammo.setStock(S.inventory,projectile.id,projectile.name,stock-1);
     breakInvisibilityForAttack();
     if(cost!=='haste')S.economy[cost]=false;
     if(key==='psychic')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
-    S.pending={attackKind:'weapon',resultId:crypto.randomUUID(),kind:'attack',name:spec.name,key,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
+    S.pending={attackKind:'weapon',resultId:crypto.randomUUID(),kind:'attack',name:spec.name,key,sharp,projectile:projectile?clone(projectile):null,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
   beginPendingTransaction();
+  return true;
 }
 async function spendLuckyPending(){
   if(window.RufusCombat?.online())return window.RufusCombat.luckyPending();
@@ -441,7 +465,7 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   const crit=p.nat===20||visionCrit;
   const multiplier=crit?2:1;
   const base=rollDamage(spec.count*multiplier,spec.sides);
-  const sharp=p.key==='crossbow'&&S.sharpshooter?10:0;
+  const sharp=(p.sharp??(spec.ranged&&S.sharpshooter))?10:0;
   const primaryBase=base.total+spec.mod+sharp,parts=[primaryBase+' '+spec.type];
   let total=primaryBase,sneakAmount=0,fireAmount=0,sneakDice=[],fireDice=[],veilPsychic=null;
   if(spec.extraPsychic){veilPsychic=rollDamage(multiplier,spec.extraPsychic);total+=veilPsychic.total;parts.push(veilPsychic.total+' psychiques');}
@@ -457,20 +481,29 @@ function resolveAttack(hit,useSneak=false){window.__lastAttackHit=hit;
   }
   if(sneakText)parts.push(sneakText);if(fireText)parts.push(fireText);
   window.__lastDamageComponents=[{amount:primaryBase+sneakAmount,type:spec.type},...(veilPsychic?[{amount:veilPsychic.total,type:'psychiques'}]:[]),...(fireAmount?[{amount:fireAmount,type:'feu'}]:[])];
-  const spectralEffect='';
-  const detail=total+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'')+spectralEffect;
+  // Special projectiles are table rulings. Their damage stays out of the RPG Connect ledger.
+  const projectile=spec.ranged&&p.projectile?.icon?ammo.profile(p.projectile):null;
+  const additional=ammo.damage(projectile,rollDamage);
+  const projectileSummary=ammo.summary(projectile);
+  const refereeNote=projectile?'MJ · '+projectile.name+(projectileSummary?' · '+projectileSummary:''):'';
+  if(additional?.amount)parts.push(additional.amount+' '+additional.type+' ('+projectile.name+')');
+  const detail=(total+(additional?.amount||0))+' dégâts ('+parts.join(' + ')+')'+(crit?' · CRITIQUE':'')+(fireText?' · CON DD16 ou aveuglé':'')+(refereeNote?' · '+refereeNote:'');
   if(window.RPGConnect?.getStatus?.().controlled){
     if(fireText)rufusRequestSave({ability:'CON',dc:16,source:'Lame du Feu Caché',condition:{name:'Aveuglé',durationType:'sourceTurnEnd',remaining:2,source:'Lame du Feu Caché',sourceCharacterId:'rufus'}});
   }
+  const fxDuration=useSneak&&eligible?1450:1050;
   S.turnDamage+=total;if(p.guidedPsiRoll)S.psiDie=psiStepDown(S.psiDie);S.pending=null;logEvent('Touché · '+spec.name,detail+(window.RPGConnect?.getStatus?.().controlled&&!!fireText?' · JdS Encounter en attente':'')+(p.guidedPsiRoll?' · Frappes autoguidées : dé → '+(S.psiDie?'d'+S.psiDie:'épuisé'):''));save();render();{
-    const fxKinds=[spec.psychic?'psychic':p.key==='crossbow'?'crossbow':'dagger'];
+    const fxKinds=[spec.psychic?'psychic':spec.ranged?'crossbow':'dagger'];
     if(useSneak&&eligible)fxKinds.push('sneak');
     if(crit)fxKinds.push('crit');
     if(fireText)fxKinds.push('fire');
     playFx(fxKinds.join(' '),useSneak&&eligible?'':crit?'Critique':spec.name);
   }
-  const shown=window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:spec.name+(crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:(p.guidedPsiRoll||0)+(p.ravenRoll||0),total:p.total,critical:crit},damages:[{type:spec.type,amount:primaryBase,formula:(spec.count*multiplier)+'d'+spec.sides,dice:base.arr,bonus:spec.mod+sharp},...(veilPsychic?[{type:'psychiques',amount:veilPsychic.total,formula:multiplier+'d6',dice:veilPsychic.arr}]:[]),...(sneakAmount?[{type:spec.type,amount:sneakAmount,formula:(6*multiplier)+'d6',dice:sneakDice}]:[]),...(fireAmount?[{type:'feu',amount:fireAmount,formula:(2*multiplier)+'d6',dice:fireDice}]:[])],potential:true});
-  if(!shown)toast(detail);
+  const shown=window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:spec.name+(crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:(p.guidedPsiRoll||0)+(p.ravenRoll||0),total:p.total,critical:crit},damages:[{type:spec.type,amount:primaryBase,formula:(spec.count*multiplier)+'d'+spec.sides,dice:base.arr,bonus:spec.mod+sharp},...(veilPsychic?[{type:'psychiques',amount:veilPsychic.total,formula:multiplier+'d6',dice:veilPsychic.arr}]:[]),...(sneakAmount?[{type:spec.type,amount:sneakAmount,formula:(6*multiplier)+'d6',dice:sneakDice}]:[]),...(fireAmount?[{type:'feu',amount:fireAmount,formula:(2*multiplier)+'d6',dice:fireDice}]:[]),...(additional?.amount?[additional]:[])],note:refereeNote,fxDuration,potential:true});
+  if(!shown){
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches)toast(detail);
+    else setTimeout(()=>toast(detail),fxDuration+32);
+  }
 }
 function renderPending(){
   const el=$('#pendingAttack');const p=S.pending;
@@ -484,17 +517,17 @@ function renderPending(){
   const spec=attacks[p.key],eligible=sneakEligible(spec,p.context),critRange=p.visionCritical?'17–20':'20';
   p.sneakEligible=eligible;const rolls=p.rolls.length>1?p.rolls.join(' / ')+' → '+p.nat:String(p.nat);
   if(p.nat===1){
-    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge used">1 naturel</div></div>'+
+    el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+(p.projectile?.icon?' · '+esc(p.projectile.name):'')+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge used">1 naturel</div></div>'+
       '<div class="pending-details">Échec automatique. Chanceux peut encore fournir un autre d20 avant la résolution.</div>'+
       '<h3 class="pending-question">1 naturel · attaque ratée</h3>'+
       '<div class="pending-actions"><button class="ability dangerish" data-miss>Confirmer le raté</button>'+(S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+'</div>';
     return;
   }
-  el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
+  el.innerHTML='<div class="pending-head"><div><div class="eyebrow">'+esc(spec.name)+(p.projectile?.icon?' · '+esc(p.projectile.name):'')+' · '+esc(p.mode)+'</div><div class="pending-roll">'+esc(rolls)+' '+fmt(p.bonus)+' = '+p.total+'</div></div><div class="sneak-badge '+(eligible?'':'used')+'">'+(eligible?'Sournoise possible':'Sournoise indisponible')+'</div></div>'+
     '<div class="pending-details">Critique : '+critRange+(p.ravenRoll?' · Ombre +'+p.ravenRoll:'')+(p.luckyRoll?' · Chanceux '+p.luckyRoll:'')+'</div>'+
     '<h3 class="pending-question">Est-ce que cette attaque touche ?</h3>'+
     '<div class="pending-actions">'+
-      (eligible?'<button class="primary" data-hit-sneak>Oui · Sournoise 5d6</button>':'')+
+      (eligible?'<button class="primary" data-hit-sneak>Oui · Sournoise 6d6</button>':'')+
       '<button class="ability" data-hit>Oui'+(p.nat===20||p.visionCritical&&p.nat>=17?' · critique':'')+'</button>'+
       '<button class="ability dangerish" data-miss>Non · raté</button>'+
       (S.lucky>0?'<button class="ability" data-lucky-pending>Chanceux · '+S.lucky+'/3</button>':'')+
@@ -524,7 +557,7 @@ function resolveWound(hit){window.__lastAttackHit=hit;
   const p=S.pending;if(!p||p.kind!=='wound')return;
   resolvePendingHistory(p);S.pending=null;
   if(!hit){window.__lastDamageComponents=null;logEvent('Blessure ratée','Jet '+(p.total??'—')+' · aucun dégât.');save();render();window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:'Blessure — RATÉ',attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:p.blessRoll,total:p.total}});return;}
-  const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:'Blessure'+(p.crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:p.blessRoll,total:p.total,critical:p.crit},damages:[{type:'nécrotiques',amount:r.total,formula:diceCount+'d10',dice:r.arr}],potential:true});
+  const diceCount=p.crit?6:3,r=rollDamage(diceCount,10);window.__lastDamageComponents=[{amount:r.total,type:'nécrotiques'}];S.turnDamage+=r.total;logEvent('Blessure · touché',(p.crit?'CRITIQUE · ':'')+r.total+' dégâts nécrotiques ('+r.arr.join('+')+')');save();render();playFx('raven','Blessure · touché');window.CompanionResultFocus?.showStructured?.({eventId:p.resultId,title:'Blessure'+(p.crit?' — CRITIQUE':''),attack:{dice:p.rolls,mode:p.mode,bonus:p.bonus,extra:p.blessRoll,total:p.total,critical:p.crit},damages:[{type:'nécrotiques',amount:r.total,formula:diceCount+'d10',dice:r.arr}],fxDuration:1050,potential:true});
 }
 async function useInvisibility(confirmed=false){
   if(!S.invisibilityReady)return toast('Invisibilité déjà utilisée aujourd’hui.');
@@ -694,8 +727,8 @@ function renderInventory(){
     '</details>'
   ).join(''):'<p class="meta">Aucun objet dans cette catégorie.</p>';
   $$('[data-edit-item]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();openItemEditor(Number(b.dataset.editItem));});
-  $$('[data-item-dec]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemDec),i=S.inventory[index];if(!i||i.qty<=0)return;pushHistory();i.qty=Math.max(0,i.qty-1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
-  $$('[data-item-inc]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemInc),i=S.inventory[index];if(!i||i.qty>=999)return;pushHistory();i.qty=Math.min(999,i.qty+1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderResultRibbon();});
+  $$('[data-item-dec]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemDec),i=S.inventory[index];if(!i||i.qty<=0)return;pushHistory();i.qty=Math.max(0,i.qty-1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderAmmo();renderResultRibbon();});
+  $$('[data-item-inc]',grid).forEach(b=>b.onclick=e=>{e.preventDefault();const index=Number(b.dataset.itemInc),i=S.inventory[index];if(!i||i.qty>=999)return;pushHistory();i.qty=Math.min(999,i.qty+1);logEvent('Inventaire · '+i.name,'Quantité '+i.qty);save();renderInventory();renderAmmo();renderResultRibbon();});
   const loadout=$('#inventoryLoadout');if(loadout){
     const priority=['Dague spectrale','Hexen Blade','Linceul du Jugement Noir','Amulette de résistance occulte','Arbalète légère duergar','Chaussons araignée'];
     const chosen=[];
@@ -718,7 +751,7 @@ function openItemEditor(index=-1){
 function closeItemEditor(){$('#itemEditor').hidden=true;}
 function saveItem(e){
   e.preventDefault();const f=e.currentTarget,index=Number(f.elements.index.value);
-  const item=sanitizeItem({name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,icon:f.elements.icon.value,equipped:f.elements.equipped.checked});
+  const item=sanitizeItem({ammoId:S.inventory[index]?.ammoId,name:f.elements.name.value,category:f.elements.category.value,qty:parseInt(f.elements.qty.value,10),note:f.elements.note.value,image:f.elements.image.value,icon:f.elements.icon.value,equipped:f.elements.equipped.checked});
   if(!item.name.trim())return;
   pushHistory();if(index>=0)S.inventory[index]=item;else S.inventory.push(item);syncVeilleHp(S);
   logEvent(index>=0?'Objet modifié':'Objet ajouté',item.name);save();closeItemEditor();render();renderJournal();renderResultRibbon();
@@ -798,7 +831,7 @@ function setSubtab(group,id){
 }
 function switchView(id){
   S.ui.view=id;$$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));save();
-  if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);if(window.matchMedia('(min-width:768px)').matches)window.scrollTo({top:0,behavior:'instant'});
+  if(id==='combat')renderAmmo();if(id==='social')renderSocial();if(id==='journal')renderJournal();if(['combat','arsenal','journal'].includes(id))renderSubtabs(id);if(window.matchMedia('(min-width:768px)').matches)window.scrollTo({top:0,behavior:'instant'});
 }
 function render(){
   const ac=acInfo();$('#hpInput').value=S.hp;$('#tempHpInput').value=S.tempHp;$('#maxHpValue').textContent=S.maxHp;$('#acValue').textContent=ac.ac;$('#acLabel').textContent=ac.label;
@@ -811,9 +844,14 @@ function render(){
   $$('.nav [data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===S.ui.view));$$('.view').forEach(v=>v.classList.toggle('active',v.id===S.ui.view));
   $$('[data-roll-mode]').forEach(b=>b.classList.toggle('on',b.dataset.rollMode===S.rollMode));
   $$('[data-cond]').forEach(b=>{const k=b.dataset.cond;b.classList.toggle('on',k==='agony'&&window.RufusCombat?.online()?window.RufusCombat.agonyEligible():!!S.conditions[k]);if(k==='agony')b.disabled=S.linceul.state!=='awakened';});
-  $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);$('#crossbowDice').textContent=(S.sharpshooter?'+2 · 1d8+13 perforants':'+7 · 1d8+3 perforants');
+  $('#sharpshooterToggle').classList.toggle('on',S.sharpshooter);
+  $('#sharpshooterToggle').setAttribute('aria-pressed',String(S.sharpshooter));
+  for(const key of ['crossbow','bow']){
+    const spec=attacks[key];
+    $('#'+key+'Dice').textContent=fmt(spec.bonus-(S.sharpshooter?5:0))+' · 1d'+spec.sides+fmt(spec.mod+(S.sharpshooter?10:0))+' '+spec.type;
+  }
   const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'6d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
-  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Lame psychique':'';});
+  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=!!S.pending||actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Lame psychique':'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=!S.fireBlade.ready?'Dépensée':S.fireBlade.armed?'Désarmer':'Armer';$('#fireBladeStatus').className='fire-ribbon-state '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui':S.fireBlade.armed?'ARMÉE · +2d6 prochaine Sournoise':'Disponible · non armée';
   $('#visionTarget').value=S.vision.target||'';$('#visionTarget').readOnly=!!window.RPGConnect?.getStatus()?.controlled;$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
@@ -827,7 +865,8 @@ function render(){
   if($('#psiKnackResult'))$('#psiKnackResult').textContent=S.psiKnackLast||'Prêt.';if($('#psiWhispersResult'))$('#psiWhispersResult').textContent=S.psiWhispersLast||'Prêt.';
   if($('#psiRestoreBtn'))$('#psiRestoreBtn').disabled=!S.psiReconstitutionReady||!S.economy.bonus;if($('#psiRestoreStatus'))$('#psiRestoreStatus').textContent=S.psiReconstitutionReady?'Prête · 1/repos long':'Dépensée jusqu’au repos long';
   if($('#psiTeleportBtn'))$('#psiTeleportBtn').disabled=!S.economy.bonus||!S.psiDie;if($('#psiWhispersBtn'))$('#psiWhispersBtn').disabled=!S.economy.action||!S.psiDie;if($('#psiKnackBtn'))$('#psiKnackBtn').disabled=!S.psiDie;
-  renderPending();renderSocial();renderInventory();renderJournal();renderResultRibbon();renderSubtabs('combat');renderSubtabs('arsenal');renderSubtabs('journal');
+  $('#rufusPassives').textContent='Esquive totale'+(window.__CompanionBridge.defenses().resistances.length?' · Résistance nécrotique':'');
+  renderAmmo();renderPending();renderSocial();renderInventory();renderJournal();renderResultRibbon();renderSubtabs('arsenal');renderSubtabs('journal');
 }
 
 function bind(){
@@ -843,7 +882,7 @@ function bind(){
   $('#sharpshooterToggle').onclick=()=>{S.sharpshooter=!S.sharpshooter;save();render();};
   $$('[data-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.attack,'own'));$$('[data-reaction-attack]').forEach(b=>b.onclick=()=>startAttack(b.dataset.reactionAttack,'reaction'));
   $('#pendingAttack').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-hit-sneak'))resolveAttack(true,true);else if(b.hasAttribute('data-hit'))resolveAttack(true,false);else if(b.hasAttribute('data-miss'))resolveAttack(false,false);else if(b.hasAttribute('data-lucky-pending'))(await spendLuckyPending());else if(b.hasAttribute('data-guided-psi'))useGuidedStrikePending();else if(b.hasAttribute('data-raven-pending'))useRavenPending();else if(b.hasAttribute('data-special-hit'))resolveWound(true);else if(b.hasAttribute('data-special-miss'))resolveWound(false);});
-  $$('[data-cunning]').forEach(b=>b.onclick=()=>useCunning(b.dataset.cunning));$$('.reaction-action').forEach(b=>b.onclick=()=>useReaction(b.textContent.trim().split('·')[0].trim()));
+  $$('[data-cunning]').forEach(b=>b.onclick=()=>useCunning(b.dataset.cunning));$$('.reaction-action').forEach(b=>b.onclick=()=>useReaction());
   $('#fireBladeBtn').onclick=toggleFireBlade;$('#visionBtn').onclick=useVision;$('#woundBtn').onclick=useWound;$('#invisibilityBtn').onclick=useInvisibility;
   $$('.hex-spell').forEach(b=>b.onclick=async ()=>(await castHex(b.dataset.hexSpell,Number(b.dataset.cost),b.dataset.concentration==='true')));
   $('#hexDawnBtn').onclick=()=>commit('Aube · Hexen Blade','Recharge 1d4+1.',()=>{hexDawn();});
@@ -862,13 +901,25 @@ function bind(){
 }
 
 window.__CompanionBridge={concentrationProfile:()=>({modifier:veilleWorn(S.inventory)?2:0}),id:'rufus',name:'Rufus',get maxHp(){return S.maxHp},initiative:{bonus:3,mode:'normal'},read:()=>S,healthRefresh:()=>{render();save()},used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges,psiReconstitutionReady:s.psiReconstitutionReady,ravenShadow:s.linceul.ravenShadow,pilgrim:s.linceul.pilgrim,judgment:s.linceul.judgment,fireBladeReady:s.fireBlade.ready,visionUses:s.vision.uses}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),cancelPending:()=>{S.pending=null;render();save();},pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};window.__CompanionBridge.correctionLog=text=>commit('Correction',text,()=>{});S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>endConcentration('contrôle réseau'),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,!!S.pending?.useSneak),undo}};
-window.__CompanionBridge.hasteWeapons=()=>Object.entries(attacks).filter(([id])=>id!=='psychic2').map(([id,spec])=>({id,label:spec.name}));window.__CompanionBridge.hasteAttack=weapon=>startAttack(weapon||'psychic','haste');
+window.__CompanionBridge.hasteWeapons=()=>Object.entries(attacks).filter(([id,spec])=>id!=='psychic2'&&(!spec.ranged||equippedRanged().includes(id))).map(([id,spec])=>({id,label:spec.name}));window.__CompanionBridge.hasteAttack=weapon=>startAttack(weapon||'psychic','haste');
 window.__CompanionBridge.saveProfile=ability=>({modifier:effectiveAbilities().find(x=>x.abbr===ability)?.save,disadvantage:ability==='SAG'&&S.vision.wisPenalty>0});
 window.__CompanionBridge.defenses=()=>{const collier=S.inventory.find(i=>i.name==='Collier de résistance nécrotique'&&i.equipped&&i.qty>0);return {resistances:collier?['nécrotiques']:[],sources:collier?[{name:collier.name,resistance:'nécrotiques'}]:[]};};
 window.__CompanionBridge.rufusNative={guided:useGuidedStrikePending,absorb:()=>useLinceul('ravenShadow'),commit,log:logEvent,fx:playFx,die,visionMatches};
 window.__CompanionBridge.combatTurn=q=>{if(!q.activeParticipantId)return;const stamp=JSON.stringify([q.combatId,q.round,q.activeParticipantId]);if(S.rpgSneakTurnStamp!==stamp){S.rpgSneakTurnStamp=stamp;S.sneakReaction=false;save();render()}};
 window.__CompanionBridge.adjustTurnDamage=delta=>{S.turnDamage=Math.max(0,(Number(S.turnDamage)||0)+delta);render()};
-load();bind();render();switchView(S.ui.view||'combat');
+const topSection=$('.app > .top');
+if(typeof ResizeObserver==='function')new ResizeObserver(()=>{
+  topSection.parentElement.style.setProperty('--rufus-top-height',topSection.getBoundingClientRect().height+'px');
+}).observe(topSection);
+load();bind();
+renderAmmo=window.RufusAmmoUI.bind({
+  state:()=>S,weapons:equippedRanged,controlled:controlledCombat,download,toast,
+  change:mutate=>{mutate(S);save();renderAmmo();},
+  commit:(title,detail,mutate)=>commit(title,detail,()=>mutate(S),undefined,true)
+});
+window.addEventListener('rpg-table:mode',renderAmmo);
+window.addEventListener('rpg-table:context',renderAmmo);
+render();switchView(S.ui.view||'combat');
 if(migrated)toast('Anciennes données Rufus récupérées dans Companion V3.');
 })();
 

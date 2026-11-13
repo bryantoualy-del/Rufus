@@ -1,0 +1,162 @@
+#combat .rufus-combat-grid {
+  --panel-line: #544263;
+  --panel-glow: #d9a9f3;
+  display: grid;
+  grid-template-columns: minmax(180px, .82fr) minmax(300px, 1.65fr) minmax(254px, 1.12fr);
+  gap: 10px;
+  align-items: start;
+}
+
+#combat [hidden] { display: none !important; }
+.rufus-combat-grid > .fire-ribbon,
+.rufus-combat-grid > .rufus-quick,
+.rufus-combat-grid > .rufus-ammo-manager { grid-column: 1 / -1; }
+#combat .rufus-combat-grid > .fire-ribbon { margin: 0; }
+.rufus-panel {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--panel-line);
+  border-radius: 14px;
+  background: radial-gradient(ellipse at top left, #25182f, #15121d 68%);
+}
+.rufus-panel > h2, .rufus-ammo-head h2 {
+  margin: 0 0 8px;
+  color: var(--panel-glow);
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+#combat .rufus-tactics .combat-console {
+  display: block;
+  padding: 8px;
+  border: 1px solid #5d4271;
+  border-radius: 10px;
+}
+#combat .rufus-tactics .combat-console-main,
+#combat .rufus-tactics .soulknife-conditions { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+#combat .rufus-tactics .combat-console-title,
+#combat .rufus-tactics .soulknife-conditions { grid-column: 1 / -1; min-width: 0; }
+#combat .rufus-tactics .sneak-line { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+#combat .rufus-tactics .combat-console-title .eyebrow,
+#combat .rufus-tactics .soulknife-conditions small { display: none; }
+#combat .rufus-tactics #sneakStatus { display: block; margin-top: 4px; line-height: 1.2; }
+#combat .rufus-tactics .compact-rolls { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 5px; }
+#combat .rufus-tactics .compact-rolls > *,
+#combat .rufus-tactics .soulknife-conditions button { min-width: 0; font-size: .73rem; padding: 4px; }
+#combat .rufus-tactics .manual input { width: 3em; }
+#combat .rufus-tactics .resource-card { margin-top: 7px; padding: 7px; border-radius: 10px; }
+#combat .rufus-tactics .resource-title h2 { font-size: .92rem; }
+#combat .rufus-tactics .psi-buttons { display: flex; flex-wrap: wrap; gap: 3px; margin: 4px 0 0; }
+#combat .rufus-tactics .psi-buttons button { flex: 1 0 auto; padding: 4px; min-width: 28px; }
+#combat .rufus-tactics .resource-card .resource-title { align-items: center; }
+.rufus-passives { margin: 6px 0 0; }
+.rufus-resource-details > summary { min-height: 44px; display: flex; align-items: center; }
+.rufus-resource-details > summary::before { content: '›'; margin-right: 8px; }
+.rufus-resource-details[open] > summary::before { transform: rotate(90deg); }
+
+.rufus-weapon {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 55px;
+  padding: 5px 7px;
+  margin-bottom: 6px;
+  border: 1px solid #4c405b;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #201829, #14121c);
+}
+.rufus-weapon:last-child { margin-bottom: 0; }
+.rufus-weapon h3 { margin: 0 0 2px; font: 700 1.06rem Georgia, serif; color: #f6eefa; }
+#combat .rufus-weapon .attack-dice { margin: 0; color: #dcb2f0; font: 650 .76rem system-ui, sans-serif; }
+.rufus-weapon-actions { display: grid; gap: 3px; }
+#combat .rufus-weapon-actions button { width: auto; min-width: 74px; white-space: nowrap; padding: 5px 7px; font-size: .75rem; }
+#combat .rufus-weapon-actions [aria-pressed=true] { color: #edc9ff; border-color: #ad77cc; }
+.rufus-combat-grid svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; flex: none; }
+.rufus-weapon svg { width: 24px; height: 24px; color: #d9b2f4; }
+
+.rufus-ammo-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.rufus-ammo-head h2 { margin: 0; }
+#combat #ammoManageBtn { width: 44px; padding: 4px; font-size: 1.25rem; }
+.rufus-ammo-weapon { display: grid; gap: 3px; color: #e7d8f1; font-size: .78rem; }
+.rufus-ammo-weapon select, .rufus-ammo-fields input:not([type=checkbox]), .rufus-ammo-fields select, .rufus-ammo-fields textarea {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  color: #f8efff;
+  background: #100f19;
+  border: 1px solid #6b537d;
+  border-radius: 8px;
+  padding: 6px;
+  font: inherit;
+}
+.rufus-ammo-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 8px 0; }
+.rufus-ammo-options button:first-child { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.rufus-projectile {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 1px;
+  padding: 3px 1px;
+  border: 1px solid #62516f;
+  border-radius: 8px;
+  background: #171421;
+  color: #f2e7fa;
+  overflow-wrap: anywhere;
+  font: 600 .7rem system-ui, sans-serif;
+}
+.rufus-projectile strong { font-size: .93rem; }
+.rufus-projectile[aria-pressed=true] { border-color: #d89df2; background: #35203f; box-shadow: inset 0 0 13px #a955bb38; }
+.rufus-ammo-summary { font-size: .78rem; color: #ead7f5; overflow-wrap: anywhere; margin: 6px 0; }
+#combat .rufus-shoot { width: 100%; margin: 4px 0 0; }
+#combat .rufus-combat-grid button, #combat .rufus-quick summary { min-height: 44px; }
+#combat .rufus-combat-grid button:focus-visible, #combat .rufus-combat-grid summary:focus-visible { outline: 2px solid #dfaaff; outline-offset: 2px; }
+
+.rufus-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px; border: 1px solid var(--panel-line); border-radius: 12px; background: #17131f; }
+#combat .rufus-quick button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin: 0; padding: 4px 6px; font-size: .79rem; }
+#combat .rufus-quick summary { display: flex; justify-content: center; align-items: center; gap: 5px; border: 1px solid #5d4f70; border-radius: 9px; background: #211b2b; cursor: pointer; font-size: .83rem; }
+#combat .rufus-quick summary::after { content: '⌄'; }
+.rufus-quick-options { display: grid; gap: 4px; margin-top: 4px; }
+.rufus-ammo-manager { scroll-margin-top: 220px; }
+.rufus-stock { display: grid; grid-template-columns: minmax(0,1fr) 44px 42px 44px 84px; gap: 5px; align-items: center; margin: 4px 0; }
+.rufus-stock-name { display: flex; gap: 5px; align-items: center; min-width: 0; overflow-wrap: anywhere; }
+.rufus-stock > strong { text-align: center; }
+.rufus-ammo-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rufus-ammo-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; margin: 8px 0; }
+.rufus-ammo-fields label { min-width: 0; }
+.rufus-ammo-fields fieldset { margin: 0; min-width: 0; border: 1px solid #6b537d; border-radius: 8px; }
+.rufus-ammo-fields textarea { resize: vertical; }
+#ammoError { color: #ffbdc4; }
+
+@media (min-width: 1000px) and (min-height: 620px) {
+  .app > .top {
+    position: sticky;
+    top: 0;
+    z-index: 43;
+    background: #08090e;
+  }
+  .app > .turnbar, #cc-turnbar-standard { top: var(--rufus-top-height, 158px); }
+}
+@media (max-width: 900px) {
+  #combat .rufus-combat-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .rufus-tactics { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  #combat .rufus-combat-grid { grid-template-columns: minmax(0,1fr); }
+  .rufus-quick, .rufus-ammo-fields { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rufus-stock { grid-template-columns: minmax(0,1fr) 44px 30px 44px 70px; }
+  .rufus-stock button { padding-inline: 4px; }
+}
+
+@media (min-width: 1000px) and (min-height: 620px) {
+  #combat .rufus-combat-grid { gap: 8px; }
+  #combat .rufus-combat-grid > .fire-ribbon { padding-block: 3px; }
+  #combat .rufus-panel { padding-block: 7px; }
+  #combat .rufus-resource-details > summary { min-height: 44px; }
+  #combat .rufus-ammo-weapon { display: block; }
+  #combat .rufus-ammo-weapon select { margin-top: 3px; }
+  #combat .rufus-quick { margin-right: min(230px, 19vw); }
+}
+.rufus-resource-list > #undoBtn { margin-top: 7px; }

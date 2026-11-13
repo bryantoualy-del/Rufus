@@ -14,11 +14,12 @@ const base='http://127.0.0.1:'+server.address().port;
 const engine=process.env.E2E_BROWSER==='webkit'?webkit:chromium;
 let browser;
 try{
- browser=await engine.launch(engine===webkit?{}:{args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+ browser=await engine.launch(engine===webkit?{executablePath:process.env.PLAYWRIGHT_WEBKIT_EXECUTABLE}:{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
  for(const width of [390,1180]){
   const page=await browser.newPage({viewport:{width,height:820}});
+  await page.route('https://**',route=>route.abort());
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(base);await page.waitForFunction(()=>window.__CompanionBridge?.read);
+  await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__CompanionBridge?.read);
   const start=await page.evaluate(()=>{const s=window.__CompanionBridge.read();return{hp:s.hp,max:s.maxHp,veille:s.inventory.find(i=>i.name==='Veille-songe')?.equipped,con:window.__CompanionBridge.saveProfile('CON').modifier}});
   assert.equal(start.hp,80);assert.equal(start.max,80);assert.equal(start.veille,true);assert.equal(start.con,2);
   await page.evaluate(()=>{const s=structuredClone(window.__CompanionBridge.read());s.hp=40;s.maxHp=80;s.inventory.find(i=>i.name==='Veille-songe').equipped=false;localStorage.setItem('rufus-companion-v3:3',JSON.stringify(s))});
