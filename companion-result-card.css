@@ -29,3 +29,6 @@
 
 /* V1.4: avoid duplicate legacy results; preserve interactive confirmation and undo controls. */
 body:has(#companion-result-focus:not([hidden])) #resultRibbonTitle,body:has(#companion-result-focus:not([hidden])) #resultRibbonText{visibility:hidden!important;}
+
+/* Legacy damage ribbons remain hidden until the FX lead-in finishes. */
+body.cc-result-fx-pending :is(#ribbon,#resultRibbon,#kentaro-ribbon,#resultText,#lastResult,#rb){visibility:hidden!important;pointer-events:none!important}
