@@ -1,0 +1,22 @@
+name: Level 11 browser smoke
+on: [push, pull_request]
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: npm install --no-save --no-audit --no-fund playwright@1.61.1
+      - name: Install browser
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Browser-level 11 smoke
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
+        run: node e2e/level11-smoke.mjs
