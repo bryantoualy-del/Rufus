@@ -1,8 +1,8 @@
 /* Cache only Rufus's static shell. Character data stays in localStorage. */
-const CACHE='rufus-shell-v2-1';
+const CACHE='rufus-shell-v2-2';
 const scope=new URL(self.registration.scope);
 const home=new URL('index.html',scope).href;
-const icons=['explosive','fire','lightning','poison'].map(name=>'assets/ammo/'+name+'.svg');
+const icons=['explosive','fire','lightning','poison'].map(name=>'assets/ammo/'+name+'.png');
 
 self.addEventListener('install',event=>event.waitUntil((async()=>{
   const index=await fetch(home,{cache:'reload'});

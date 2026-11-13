@@ -9,7 +9,7 @@ const server=createServer(async(req,res)=>{try{
  if(!serving){res.writeHead(503);res.end();return;}
  const u=new URL(req.url,'http://localhost'),file=resolve(root,'.'+u.pathname.replace(/\/$/,'/index.html'));
  if(!file.startsWith(root+'/'))throw Error('Path outside repo');
- const data=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml'})[extname(file)]||'application/octet-stream');res.end(data);
+ const data=await readFile(file);res.setHeader('Content-Type',({'.js':'text/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.svg':'image/svg+xml','.png':'image/png'})[extname(file)]||'application/octet-stream');res.end(data);
 }catch{res.writeHead(404).end()}});
 await new Promise(ok=>server.listen(0,'127.0.0.1',ok));
 const base='http://127.0.0.1:'+server.address().port;
@@ -50,6 +50,13 @@ try{
   };
   const undo=()=>page.evaluate(()=>window.__CompanionBridge.commands.undo());
 
+  const loadedIcons=()=>page.evaluate(()=>{
+    const icons=[...document.querySelectorAll('.rufus-weapon-icon, #ammoOptions img')];
+    return icons.length===9&&icons.every(icon=>icon.complete&&icon.naturalWidth>0&&icon.src.endsWith('.png'));
+  });
+  await page.waitForFunction(()=>[...document.querySelectorAll('.rufus-weapon-icon, #ammoOptions img')]
+    .every(icon=>icon.complete&&icon.naturalWidth>0));
+  assert.equal(await loadedIcons(),true);
   assert.equal(await stock('bolt'),20);
   assert.equal(await stock('fire'),0);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),1180);
@@ -192,7 +199,8 @@ try{
   await closeResult();
   await page.waitForFunction(()=>navigator.serviceWorker.controller);
   serving=false;
-  await page.reload({waitUntil:'domcontentloaded'});
+  await page.reload();
+  assert.equal(await loadedIcons(),true);
   await undo();
   await manual(12);
   assert.equal(await stock('fire'),1);

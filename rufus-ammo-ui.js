@@ -15,7 +15,7 @@
   function icon(row){
     if(!row.icon)return element('span','➶','rufus-ammo-ordinary');
     const img=element('img');
-    img.src='assets/ammo/'+row.icon+'.svg';
+    img.src='assets/ammo/'+row.icon+'.png';
     img.alt='';
     img.width=24;
     img.height=24;

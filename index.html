@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="companion-v3.css?v=28">
 <link rel="stylesheet" href="social-dice.css?v=3"><link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png?v=1"><link rel="manifest" href="site.webmanifest?v=1"><link rel="stylesheet" href="rpg-connect-client.css?v=rollback2330-1"><link rel="stylesheet" href="companion-turnbar.css?v=2">
 <link rel="stylesheet" href="companion-responsive-polish.css?v=1">
-<link rel="stylesheet" href="rufus-combat-v2.css?v=1">
+<link rel="stylesheet" href="rufus-combat-v2.css?v=2">
 
 <style id="next-turn-gold-v1">
 /* Tour suivant — accent doré commun aux Compagnons */
@@ -157,11 +157,11 @@
       </section>
       <section class="rufus-panel rufus-attacks" aria-labelledby="rufus-attacks-heading">
         <h2 id="rufus-attacks-heading">Attaques</h2>
-        <article class="rufus-weapon" data-weapon-card="veille"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21 16 8l4-4-2 6L7 21M5 17l4 4" /></svg><div><h3>Veille-songe</h3><div class="attack-dice">+9 · 1d4+5 perforants + 1d6 psychiques</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="veille" aria-label="Attaquer · Veille-songe">Attaquer</button></div></article>
-<article class="rufus-weapon" data-weapon-card="psychic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 21 5-6 2-4 4-1 5-7-1 7-4 3-1 4-6 1" /></svg><div><h3>Lame psychique</h3><div class="attack-dice">+7 · 1d6+3 psychiques</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="psychic" aria-label="Attaquer · Lame psychique">Attaquer</button><button class="ability" data-attack="psychic2" disabled>2e lame · +7 · 1d4+3</button></div></article>
-<article class="rufus-weapon" data-weapon-card="hexen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21 16 8l4-4-2 6L7 21M5 17l4 4" /></svg><div><h3>Hexen Blade</h3><div class="attack-dice">+8 · 1d6+4 perforants</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="hexen" aria-label="Attaquer · Hexen Blade">Attaquer</button></div></article>
-<article class="rufus-weapon" data-weapon-card="crossbow"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 20 4M7 4c8-3 16 5 13 13M7 4l13 13M15 4h5v5" /></svg><div><h3>Arbalète légère duergar</h3><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div></div><div class="rufus-weapon-actions"><button class="ability" data-select-ranged="crossbow">Choisir</button></div></article>
-<article class="rufus-weapon" data-weapon-card="bow" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 20 4M7 4c8-3 16 5 13 13M7 4l13 13M15 4h5v5" /></svg><div><h3>Arc standard</h3><div class="attack-dice" id="bowDice">+7 · 1d6+3 perforants</div></div><div class="rufus-weapon-actions"><button class="ability" data-select-ranged="bow">Choisir</button></div></article>
+        <article class="rufus-weapon" data-weapon-card="veille"><img class="rufus-weapon-icon" src="assets/weapons/veille.png" width="24" height="24" alt=""><div><h3>Veille-songe</h3><div class="attack-dice">+9 · 1d4+5 perforants + 1d6 psychiques</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="veille" aria-label="Attaquer · Veille-songe">Attaquer</button></div></article>
+<article class="rufus-weapon" data-weapon-card="psychic"><img class="rufus-weapon-icon" src="assets/weapons/psychic.png" width="24" height="24" alt=""><div><h3>Lame psychique</h3><div class="attack-dice">+7 · 1d6+3 psychiques</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="psychic" aria-label="Attaquer · Lame psychique">Attaquer</button><button class="ability" data-attack="psychic2" disabled>2e lame · +7 · 1d4+3</button></div></article>
+<article class="rufus-weapon" data-weapon-card="hexen"><img class="rufus-weapon-icon" src="assets/weapons/hexen.png" width="24" height="24" alt=""><div><h3>Hexen Blade</h3><div class="attack-dice">+8 · 1d6+4 perforants</div></div><div class="rufus-weapon-actions"><button class="primary attack-btn" data-attack="hexen" aria-label="Attaquer · Hexen Blade">Attaquer</button></div></article>
+<article class="rufus-weapon" data-weapon-card="crossbow"><img class="rufus-weapon-icon" src="assets/weapons/crossbow.png" width="24" height="24" alt=""><div><h3>Arbalète légère duergar</h3><div class="attack-dice" id="crossbowDice">+7 · 1d8+3 perforants</div></div><div class="rufus-weapon-actions"><button class="ability" data-select-ranged="crossbow">Choisir</button></div></article>
+<article class="rufus-weapon" data-weapon-card="bow" hidden><img class="rufus-weapon-icon" src="assets/weapons/bow.png" width="24" height="24" alt=""><div><h3>Arc standard</h3><div class="attack-dice" id="bowDice">+7 · 1d6+3 perforants</div></div><div class="rufus-weapon-actions"><button class="ability" data-select-ranged="bow">Choisir</button></div></article>
 
       </section>
       <aside class="rufus-panel rufus-ammo" aria-labelledby="rufus-ammo-heading">
@@ -360,7 +360,7 @@
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="rufus-ammo.js?v=1"></script>
-<script src="rufus-ammo-ui.js?v=1"></script>
+<script src="rufus-ammo-ui.js?v=2"></script>
 <script src="companion-v3.js?v=rufus-v2-arsenal"></script>
 <link rel="stylesheet" href="companion-feedback.css?v=audit1"><script src="companion-feedback.js?v=4-lot1-dialogs"></script>
 <script src="companion-api.js?v=5-table-free-1"></script>
