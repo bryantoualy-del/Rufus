@@ -42,7 +42,7 @@
     const notice=doc.createElement('small');notice.className='crf-note';notice.textContent='Valeur annoncée · résolution et application inchangées';
     card.append(head,heading,body,notice);doc.body.appendChild(card);
   }
-  function hide(){if(card)card.hidden=true;root.clearTimeout(clock);root.clearTimeout(revealClock);doc.body.classList?.remove('cc-result-fx-pending');}
+  function hide(){if(card)card.hidden=true;root.clearTimeout(clock);root.clearTimeout(revealClock);doc.body.classList?.remove?.('cc-result-fx-pending');}
   // Damage presentation waits for the attack/spell FX to become visible.
   // Presentation only: combat resolution, journal, hit confirmation and dice are immediate.
   function revealResult(hasDamage){
@@ -50,9 +50,9 @@
     card.hidden=true;
     const reduceMotion=typeof root.matchMedia==='function'&&root.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const waitForFx=hasDamage&&!reduceMotion;
-    doc.body.classList?.toggle('cc-result-fx-pending',waitForFx);
+    doc.body.classList?.toggle?.('cc-result-fx-pending',waitForFx);
     if(!waitForFx){card.hidden=false;return;}
-    revealClock=root.setTimeout(()=>{doc.body.classList?.remove('cc-result-fx-pending');if(card)card.hidden=false;revealClock=0;},850);
+    revealClock=root.setTimeout(()=>{doc.body.classList?.remove?.('cc-result-fx-pending');if(card)card.hidden=false;revealClock=0;},850);
   }
 
   // Inline SVG, never emoji: icons are decorative and do not alter result semantics.
