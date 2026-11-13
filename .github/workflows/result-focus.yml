@@ -9,4 +9,4 @@ jobs:
         with:
           node-version: 22
       - name: Parse combat values and verify isolated UI integration
-        run: node --test tests/result-focus.test.cjs
+        run: node --test tests/*.test.cjs

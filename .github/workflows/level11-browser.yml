@@ -1,4 +1,4 @@
-name: Level 11 browser smoke
+name: Rufus browser smoke
 on: [push, pull_request]
 jobs:
   browser:
@@ -16,7 +16,9 @@ jobs:
         run: npm install --no-save --no-audit --no-fund playwright@1.61.1
       - name: Install browser
         run: npx playwright install --with-deps ${{ matrix.browser }}
-      - name: Browser-level 11 smoke
+      - name: Level 11 and V2 smoke
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-        run: node e2e/level11-smoke.mjs
+        run: |
+          node e2e/level11-smoke.mjs
+          node e2e/rufus-v2.mjs
