@@ -8,7 +8,20 @@
   nans:[['#attackBtn','Volto-Fendoir','action'],['#rageBtn','Rage','bonus'],['[data-opportunity=native]','Opportunité','reaction']],
   zephyr:[['#attackBtn','Attaque','action'],['#protectBtn','Protection','reaction'],['#hellishBtn','Représailles infernales','reaction']]
  }[b.id]||[];
+ const showQuickActions=b.id==='brackmard';
+ if(!showQuickActions)spec.length=0;
  const view=document.createElement('section');view.id='rpgGroupView';view.hidden=true;view.className='rpg-group-view';view.innerHTML='<aside class="card rpg-quick-column"><h2>Actions rapides</h2><div data-group-quick></div><button type="button" data-edit-self class="ability">Modifier mon état</button></aside><section class="card rpg-initiative"><header><h2>Groupe · initiative</h2><small data-group-status></small></header><div data-initiative-list></div></section>';
+ if(!showQuickActions){
+   // Keep personal corrections accessible, but give the initiative roster full width.
+   const quickColumn=view.querySelector('.rpg-quick-column');
+   const editorButton=quickColumn?.querySelector('[data-edit-self]');
+   if(editorButton)view.querySelector('.rpg-initiative header')?.append(editorButton);
+   quickColumn?.remove();
+   view.classList.add('rpg-group-no-quick');
+   const style=document.createElement('style');
+   style.textContent='.rpg-group-view.rpg-group-no-quick:not([hidden]){grid-template-columns:minmax(0,1fr)!important}#rpgGroupView.rpg-group-no-quick>.rpg-initiative{grid-column:1!important}.rpg-group-no-quick .rpg-initiative header [data-edit-self]{margin-left:auto;min-height:42px}';
+   document.head.append(style);
+ }
  const combat=document.querySelector('#combat,[data-panel=combat]');if(!combat)return;combat.after(view);
  const buttons=[];const navs=[...document.querySelectorAll('nav.tabs,nav.nav:not(.subnav),.v3-dock,.kentaro-dock,.samoth-desktop-nav,.mobile-nav')].filter(n=>n.querySelector('[data-tab=combat],[data-view=combat],[data-nav=combat],[data-v3-go=combat],[data-group=combat],[data-desktop-group=combat],[data-mobile-view=combat]'));
  function close(){view.hidden=true;document.body.classList.remove('rpg-group-visible');for(const x of buttons){x.classList.remove('active');x.setAttribute('aria-selected','false');}}
