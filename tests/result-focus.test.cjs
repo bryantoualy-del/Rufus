@@ -143,7 +143,7 @@ test('PASSIVE TOGGLE: Cogneur lourd does not render a result, actual dice do, jo
  sourceNode.textContent='Jet : 12 + 7 = 19 · 21 dégâts';
  mutation();
  assert.equal(page.children.length,1,'a real roll must produce one card');
- assert.equal(page.children[0].hidden,false);
+ assert.equal(page.children[0].hidden,true,'damage result must wait for the FX lead-in');
  assert.equal(page.children[0].children[2].children[0].children[1].textContent,'19');
  titleNode.textContent='Cogneur lourd';
  sourceNode.textContent='Cogneur lourd désactivé : -5 au toucher, +10 dégâts';
