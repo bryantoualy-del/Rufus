@@ -7,14 +7,15 @@
 #companion-result-focus .crf-figures{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr));gap:9px}
 #companion-result-focus .crf-figure{min-width:0;border:1px solid var(--crf-line,#8d6235);border-radius:11px;padding:10px 13px;background:#161922}
 #companion-result-focus .crf-figure span{display:block;font-size:10px;letter-spacing:.075em;font-weight:850;margin-bottom:4px;line-height:1.2}
-#companion-result-focus .crf-figure strong{display:block;font-size:clamp(36px,5vw,51px);font-variant-numeric:tabular-nums;line-height:1}
+#companion-result-focus .crf-figure{--crf-number-size:clamp(36px,5vw,51px)}
+#companion-result-focus .crf-figure strong{display:block;font-size:var(--crf-number-size);font-variant-numeric:tabular-nums;line-height:1}
 #companion-result-focus .crf-roll span,#companion-result-focus .crf-roll strong{color:var(--crf-accent,#e5b963)}
 #companion-result-focus .crf-damage{background:rgba(138,55,47,.16);border-color:var(--crf-damage,#ffab95)}
 #companion-result-focus .crf-damage span,#companion-result-focus .crf-damage strong{color:var(--crf-damage,#ffab95)}
 #companion-result-focus .crf-heal{background:rgba(36,106,65,.15);border-color:var(--crf-heal,#97e5b6)}
 #companion-result-focus .crf-heal span,#companion-result-focus .crf-heal strong{color:var(--crf-heal,#97e5b6)}
 #companion-result-focus .crf-note{display:block;font-size:11px;margin-top:11px;color:var(--crf-muted,#afafb9);line-height:1.35}
-@media(max-width:530px){#companion-result-focus{top:max(54px,env(safe-area-inset-top,0px) + 46px);padding:10px 12px}#companion-result-focus .crf-figures{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}#companion-result-focus .crf-figure{padding:9px 7px}#companion-result-focus .crf-figure strong{font-size:clamp(28px,9vw,43px)}}
+@media(max-width:530px){#companion-result-focus{top:max(54px,env(safe-area-inset-top,0px) + 46px);padding:10px 12px}#companion-result-focus .crf-figures{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}#companion-result-focus .crf-figure{padding:9px 7px}#companion-result-focus .crf-figure{--crf-number-size:clamp(28px,9vw,43px)}}
 
 /* Native confirmation remains above the presentation; never block Touché/Raté. */
 #hitModal:not([hidden]),.hit-modal.show,#kentaro-hit-modal.show{z-index:10050!important}
@@ -34,4 +35,4 @@ body:has(#companion-result-focus:not([hidden])) #resultRibbonTitle,body:has(#com
 body.cc-result-fx-pending :is(#ribbon,#resultRibbon,#kentaro-ribbon,#resultText,#lastResult,#rb){visibility:hidden!important;pointer-events:none!important}
 
 #companion-result-focus .crf-damage-value{display:flex;align-items:center;gap:6px}
-#companion-result-focus .rpg-damage-icon{width:28px;height:28px;flex:0 0 28px;object-fit:contain}
+#companion-result-focus .rpg-damage-icon{width:max(30px,calc(var(--crf-number-size) * 0.667));height:auto;aspect-ratio:1;flex:none;object-fit:contain}
