@@ -1,6 +1,6 @@
 # V2.3 — Lot 1 — Rufus
 
-Branche : `fix/v23-lot1-reliability`. Ni fusion ni déploiement.
+Branche : `fix/v23-lot1-reliability`. Préparé pour fusion après contrôle CI ; déploiement séparé.
 
 ## Correctifs
 Une écriture refusée laisse la partie jouable en mémoire et conserve la dernière sauvegarde. Une alerte persistante signale les modifications non enregistrées ; l'action suivante peut réessayer l'écriture. Un export de secours conserve la chaîne originale et la dernière chaîne dont l'écriture a échoué. Ce fichier de diagnostic n'est pas le format d'import natif : utiliser l'export natif pour les transferts ordinaires.

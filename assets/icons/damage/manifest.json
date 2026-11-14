@@ -1,0 +1,87 @@
+{
+  "name": "Types de dégâts D&D 5e — 13 icônes en losange",
+  "version": "2.3",
+  "status": "Direction artistique validée par l’utilisateur le 2026-11-13",
+  "art_direction": "Même direction artistique que Etats_DnD5e_Simplifies_800px(2).zip : losange, double bordure colorée, pictogramme simple, PNG transparent, aucun SVG.",
+  "source": "a_clean_high_contrast_ui_icon_sheet_on_a_dark_cha.png (maquette validée)",
+  "types": [
+    {
+      "id": "bludgeoning",
+      "name_fr": "Contondant",
+      "filename_256": "degats_contondant.png",
+      "filename_64": "degats_contondant_64.png"
+    },
+    {
+      "id": "piercing",
+      "name_fr": "Perforant",
+      "filename_256": "degats_perforant.png",
+      "filename_64": "degats_perforant_64.png"
+    },
+    {
+      "id": "slashing",
+      "name_fr": "Tranchant",
+      "filename_256": "degats_tranchant.png",
+      "filename_64": "degats_tranchant_64.png"
+    },
+    {
+      "id": "fire",
+      "name_fr": "Feu",
+      "filename_256": "degats_feu.png",
+      "filename_64": "degats_feu_64.png"
+    },
+    {
+      "id": "cold",
+      "name_fr": "Froid",
+      "filename_256": "degats_froid.png",
+      "filename_64": "degats_froid_64.png"
+    },
+    {
+      "id": "lightning",
+      "name_fr": "Foudre",
+      "filename_256": "degats_foudre.png",
+      "filename_64": "degats_foudre_64.png"
+    },
+    {
+      "id": "thunder",
+      "name_fr": "Tonnerre",
+      "filename_256": "degats_tonnerre.png",
+      "filename_64": "degats_tonnerre_64.png"
+    },
+    {
+      "id": "acid",
+      "name_fr": "Acide",
+      "filename_256": "degats_acide.png",
+      "filename_64": "degats_acide_64.png"
+    },
+    {
+      "id": "poison",
+      "name_fr": "Poison",
+      "filename_256": "degats_poison.png",
+      "filename_64": "degats_poison_64.png"
+    },
+    {
+      "id": "necrotic",
+      "name_fr": "Nécrotique",
+      "filename_256": "degats_necrotique.png",
+      "filename_64": "degats_necrotique_64.png"
+    },
+    {
+      "id": "radiant",
+      "name_fr": "Radiant",
+      "filename_256": "degats_radiant.png",
+      "filename_64": "degats_radiant_64.png"
+    },
+    {
+      "id": "psychic",
+      "name_fr": "Psychique",
+      "filename_256": "degats_psychique.png",
+      "filename_64": "degats_psychique_64.png"
+    },
+    {
+      "id": "force",
+      "name_fr": "Force",
+      "filename_256": "degats_force.png",
+      "filename_64": "degats_force_64.png"
+    }
+  ]
+}
