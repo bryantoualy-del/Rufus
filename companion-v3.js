@@ -152,11 +152,11 @@ function load(){
     const raw=localStorage.getItem(KEY);
     S=raw?normalize(JSON.parse(raw)):migrateLegacy();
     if(!raw&&migrated)save();
-  }catch(e){storageBlocked=true;S=defaults();console.warn('Rufus save unreadable; preserving existing storage.',e);}
+  }catch(e){storageBlocked=true;CompanionStorage.block(KEY);S=defaults();console.warn('Rufus save unreadable; preserving existing storage.',e);}
 }
 function save(){
   if(storageBlocked)return false;
-  try{localStorage.setItem(KEY,JSON.stringify(S));queueMicrotask(()=>window.CompanionAPI?.sync());$('#saveStatus')&&($('#saveStatus').textContent='Sauvegardé · '+now());return true;}
+  try{if(!CompanionStorage.write(KEY,JSON.stringify(S))){$('#saveStatus')&&($('#saveStatus').textContent='Non sauvegardé');return false;}queueMicrotask(()=>window.CompanionAPI?.sync());$('#saveStatus')&&($('#saveStatus').textContent='Sauvegardé · '+now());return true;}
   catch(e){storageBlocked=true;$('#saveStatus')&&($('#saveStatus').textContent='Stockage indisponible');toast('Stockage local indisponible — exportez les données.');return false;}
 }
 function combatSnapshot(){

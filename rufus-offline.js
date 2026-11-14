@@ -1,5 +1,5 @@
 /* Cache only Rufus's static shell. Character data stays in localStorage. */
-const CACHE='rufus-shell-ecosystem-2.3';
+const CACHE='rufus-shell-ecosystem-2.3-storage';
 const scope=new URL(self.registration.scope);
 const home=new URL('index.html',scope).href;
 const icons=['explosive','fire','lightning','poison'].map(name=>'assets/ammo/'+name+'.png');

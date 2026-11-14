@@ -1,0 +1,25 @@
+name: V2.3 storage reliability
+on: [pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  storage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Rufus
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-save --package-lock=false playwright@1.58.2
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: node e2e/storage-reliability.mjs
+        working-directory: Rufus
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
