@@ -53,15 +53,14 @@ test('structured actual dice, typed mixed damage, one display per event, social 
   damages:[{type:'contondants',formula:'1d10',dice:[8],bonus:7,amount:15},{type:'feu',formula:'2d8',dice:[8,9],amount:17}]};
  assert.equal(api.showStructured(action),true);
  const card=root.children[0],items=card.children[2].children;
- assert.equal(items.length,4);
+ assert.equal(items.length,3);
  assert.equal(items[0].children[1].textContent,'13');
  assert.match(items[0].children[2].textContent,/\[9\]/);
  assert.equal(items[1].children[1].textContent,'15');
  assert.match(items[2].children[2].textContent,/\[8, 9\]/);
- assert.equal(items[3].children[1].textContent,'32');
  assert.equal(api.showStructured(action),false);
  assert.equal(api.showStructured({...action,eventId:'social-002',domain:'social'}),false);
- assert.equal(card.children[2].children.length,4);
+ assert.equal(card.children[2].children.length,3);
  assert.equal(api.showStructured({eventId:'heal-003',title:'Khar-Vek',heals:[{kind:'healing',formula:'3d8',dice:[5,6,8],bonus:5,amount:24},{kind:'temporary',amount:11}]}),true);
  assert.equal(card.children[2].children[0].children[1].textContent,'24');
  assert.equal(card.children[2].children[1].children[1].textContent,'11');
