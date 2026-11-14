@@ -31,10 +31,15 @@
  function refreshSelf(){const hp=local(),id=selfId();if(hp===null)return;const raging=!!bridge()?.read?.()?.raging;
  if(!wasReady){wasReady=true;previousHp=hp}
  if(id==='nans'&&survivor&&(!raging||hp<=0))survivor=false;
- const down=hp<=0;
+ const actor=(window.RPGGroup?.getActors?.()||[]).find(a=>String(a.companionId||'').toLowerCase()===id);
+ const life=normalize(actor?.lifeStatus);
+ const dead=life==='dead'||life==='mort';const stable=life==='stable';
+ const down=hp<=0&&!dead&&!stable;
  root.classList.toggle('last-stand-down',down);
  root.classList.toggle('last-stand-survivor',survivor&&!down);
- if(down)setBanner('À TERRE · 0 PV',id==='nans'&&raging?'Rage implacable disponible dans Combat · jet déclenché par le joueur':'Jets de sauvegarde contre la mort · secours possible');
+ if(dead)setBanner('MORT AU COMBAT','0 PV · Décès confirmé par Encounter');
+ else if(stable)setBanner('STABILISÉ · 0 PV','Inconscient, mais stable');
+ else if(down)setBanner('À TERRE · 0 PV',id==='nans'&&raging?'Rage implacable disponible dans Combat · jet déclenché par le joueur':'Jets de sauvegarde contre la mort · secours possible');
  else if(survivor)setBanner('NANS SE RELÈVE · SURVIVANT','Rage implacable réussie · '+hp+' PV');
  else panel.hidden=true;
  previousHp=hp;
