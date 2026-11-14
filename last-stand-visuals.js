@@ -24,7 +24,7 @@
  @media(max-width:700px){#lastStandBanner{top:calc(env(safe-area-inset-top,0px) + 56px);font-size:.85rem}#lastStandNotices{bottom:calc(env(safe-area-inset-bottom,0px) + 66px)}}
  `;
  document.head.append(style);document.body.append(panel,notices);
- let previousHp=null,wasReady=false,survivor=false,allyReady=false,previousActors=new Map(),lastEpoch='',seen=new Set();
+ let previousHp=null,wasReady=false,survivor=false,allyReady=false,previousActors=new Map(),lastEpoch='';
  const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  function notify(title,description,recovered=false){const item=document.createElement('div');item.className='last-stand-notice'+(recovered?' recovered':'');item.textContent=title;const sub=document.createElement('small');sub.textContent=description;item.append(sub);notices.prepend(item);while(notices.children.length>3)notices.lastChild.remove();setTimeout(()=>item.remove(),6500)}
  function setBanner(title,sub){panel.replaceChildren(document.createTextNode(title));const small=document.createElement('small');small.textContent=sub;panel.append(small);panel.hidden=false}
@@ -41,14 +41,14 @@
  }
  window.addEventListener('nans:relentless-success',()=>{survivor=true;notify('NANS SE RELÈVE !','Rage implacable réussie · 1 PV',true);refreshSelf()});
  function status(a){const hp=Number(a?.health?.current);const valid=Number.isFinite(hp)&&a?.health?.current!==undefined;const life=normalize(a?.lifeStatus);if(life==='dead'||life==='mort')return'dead';if(life==='stable')return'stable';if(life==='unconscious'||life==='inconscient'||(valid&&hp<=0))return'down';if(valid&&hp>0||life==='alive'||life==='vivant')return'up';return null}
- function refreshAllies(){const actors=window.RPGGroup?.getActors?.();if(!Array.isArray(actors))return;const epoch=String(window.RPGHealth?.getContext?.()?.encounterEpoch||'');if(epoch&&lastEpoch&&epoch!==lastEpoch){allyReady=false;previousActors.clear();seen.clear()}lastEpoch=epoch||lastEpoch;
+ function refreshAllies(){const actors=window.RPGGroup?.getActors?.();if(!Array.isArray(actors))return;const epoch=String(window.RPGHealth?.getContext?.()?.encounterEpoch||'');if(epoch&&lastEpoch&&epoch!==lastEpoch){allyReady=false;previousActors.clear()}lastEpoch=epoch||lastEpoch;
  const next=new Map();for(const a of actors){if(a.kind!=='player'||!a.id||String(a.companionId||'').toLowerCase()===selfId())continue;const id=String(a.id),s=status(a);if(s)next.set(id,{status:s,name:a.name||'Un allié'})}
- if(allyReady){for(const [id,current]of next){const prev=previousActors.get(id);if(!prev||prev.status===current.status)continue;const event=id+':'+prev.status+'>'+current.status;if(seen.has(event))continue;seen.add(event);if(seen.size>200)seen.clear();
+ if(allyReady){for(const [id,current]of next){const prev=previousActors.get(id);if(!prev||prev.status===current.status)continue;
  if(current.status==='down')notify(current.name.toUpperCase()+' EST À TERRE','0 PV · Un allié a besoin d’aide');
  else if(prev.status==='down'&&current.status==='up')notify(current.name.toUpperCase()+' SE RELÈVE','Un allié est de retour au combat',true);
  }}previousActors=next;allyReady=true}
  window.addEventListener('rpg-group:updated',refreshAllies);
  document.addEventListener('rpg-health:resolved',()=>setTimeout(refreshSelf,0));
- const observer=new MutationObserver(()=>{refreshSelf()});observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+ setInterval(refreshSelf,850);
  refreshSelf();refreshAllies();
 })();
