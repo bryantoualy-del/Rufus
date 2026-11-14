@@ -1,5 +1,5 @@
 /* Cache only Rufus's static shell. Character data stays in localStorage. */
-const CACHE='rufus-shell-v23-lot1';
+const CACHE='rufus-shell-ecosystem-2.3-storage';
 const scope=new URL(self.registration.scope);
 const home=new URL('index.html',scope).href;
 const icons=['explosive','fire','lightning','poison'].map(name=>'assets/ammo/'+name+'.png');
@@ -11,6 +11,9 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   const local=[...html.matchAll(/\b(?:src|href)="([^"<>]+)"/g)]
     .map(match=>new URL(match[1],scope))
     .filter(url=>url.href.startsWith(scope.href)&&/\.(js|css|png|svg|webmanifest)$/.test(url.pathname));
+  const iconNames=['Acide','Contondant','Feu','Force','Foudre','Froid','Necrotique','Perforant','Poison','Psychique','Radiant','Tonnerre','Tranchant'];
+  const states=['Agrippe','Assourdi','Aveugle','A_terre','Charme','Effraye','Empoisonne','Entrave','Epuise','Etourdi','Incapacite','Inconscient','Invisible','Paralyse','Petrifie'];
+  icons.push(...iconNames.map(name=>'assets/icons/damage/degats_'+name.toLowerCase()+'.png'),...states.map(name=>'assets/icons/conditions/'+name+'.png'));
   const cache=await caches.open(CACHE);
   await cache.addAll([...new Set([...local.map(url=>url.href),...icons.map(path=>new URL(path,scope).href)])]);
   await cache.put(home,index);
