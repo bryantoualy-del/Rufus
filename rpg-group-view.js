@@ -64,21 +64,26 @@
     row.append(text('strong',Number.isFinite(a.initiative)?a.initiative:'—','rpg-initiative-value'));
     if(a.portrait){const img=document.createElement('img');img.src=a.portrait;img.alt='';row.append(img);}
     const body=document.createElement('div');body.className='rpg-group-body';
-    const info=document.createElement('div');info.className='rpg-group-info';info.append(text('strong',a.name));
-    if(active)info.append(text('small','Tour actif','rpg-active-label'));
+    const info=document.createElement('div');info.className='rpg-group-info';
+    const heading=document.createElement('div');heading.className='rpg-group-heading';
+    heading.append(text('strong',a.name));
+    if(active)heading.append(text('small','Tour actif','rpg-active-label'));
+    const states=document.createElement('div');states.className='rpg-group-states';
+    for(const condition of a.conditions||[]){
+      const name=typeof condition==='string'?condition:condition?.name;if(!name)continue;
+      const icon=conditionIcon(name),caption=fr(name),badge=text('span',icon?'':caption,'rpg-group-state');
+      badge.title=caption;
+      if(icon){icon.alt=caption;badge.append(icon);}
+      states.append(badge);
+    }
+    if(states.childElementCount)heading.append(states);
+    info.append(heading);
     if(a.health){info.append(text('span',a.health.current+' / '+a.health.max+' PV'+(a.health.temp?' · +'+a.health.temp+' PV temp.':'')));
       const bar=document.createElement('progress');bar.max=Math.max(1,a.health.max);bar.value=a.health.current;
       bar.setAttribute('aria-label','PV de '+a.name);
       const ratio=Math.max(0,Math.min(1,a.health.current/Math.max(1,a.health.max)));
       bar.style.setProperty('--rpg-hp-color',ratio>.6?'#6bc79e':ratio>.3?'#dfbb68':'#dc7779');info.append(bar);}
-    const states=document.createElement('div');states.className='rpg-group-states';
-    const conditions=(a.conditions||[]).filter(Boolean);
-    for(const condition of conditions.slice(0,3)){
-      const name=typeof condition==='string'?condition:condition?.name;if(!name)continue;
-      const icon=conditionIcon(name),caption=fr(name),badge=text('span',icon?'':caption,'rpg-group-state');
-      badge.title=caption;badge.setAttribute('aria-label',caption);if(icon)badge.prepend(icon);states.append(badge);}
-    if(conditions.length>3){const more=text('span','+'+(conditions.length-3),'rpg-group-state rpg-group-state-more');more.title=conditions.slice(3).map(v=>fr(typeof v==='string'?v:v.name)).join(', ');states.append(more);}
-    const main=document.createElement('div');main.className='rpg-group-main';main.append(info,states);body.append(main);row.append(body);
+    body.append(info);row.append(body);
     const meta=document.createElement('div');meta.className='rpg-group-meta';
     if(Number.isFinite(a.ac))meta.append(text('span','CA '+a.ac));
     if(a.kind!=='enemy'){const economy=document.createElement('div');economy.className='rpg-group-economy';
