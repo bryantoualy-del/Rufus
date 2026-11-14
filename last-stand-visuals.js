@@ -2,7 +2,7 @@
 (()=>{'use strict';
  const bridge=()=>window.__CompanionBridge;
  const selfId=()=>String(bridge()?.id||'').toLowerCase();
- const local=()=>{try{const s=bridge()?.read?.();return Number.isFinite(Number(s?.hp))?Number(s.hp):null}catch{return null}};
+ const local=()=>{try{const actors=window.RPGGroup?.getActors?.()||[];const id=selfId()||'rufus';const actor=actors.find(a=>String(a.companionId||'').toLowerCase()===id);const shared=actor?.health?.current;if(actor&&shared!==undefined&&Number.isFinite(Number(shared)))return Number(shared);const s=bridge()?.read?.();return s?.hp!==undefined&&Number.isFinite(Number(s.hp))?Number(s.hp):null}catch{return null}};
  const root=document.documentElement;
  const panel=document.createElement('aside');panel.id='lastStandBanner';panel.setAttribute('role','status');panel.setAttribute('aria-live','polite');panel.hidden=true;
  const notices=document.createElement('div');notices.id='lastStandNotices';notices.setAttribute('aria-live','polite');
@@ -42,12 +42,12 @@
  window.addEventListener('nans:relentless-success',()=>{survivor=true;notify('NANS SE RELÈVE !','Rage implacable réussie · 1 PV',true);refreshSelf()});
  function status(a){const hp=Number(a?.health?.current);const valid=Number.isFinite(hp)&&a?.health?.current!==undefined;const life=normalize(a?.lifeStatus);if(life==='dead'||life==='mort')return'dead';if(life==='stable')return'stable';if(life==='unconscious'||life==='inconscient'||(valid&&hp<=0))return'down';if(valid&&hp>0||life==='alive'||life==='vivant')return'up';return null}
  function refreshAllies(){const actors=window.RPGGroup?.getActors?.();if(!Array.isArray(actors))return;const epoch=String(window.RPGHealth?.getContext?.()?.encounterEpoch||'');if(epoch&&lastEpoch&&epoch!==lastEpoch){allyReady=false;previousActors.clear()}lastEpoch=epoch||lastEpoch;
- const next=new Map();for(const a of actors){if(a.kind!=='player'||!a.id||String(a.companionId||'').toLowerCase()===selfId())continue;const id=String(a.id),s=status(a);if(s)next.set(id,{status:s,name:a.name||'Un allié'})}
+ const next=new Map();for(const a of actors){if(a.kind!=='player'||!a.id||String(a.companionId||'').toLowerCase()===(selfId()||'rufus'))continue;const id=String(a.id),s=status(a);if(s)next.set(id,{status:s,name:a.name||'Un allié'})}
  if(allyReady){for(const [id,current]of next){const prev=previousActors.get(id);if(!prev||prev.status===current.status)continue;
  if(current.status==='down')notify(current.name.toUpperCase()+' EST À TERRE','0 PV · Un allié a besoin d’aide');
  else if(prev.status==='down'&&current.status==='up')notify(current.name.toUpperCase()+' SE RELÈVE','Un allié est de retour au combat',true);
  }}previousActors=next;allyReady=true}
- window.addEventListener('rpg-group:updated',refreshAllies);
+ window.addEventListener('rpg-group:updated',()=>{refreshAllies();refreshSelf()});
  document.addEventListener('rpg-health:resolved',()=>setTimeout(refreshSelf,0));
  setInterval(refreshSelf,850);
  refreshSelf();refreshAllies();
