@@ -31,13 +31,7 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 #rpgGroupView [data-initiative-list]{max-height:none!important;min-height:0!important;overflow:visible!important}
 #rpgGroupView .rpg-initiative-row{min-height:clamp(54px,calc((100dvh - 260px)/var(--rpg-group-count,7)),80px);padding:6px 8px}
 #rpgGroupView .rpg-group-body{flex:1;min-width:0}
-#rpgGroupView .rpg-group-main{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;min-height:56px}
 #rpgGroupView .rpg-group-info{min-width:0}
-#rpgGroupView .rpg-group-info>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#rpgGroupView .rpg-group-states{display:flex;flex-wrap:wrap;align-content:center;justify-content:flex-end;gap:3px;width:88px;max-height:52px;overflow:hidden}
-#rpgGroupView .rpg-group-state{display:inline-flex;align-items:center;justify-content:center;width:26px;height:24px;padding:0;font-size:10px;overflow:hidden}
-#rpgGroupView .rpg-group-state .rpg-condition-icon{width:23px;height:23px;object-fit:contain}
-#rpgGroupView .rpg-group-state-more{font-weight:750}
 #rpgGroupView .rpg-group-meta{flex:none;min-width:90px}
 #rpgGroupView .rpg-group-economy{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:3px}
 #rpgGroupView .rpg-economy-indicator{display:inline-flex!important;align-items:center;justify-content:center;width:24px;height:25px;border-radius:7px;border:1px solid currentColor;font-size:14px;font-weight:900;line-height:1}
@@ -49,14 +43,56 @@ body.rpg-table-free .cc-turn-next{display:flex!important}
 #rpgGroupView .rpg-initiative-row progress{accent-color:var(--rpg-hp-color,#6bc79e)}
 #rpgGroupView .rpg-initiative-row progress::-webkit-progress-value{background:var(--rpg-hp-color,#6bc79e)}
 #rpgGroupView .rpg-initiative-row progress::-moz-progress-bar{background:var(--rpg-hp-color,#6bc79e)}
-@media(max-width:780px){#rpgGroupView .rpg-group-states{width:58px}#rpgGroupView .rpg-group-main{gap:5px}#rpgGroupView .rpg-group-meta{min-width:86px}}
+@media(max-width:780px){#rpgGroupView .rpg-group-meta{min-width:86px}}
 
 /* Tablet landscape: keep participant states legible without growing the group panel. */
 @media (min-width:781px) and (orientation:landscape){
  #rpgGroupView>.rpg-initiative{min-height:0;min-width:0;overflow:hidden}
  #rpgGroupView [data-initiative-list]{max-height:clamp(190px,55dvh,640px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain}
- #rpgGroupView .rpg-group-main{min-width:0;grid-template-columns:minmax(0,1fr) auto}
- #rpgGroupView .rpg-group-states{width:auto;max-width:100px;min-width:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;max-height:30px}
- #rpgGroupView .rpg-group-state{flex:0 0 25px}
- #rpgGroupView .rpg-group-info>strong{display:block;max-width:100%}
+}
+
+/* Shared states sit alongside the name, with the PV gauge spanning the row. */
+#rpgGroupView .rpg-group-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  min-width: 0;
+}
+#rpgGroupView .rpg-group-heading > strong { overflow-wrap: anywhere; }
+#rpgGroupView .rpg-group-heading .rpg-group-states {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#rpgGroupView .rpg-group-heading .rpg-group-state {
+  --state-color: #be96eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 31px;
+  padding: 3px 9px;
+  border: 1px solid var(--state-color);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--state-color) 20%, #131019);
+  box-shadow: inset 0 0 7px color-mix(in srgb, var(--state-color) 28%, transparent);
+  color: #fff0e1;
+  font-size: clamp(12px, 1.25vw, 16px);
+  font-weight: 750;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+#rpgGroupView .rpg-group-heading .rpg-group-state:nth-child(even) { --state-color: #e68cc5; }
+#rpgGroupView .rpg-group-heading .rpg-group-state:has(img) {
+  --state-color: #e46f6a;
+  padding: 2px 4px;
+}
+#rpgGroupView .rpg-group-heading .rpg-condition-icon {
+  width: clamp(24px, 2.6vw, 36px);
+  height: clamp(24px, 2.6vw, 36px);
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
 }
