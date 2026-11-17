@@ -52,3 +52,8 @@
 
 /* RPG-STRIP-HIDDEN-V1 */
 #rpg-state-strip[hidden]{display:none!important}
+
+#cc-turnbar-standard .cc-turn-local[hidden]{display:none}
+@media (min-width:700px){
+  body.rpg-table-free #cc-turnbar-standard{grid-template-columns:repeat(6,minmax(40px,1fr)) minmax(66px,1.25fr) 72px 89px 45px 45px}
+}

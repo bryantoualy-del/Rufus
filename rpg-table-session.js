@@ -7,9 +7,11 @@
  function accept(mode,room){if(!['guided','table-free'].includes(mode))return false;const changed=saved.mode!==mode||saved.room!==room;saved.mode=mode;saved.room=room;if(changed)saved.context=null;persist();if(active()){b.read().rpgHealthAuthorityActive=false;b.healthRefresh?.();}document.body.classList.toggle('rpg-table-free',active());window.dispatchEvent(new CustomEvent('rpg-table:mode',{detail:{mode,room}}));return true;}
  function context(q={}){if(!active())return false;const session=q.session||{};const previous=saved.context;
   if(previous?.syncEpoch===q.syncEpoch&&q.groupRevision&&previous.groupRevision>q.groupRevision)return false;
-  saved.context={...previous,...q,session:{...previous?.session,...session},stale:q.session?false:previous?.stale??true};persist();
+  const before=previous?.session;
+  if(q.session&&session.syncEpoch===before?.syncEpoch&&session.sessionRevision<before?.sessionRevision)return false;
+  saved.context={...previous,...q,session:q.session?session:before,stale:q.session?false:previous?.stale??true};persist();
   window.RPGResolution?.shadow(q);window.RPGGroup?.update(q);
-  const groupWasVisible=document.body.classList.contains('rpg-group-visible');const canonical=saved.context.session;if(canonical.phase==='fight'&&canonical.activeParticipantId&&canonical.combatId){starting=true;try{window.RPGTurnStart?.apply(canonical)}finally{starting=false;}if(groupWasVisible)window.RPGGroupView?.open();}
+  const groupWasVisible=document.body.classList.contains('rpg-group-visible');const canonical=saved.context.session;if(q.session&&canonical?.phase==='fight'&&canonical.activeParticipantId&&canonical.combatId){starting=true;try{window.RPGTurnStart?.apply(canonical);if(!canonical.markerOnly)b.combatTurn?.({...canonical,session:canonical})}finally{starting=false;}if(groupWasVisible)window.RPGGroupView?.open();}
   window.dispatchEvent(new CustomEvent('rpg-table:context'));return true;
  }
  function disconnected(){if(saved.context){saved.context.stale=true;persist();}window.dispatchEvent(new CustomEvent('rpg-table:context'));}
@@ -30,7 +32,32 @@
  });
  function toggleReaction(){const value=api.getState().turn.reaction!==true;window.RPGReactions?.setAvailable(value);return value;}
  document.body.classList.toggle('rpg-table-free',active());
- window.RPGTable={active,accept,context,disconnected,toggleReaction,starting:()=>starting,getContext:()=>active()?copy(saved.context):null,entries:()=>copy(entries),append};
+ window.RPGTable={active,accept,context,disconnected,toggleReaction,localEnded:()=>!!b.read().rpgLocalTurnEnded,starting:()=>starting,getContext:()=>active()?copy(saved.context):null,entries:()=>copy(entries),append};
  // Manual control remains available even for an exceptional reaction authorised orally.
- window.addEventListener('click',e=>{if(!active())return;const next=e.target.closest('#cc-turnbar-standard .cc-turn-next');if(next){e.preventDefault();e.stopImmediatePropagation();if(window.RPGConnect?.getStatus().connected)api.emitLocal('turn:end-request',{round:saved.context?.session?.round});else{starting=true;try{api.nextTurn()}finally{starting=false;}}return;}const button=e.target.closest('#cc-turnbar-standard .cc-turn-reaction');if(!button)return;e.preventDefault();e.stopImmediatePropagation();toggleReaction();},true);
+ window.addEventListener('click',e=>{
+  if(!active())return;
+  const local=e.target.closest('#cc-turnbar-standard .cc-turn-local');
+  const end=e.target.closest('#cc-turnbar-standard .cc-turn-next');
+  const reaction=e.target.closest('#cc-turnbar-standard .cc-turn-reaction');
+  if(!local&&!end&&!reaction)return;
+  e.preventDefault();e.stopImmediatePropagation();
+  if(reaction){toggleReaction();return;}
+  const state=b.read();
+  if(local){
+   state.rpgLocalTurnEnded=false;
+   starting=true;try{api.nextTurn()}finally{starting=false;}
+  }else if(!state.rpgLocalTurnEnded){
+   state.rpgLocalTurnEnded=true;b.healthRefresh?.();
+   const session=saved.context?.session;
+   if(!saved.context?.stale&&!session?.markerOnly&&session?.activeCharacterId===b.id&&
+      (session.summonActor||'owner')==='owner'&&window.RPGConnect?.getStatus().connected){
+    const stamp=JSON.stringify([session.combatId,session.activeParticipantId,session.turnStartRevision]);
+    if(state.rpgLastTurnEnd!==stamp){
+     state.rpgLastTurnEnd=stamp;b.healthRefresh?.();
+     api.emitLocal('turn:end-request',{round:session.round,participantId:session.activeParticipantId,turnStartRevision:session.turnStartRevision});
+    }
+   }
+  }
+  window.dispatchEvent(new CustomEvent('rpg-table:context'));
+ },true);
 })();
