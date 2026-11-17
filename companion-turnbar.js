@@ -37,9 +37,10 @@ function boot(){
  const damage=cell('cc-turn-damage','💥','0 dégâts','ce tour');
  const conc=cell('cc-turn-conc','◐','Concentration','—');
  const next=cell('cc-turn-next','›','Suivant','');
+ const local=cell('cc-turn-local','↻','Nouveau tour local','');local.hidden=true;
  const short=cell('cc-turn-rest','☕','Court','');
  const long=cell('cc-turn-rest','☾','Long','');
- [round,action,bonus,reaction,move,damage,conc,next,short,long].forEach(x=>bar.appendChild(x));
+ [round,action,bonus,reaction,move,damage,conc,next,local,short,long].forEach(x=>bar.appendChild(x));
  nativeBar.parentNode.insertBefore(bar,nativeBar);
  document.body.classList.add('cc-turnbar-ready');
  try{
@@ -64,8 +65,14 @@ function boot(){
    }
    let d=txt(get(cfg.damage)).replace(/\s*dégâts?.*$/i,'');setText(damage.querySelector('.cc-turn-label'),(d||'0')+' dégâts');
    const cEl=get(cfg.conc),ct=txt(get(cfg.concText))||(cEl?txt(cEl.querySelector('b')):'')||'—';setText(conc.querySelector('.cc-turn-state'),ct);conc.classList.toggle('is-active',!/aucune|—|none/i.test(ct));
+   const table=window.RPGTable?.active();
+   local.hidden=!table;
+   next.disabled=!!(table&&window.RPGTable.localEnded());
+   setText(next.querySelector('.cc-turn-label'),table?(next.disabled?'Tour terminé':'Fin de tour'):'Suivant');
    const n=get(cfg.next);if(n){const label=txt(n);setText(next.querySelector('.cc-turn-state'),/spectre/i.test(label)?label.replace(/^↻\s*/,''):'')}
  }
+ window.addEventListener('rpg-table:context',sync);
+ window.addEventListener('rpg-table:mode',sync);
  sync();
  const syncTimer=setInterval(()=>{if(document.hidden||!document.body.contains(bar))return;sync()},500);
  function rpgVisibility(){

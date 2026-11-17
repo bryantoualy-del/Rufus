@@ -354,7 +354,7 @@ function rollAttackD20(mode){
   const a=die(20);if(mode==='normal')return {rolls:[a],nat:a};
   const b=die(20);return {rolls:[a,b],nat:mode==='adv'?Math.max(a,b):Math.min(a,b)};
 }
-function sneakBucket(context){const c=window.RPGHealth?.getContext();return context==='reaction'&&(!window.RPGConnect?.getStatus().controlled||c?.activeParticipantId!==c?.healthActorId)?'sneakReaction':'sneakOwn'}
+function sneakBucket(context){const table=window.RPGTable?.getContext();if(!table?.stale&&table?.session?.phase==='fight')return table.session.activeCharacterId==='rufus'&&(table.session.summonActor||'owner')==='owner'?'sneakOwn':'sneakReaction';const c=window.RPGHealth?.getContext();return context==='reaction'&&(!window.RPGConnect?.getStatus().controlled||c?.activeParticipantId!==c?.healthActorId)?'sneakReaction':'sneakOwn'}
 function sneakEligible(spec,context){
   if(!(spec.finesse||spec.ranged||spec.psychic))return false;
   if((window.RPGHealth?.weaponRollMode(effectiveRollMode())||effectiveRollMode())==='dis')return false;
@@ -640,6 +640,7 @@ function newDay(){
     S.woundReady=true;S.invisibilityReady=true;S.linceul.lastBreath=true;hexDawn('Recharge Hexen Blade');
   });
 }
+$('#restoreSneak').onclick=()=>{const bucket=sneakBucket('own');if(S[bucket])commit('Attaque sournoise','Ressource restaurée manuellement.',()=>{S[bucket]=false});};
 function nextTurn(){
   commit('Tour suivant','Économie du tour restaurée.',()=>{
     S.turn++;S.round++;
@@ -850,7 +851,7 @@ function render(){
     const spec=attacks[key];
     $('#'+key+'Dice').textContent=fmt(spec.bonus-(S.sharpshooter?5:0))+' · 1d'+spec.sides+fmt(spec.mod+(S.sharpshooter?10:0))+' '+spec.type;
   }
-  const sneakAvailable=!S.sneakOwn;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'6d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
+  const sneakAvailable=!S[sneakBucket('own')];$('#restoreSneak').disabled=sneakAvailable;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'6d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
   $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=!!S.pending||actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Lame psychique':'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=!S.fireBlade.ready?'Dépensée':S.fireBlade.armed?'Désarmer':'Armer';$('#fireBladeStatus').className='fire-ribbon-state '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui':S.fireBlade.armed?'ARMÉE · +2d6 prochaine Sournoise':'Disponible · non armée';
@@ -905,7 +906,7 @@ window.__CompanionBridge.hasteWeapons=()=>Object.entries(attacks).filter(([id,sp
 window.__CompanionBridge.saveProfile=ability=>({modifier:effectiveAbilities().find(x=>x.abbr===ability)?.save,disadvantage:ability==='SAG'&&S.vision.wisPenalty>0});
 window.__CompanionBridge.defenses=()=>{const collier=S.inventory.find(i=>i.name==='Collier de résistance nécrotique'&&i.equipped&&i.qty>0);return {resistances:collier?['nécrotiques']:[],sources:collier?[{name:collier.name,resistance:'nécrotiques'}]:[]};};
 window.__CompanionBridge.rufusNative={guided:useGuidedStrikePending,absorb:()=>useLinceul('ravenShadow'),commit,log:logEvent,fx:playFx,die,visionMatches};
-window.__CompanionBridge.combatTurn=q=>{if(!q.activeParticipantId)return;const stamp=JSON.stringify([q.combatId,q.round,q.activeParticipantId]);if(S.rpgSneakTurnStamp!==stamp){S.rpgSneakTurnStamp=stamp;S.sneakReaction=false;save();render()}};
+window.__CompanionBridge.combatTurn=q=>{if(!q.activeParticipantId||q.session?.markerOnly)return;const stamp=JSON.stringify([q.combatId,q.activeParticipantId,q.session?.turnStartRevision??q.turnStartRevision??q.round]);if(S.rpgSneakTurnStamp!==stamp){S.rpgSneakTurnStamp=stamp;S.sneakReaction=false;save();render()}};
 window.__CompanionBridge.adjustTurnDamage=delta=>{S.turnDamage=Math.max(0,(Number(S.turnDamage)||0)+delta);render()};
 const topSection=$('.app > .top');
 if(typeof ResizeObserver==='function')new ResizeObserver(()=>{
