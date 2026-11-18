@@ -62,6 +62,53 @@
    controls.append(row);
   }
   combatSaves.append(controls);
+  const inspiration = document.createElement('details');
+  const title = document.createElement('summary');
+  title.textContent = '♫ Inspiration bardique · d10';
+  const form = document.createElement('form');
+  form.innerHTML = '<label>Jet déjà lancé <select name="kind"><option>Attaque</option><option>Caractéristique</option><option>Sauvegarde</option></select></label><label>Total avant inspiration <input name="total" type="number" required></label><label>d10 physique (facultatif) <input name="die" type="number" min="1" max="10"></label><button type="submit">Confirmer l’utilisation</button><button type="button" data-restore>Restaurer le d10</button><output aria-live="polite"></output>';
+  inspiration.append(title, form);
+  combatSaves.after(inspiration);
+  function receivedInspiration() {
+   const status=window.RPGConnect?.getStatus();
+   const context=window.RPGTable?.getContext();
+   if(!status?.connected||status.sessionMode!=='table-free'||context?.stale)return;
+   return context?.conditionActors?.find(row=>row.companionId===bridge.id)?.conditions?.find(effect=>
+    effect.origin==='rpg-table-inspiration'&&effect.expiresAt>Date.now()&&effect.effectId!==bridge.read().rpgUsedInspiration);
+  }
+  let expiryTimer;
+  function showInspiration() {
+   clearTimeout(expiryTimer);
+   const grant=receivedInspiration();
+   inspiration.hidden=!grant&&!bridge.read().rpgUsedInspiration;
+   form.querySelector('[type=submit]').disabled=!grant;
+   form.querySelector('[data-restore]').hidden=!bridge.read().rpgUsedInspiration;
+   title.textContent=grant?'♫ Inspiration bardique · d10':'Inspiration bardique · utilisée';
+   if(grant)expiryTimer=setTimeout(showInspiration,Math.max(0,grant.expiresAt-Date.now()));
+  }
+  function recordUse(id) {
+   bridge.read().rpgUsedInspiration=id;
+   bridge.healthRefresh?.();
+   api.sync();
+   showInspiration();
+  }
+  form.addEventListener('submit', event=>{
+   event.preventDefault();
+   const grant=receivedInspiration();
+   if(!grant||!form.reportValidity())return;
+   const total=form.elements.total.valueAsNumber;
+   if(!Number.isSafeInteger(total))return;
+   const bonus=form.elements.die.value ? form.elements.die.valueAsNumber : die(10);
+   recordUse(grant.effectId);
+   form.querySelector('output').textContent=form.elements.kind.value+' · '+total+' + '+bonus+' = '+(total+bonus);
+  });
+  form.querySelector('[data-restore]').onclick=()=>{
+   recordUse(null);
+   form.querySelector('output').textContent='';
+  };
+  window.addEventListener('rpg-table:context',()=>queueMicrotask(showInspiration));
+  window.addEventListener('rpg-table:mode',()=>queueMicrotask(showInspiration));
+  showInspiration();
   updateEffectLabel();
  }
 
