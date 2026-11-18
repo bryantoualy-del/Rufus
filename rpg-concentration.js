@@ -37,3 +37,89 @@
  window.RPGConcentration={cancelRequests:ids=>{for(const item of Object.values(ledger))if(ids.includes(item.request.requestId)){item.cancelled=true;item.ack=true;item.finalized=true;if(current===item){current=null;if(dialog.open)dialog.close()}}persist()},receive,conditions,restore,pending:()=>Object.values(ledger).filter(x=>!x.result).map(x=>copy(x.request))};
 window.RPGResolution.register('RPGConcentration',{detach:()=>{const old=JSON.parse(JSON.stringify(Object.values(ledger)));window.RPGConcentration.cancelRequests(Object.values(ledger).map(x=>x.request.requestId));return old;}});
 })();
+
+/* Confirmed damage entered by the player, including in Table Libre. */
+(() => {
+ const api = window.CompanionAPI;
+ const bridge = window.__CompanionBridge;
+ const host = document.querySelector('[data-combat-saves]');
+ if (!api || !bridge || !host) return;
+ const key = 'rpg-concentration:local:' + bridge.id;
+ let pending = [];
+ try {
+  const saved = JSON.parse(localStorage.getItem(key) || '[]');
+  if (Array.isArray(saved)) pending = saved;
+ } catch {}
+ const panel = document.createElement('details');
+ panel.hidden = true;
+ const title = document.createElement('summary');
+ const list = document.createElement('div');
+ panel.append(title, list);
+ host.after(panel);
+
+ function render() {
+  const state = api.getState();
+  pending = pending.filter(item => state.concentration && state.concentrationInstance === item.instance);
+  try { localStorage.setItem(key, JSON.stringify(pending)); } catch {}
+  panel.hidden = pending.length === 0;
+  title.textContent = 'Concentration · ' + pending.length;
+  list.replaceChildren();
+  for (const item of pending) {
+   const row = document.createElement('div');
+   const detail = document.createElement('span');
+   detail.textContent = item.spell + ' · ' + item.damage + ' dégâts · DD ' + item.dc
+    + (Number.isFinite(item.total) ? ' · Total ' + item.total : '');
+   row.append(detail);
+   function remove(breakConcentration) {
+    const current = api.getState();
+    if (breakConcentration && current.concentrationInstance === item.instance) {
+     api.clearConcentration();
+     api.sync();
+    }
+    pending = pending.filter(entry => entry.id !== item.id);
+    render();
+   }
+   for (const [label, action] of [
+    ['JDS CON', () => window.RPGPlayerSaves?.prepareLocal('CON', {
+     dc: item.dc,
+     onResult: result => { item.total = result.total; render(); }
+    })],
+    ['Réussite', () => remove(false)],
+    ['Échec confirmé', () => remove(true)],
+    ['Ignorer', () => remove(false)]
+   ]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = label;
+    button.onclick = action;
+    row.append(button);
+   }
+   list.append(row);
+  }
+ }
+
+ window.RPGConcentrationLocal = {
+  damage(damage) {
+   if (window.__RPGNetworkConcentration || !Number.isFinite(damage) || damage <= 0) return;
+   const state = api.getState();
+   if (!state.concentration || !state.concentrationInstance) return;
+   if (state.hp.current === 0) {
+    api.clearConcentration();
+    api.sync();
+   } else {
+    pending.push({id:crypto.randomUUID(), instance:state.concentrationInstance,
+     spell:state.concentration, damage, dc:Math.max(10, Math.floor(damage / 2))});
+   }
+   render();
+  }
+ };
+ api.subscribe(event => {
+  if (event.type === 'state:changed' && pending.some(item =>
+   item.instance !== event.payload.state.concentrationInstance
+  )) render();
+ });
+ title.addEventListener('click', () => {
+  if (!panel.open) render();
+ });
+ render();
+})();
