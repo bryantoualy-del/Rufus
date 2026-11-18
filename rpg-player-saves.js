@@ -68,7 +68,7 @@
   const form = document.createElement('form');
   form.innerHTML = '<label>Jet déjà lancé <select name="kind"><option>Attaque</option><option>Caractéristique</option><option>Sauvegarde</option></select></label><label>Total avant inspiration <input name="total" type="number" required></label><label>d10 physique (facultatif) <input name="die" type="number" min="1" max="10"></label><button type="submit">Confirmer l’utilisation</button><button type="button" data-restore>Restaurer le d10</button><output aria-live="polite"></output>';
   inspiration.append(title, form);
-  combatSaves.after(inspiration);
+  (combatSaves.closest('.rufus-quick')||combatSaves).after(inspiration);
   function receivedInspiration() {
    const status=window.RPGConnect?.getStatus();
    const context=window.RPGTable?.getContext();

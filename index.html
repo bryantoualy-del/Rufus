@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="companion-v3.css?v=28">
 <link rel="stylesheet" href="social-dice.css?v=3"><link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=1"><link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png?v=1"><link rel="manifest" href="site.webmanifest?v=1"><link rel="stylesheet" href="rpg-connect-client.css?v=rollback2330-1"><link rel="stylesheet" href="companion-turnbar.css?v=24-turns">
 <link rel="stylesheet" href="companion-responsive-polish.css?v=1">
-<link rel="stylesheet" href="rufus-combat-v2.css?v=2">
+<link rel="stylesheet" href="rufus-combat-v2.css?v=24-lot2-jds">
 
 <style id="next-turn-gold-v1">
 /* Tour suivant — accent doré commun aux Compagnons */
@@ -101,7 +101,7 @@
     <button data-view="journal"><span class="nav-ico">☷</span><span>Journal</span></button>
   </nav>
 
-  <section class="view active" id="combat"><details data-combat-saves><summary>JDS</summary><div role="group" aria-label="Jets de sauvegarde"><button type="button" data-combat-save="FOR">FOR</button><button type="button" data-combat-save="DEX">DEX</button><button type="button" data-combat-save="CON">CON</button><button type="button" data-combat-save="INT">INT</button><button type="button" data-combat-save="SAG">SAG</button><button type="button" data-combat-save="CHA">CHA</button></div></details>
+  <section class="view active" id="combat">
     <div class="rufus-combat-grid">
       <div class="fire-ribbon" id="fireBladeRibbon">
           <div class="fire-ribbon-copy">
@@ -179,6 +179,7 @@
         <p class="meta" id="ammoUnavailable" hidden>Projectile épuisé.</p>
       </aside>
       <div class="rufus-quick" aria-label="Actions rapides">
+        <details data-combat-saves><summary>JDS</summary><div role="group" aria-label="Jets de sauvegarde"><button type="button" data-combat-save="FOR">FOR</button><button type="button" data-combat-save="DEX">DEX</button><button type="button" data-combat-save="CON">CON</button><button type="button" data-combat-save="INT">INT</button><button type="button" data-combat-save="SAG">SAG</button><button type="button" data-combat-save="CHA">CHA</button></div></details>
         <details><summary>Ruse</summary><div class="rufus-quick-options">
           <button class="ability bonus-action" data-cunning="Foncer">Foncer</button>
           <button class="ability bonus-action" data-cunning="Se désengager">Se désengager</button>
