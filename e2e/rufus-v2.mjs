@@ -52,7 +52,7 @@ try{
 
   const loadedIcons=()=>page.evaluate(()=>{
     const icons=[...document.querySelectorAll('.rufus-weapon-icon, #ammoOptions img')];
-    return icons.length===10&&icons.every(icon=>icon.complete&&icon.naturalWidth>0&&icon.src.endsWith('.png'));
+    return icons.length===9&&icons.every(icon=>icon.complete&&icon.naturalWidth>0&&icon.src.endsWith('.png'));
   });
   await page.waitForFunction(()=>[...document.querySelectorAll('.rufus-weapon-icon, #ammoOptions img')]
     .every(icon=>icon.complete&&icon.naturalWidth>0));
