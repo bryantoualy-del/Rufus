@@ -303,22 +303,13 @@ function endConcentration(reason=''){
   const old=S.concentration.name;
   commit('Concentration terminée',old+(reason?' · '+reason:''),()=>{S.concentration=null;S.vision.active=false;});
 }
-function concentrationCheck(damage){
-  if(!S.concentration||window.__RPGNetworkConcentration)return;
-  const dc=Math.max(10,Math.floor(Number(damage)/2));const r=die(20),total=r;
-  commit('Concentration · '+S.concentration.name,'JdS CON : '+r+' +0 = '+total+' contre DD '+dc+(total>=dc?' · réussite':' · échec'),()=>{
-    if(total<dc){S.concentration=null;S.vision.active=false;}
-  },total<dc?'raven':null);
-}
-
 function applyHp(kind,n){
   if(!Number.isFinite(n)||n<=0)return;
   if(kind==='damage'){
-    const before=S.concentration?.name||null;
     commit('Dégâts reçus',n+' dégâts',()=>{
       let remaining=n;const absorbed=Math.min(S.tempHp,remaining);S.tempHp-=absorbed;remaining-=absorbed;S.hp=clamp(S.hp-remaining,0,S.maxHp);
     },'raven');
-    if(before&&!window.__RPGNetworkConcentration) setTimeout(async ()=>{if((await RPGDialogs.confirm('Concentration sur « '+before+' ». Lancer le JdS de CON maintenant ?')))concentrationCheck(n);},50);
+    window.RPGConcentrationLocal?.damage(n);
     if(S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment)toast('Jugement différé est prêt : Rufus reviendra à 1 PV au début de son prochain tour.');
   }else commit('Soins reçus',n+' PV',()=>{S.hp=clamp(S.hp+n,0,S.maxHp);},'raven');
 }
