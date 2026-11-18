@@ -48,7 +48,7 @@ function defaults(){
     economy:{action:true,bonus:true,reaction:true,move:true},
     concentration:null,rollMode:'normal',socialMode:'normal',
     conditions:{allyAdjacent:false,agony:false},
-    sneakOwn:false,sneakReaction:false,psychicFollowup:false,sharpshooter:false,
+    sneakOwn:false,sneakReaction:false,psychicFollowup:false,physicalFollowup:false,sharpshooter:false,
     lucky:3,hexCharges:5,psiDie:10,psiReconstitutionReady:true,psiKnackLast:'',psiWhispersLast:'',
     fireBlade:{ready:true,armed:false},
     woundReady:true,invisibilityReady:true,
@@ -93,6 +93,7 @@ function normalize(x){
   const o={...d,...x};
   o.schema=3;const previousMax=[53,58,80].includes(Number(x.maxHp))?Number(x.maxHp):58;const adjustedHp=Number(x.hp??previousMax);o.maxHp=80;o.hp=clamp(adjustedHp>0?adjustedHp+80-previousMax:0,0,80);if(previousMax===53&&Number(x.psiDie)===8)o.psiDie=10;o.tempHp=clamp(o.tempHp,0,999);
   o.turn=Math.max(1,parseInt(o.turn,10)||1);o.round=Math.max(1,parseInt(o.round,10)||1);o.turnDamage=Math.max(0,Number(o.turnDamage)||0);
+  o.physicalFollowup=x.physicalFollowup===true;
   o.economy={...d.economy,...(o.economy||{})};
   o.conditions={...d.conditions,...(o.conditions||{})};delete o.conditions.targetNotActed;delete o.conditions.surprised;
   o.fireBlade={...d.fireBlade,...(o.fireBlade||{})};
@@ -163,7 +164,7 @@ function combatSnapshot(){
   return {
     hp:S.hp,maxHp:S.maxHp,tempHp:S.tempHp,turn:S.turn,round:S.round,turnDamage:S.turnDamage,economy:clone(S.economy),
     concentration:S.concentration?clone(S.concentration):null,rollMode:S.rollMode,conditions:clone(S.conditions),
-    sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,sharpshooter:S.sharpshooter,
+    sneakOwn:S.sneakOwn,sneakReaction:S.sneakReaction,psychicFollowup:S.psychicFollowup,physicalFollowup:S.physicalFollowup,sharpshooter:S.sharpshooter,
     lucky:S.lucky,hexCharges:S.hexCharges,psiDie:S.psiDie,psiReconstitutionReady:S.psiReconstitutionReady,psiKnackLast:S.psiKnackLast,psiWhispersLast:S.psiWhispersLast,fireBlade:clone(S.fireBlade),woundReady:S.woundReady,
     invisibilityReady:S.invisibilityReady,vision:clone(S.vision),linceul:clone(S.linceul),ravenMemoryBonus:S.ravenMemoryBonus,
     pending:S.pending?clone(S.pending):null,inventory:clone(S.inventory),journalLength:S.journal.length,journalHeadId:S.journal[0]?.id||null,journalTail:clone(S.journal.slice(-5))
@@ -241,7 +242,7 @@ function undo(){
   Object.assign(S,{
     hp:snap.hp,maxHp:snap.maxHp||S.maxHp,tempHp:snap.tempHp,turn:snap.turn,round:snap.round,turnDamage:snap.turnDamage,economy:snap.economy,
     concentration:snap.concentration,rollMode:snap.rollMode,conditions:snap.conditions,sneakOwn:snap.sneakOwn,
-    sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
+    sneakReaction:snap.sneakReaction,psychicFollowup:snap.psychicFollowup,physicalFollowup:!!snap.physicalFollowup,sharpshooter:snap.sharpshooter,lucky:snap.lucky,
     hexCharges:snap.hexCharges,psiDie:snap.psiDie,psiReconstitutionReady:snap.psiReconstitutionReady,psiKnackLast:snap.psiKnackLast,psiWhispersLast:snap.psiWhispersLast,fireBlade:snap.fireBlade,woundReady:snap.woundReady,
     invisibilityReady:snap.invisibilityReady,vision:snap.vision,linceul:snap.linceul,ravenMemoryBonus:snap.ravenMemoryBonus,
     pending:snap.pending,inventory:snap.inventory||S.inventory,ammo:snap.ammo?ammo.normalize(snap.ammo):S.ammo
@@ -323,6 +324,7 @@ function bindHpInputs(){
 
 const attacks={
   veille:{name:'Veille-songe',bonus:9,count:1,sides:4,mod:5,type:'perforants',cost:'action',finesse:true,extraPsychic:6},
+  kori:{name:'Dague kori',bonus:7,count:1,sides:4,mod:0,type:'perforants',cost:'bonus',finesse:true},
   psychic:{name:'Lame psychique',bonus:7,count:1,sides:6,mod:3,type:'psychiques',cost:'action',finesse:true,psychic:true},
   psychic2:{name:'Seconde lame psychique',bonus:7,count:1,sides:4,mod:3,type:'psychiques',cost:'bonus',finesse:true,psychic:true},
   hexen:{name:'Hexen Blade',bonus:8,count:1,sides:6,mod:4,type:'perforants',cost:'action',finesse:true},
@@ -374,6 +376,8 @@ function startAttack(key,context='own'){
   if(cost==='action'&&!S.economy.action)return toast('Action déjà utilisée.');
   if(cost==='bonus'&&!S.economy.bonus)return toast('Action bonus déjà utilisée.');
   if(cost==='reaction'&&!S.economy.reaction)return toast('Réaction déjà utilisée.');
+  if(spec.cost==='bonus'&&context!=='own')return false;
+  if(key==='kori'&&!S.physicalFollowup)return toast('Attaque d’abord avec Veille-songe pendant ce tour.');
   if(key==='psychic2'&&!S.psychicFollowup)return toast('La seconde dague devient disponible après la première Lame psychique.');
   window.__lastDamageComponents=null;
   window.__lastAttackHit=null;
@@ -385,7 +389,9 @@ function startAttack(key,context='own'){
     if(projectile)ammo.setStock(S.inventory,projectile.id,projectile.name,stock-1);
     breakInvisibilityForAttack();
     if(cost!=='haste')S.economy[cost]=false;
-    if(key==='psychic')S.psychicFollowup=true;
+    if(key==='veille'&&context!=='reaction')S.physicalFollowup=true;
+    if(key==='kori')S.physicalFollowup=false;
+    if(key==='psychic'&&cost==='action')S.psychicFollowup=true;
     if(key==='psychic2')S.psychicFollowup=false;
     S.pending={attackKind:'weapon',resultId:crypto.randomUUID(),kind:'attack',name:spec.name,key,sharp,projectile:projectile?clone(projectile):null,context:context==='reaction'?'reaction':'own',useSneak:sneakEligible(spec,context),targetId:window.RPGConnect?.getStatus()?.target?.id||null,visionCritical:visionMatches(),rolls:rr.rolls,nat:rr.nat,crit:rr.nat===20||(visionMatches()&&rr.nat>=17),total,bonus,mode,blessRoll:bless,luckyRoll:null,ravenRoll:null,guidedPsiRoll:null};
   });
@@ -624,7 +630,7 @@ function useLinceul(kind){
     if(kind==='pilgrim')S.linceul.pilgrim=false;
   },'raven');
 }
-function shortRest(){companionRestConfirm('short','Économie du tour restaurée et concentration terminée. Le dé psionique et Reconstitution du psi ne reviennent pas au repos court.',()=>{commit('Repos court','Économie du tour restaurée. Le dé psionique et Reconstitution du psi ne se restaurent pas au repos court.',()=>{S.economy={action:true,bonus:true,reaction:true,move:true};S.turnDamage=0;S.pending=null;S.psychicFollowup=false;if(S.concentration){S.concentration=null;S.vision.active=false;}})})}
+function shortRest(){companionRestConfirm('short','Économie du tour restaurée et concentration terminée. Le dé psionique et Reconstitution du psi ne reviennent pas au repos court.',()=>{commit('Repos court','Économie du tour restaurée. Le dé psionique et Reconstitution du psi ne se restaurent pas au repos court.',()=>{S.economy={action:true,bonus:true,reaction:true,move:true};S.turnDamage=0;S.pending=null;S.psychicFollowup=false;S.physicalFollowup=false;if(S.concentration){S.concentration=null;S.vision.active=false;}})})}
 function longRest(){companionRestConfirm('long','PV, Chanceux, dé psionique d10, Reconstitution du psi, Vision, Lame du Feu Caché et pouvoirs du Linceul sont restaurés. Concentration et états de tour sont réinitialisés.',()=>{commit('Repos long','PV, Chanceux, dé psionique d10, Reconstitution du psi, Vision, Lame du Feu Caché et ressources / repos long restaurés.',()=>{S.maxHp=veilleWorn(S.inventory)?80:58;S.hp=S.maxHp;S.tempHp=0;S.lucky=3;S.psiDie=10;S.psiReconstitutionReady=true;S.fireBlade={ready:true,armed:false};S.vision={active:false,target:'',uses:0,wisPenalty:0};S.linceul.judgment=true;S.linceul.judgmentCycle=(S.linceul.judgmentCycle||0)+1;S.linceul.ravenShadow=2;S.linceul.pilgrim=true;S.ravenMemoryBonus=false;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.turnDamage=0;S.concentration=null;S.pending=null;},'raven')})}
 function newDay(){
   commit('Nouveau jour','Blessure, Invisibilité, Langue du Dernier Souffle et recharge Hexen.',()=>{
@@ -635,7 +641,7 @@ $('#restoreSneak').onclick=()=>{const bucket=sneakBucket('own');if(S[bucket])com
 function nextTurn(){
   commit('Tour suivant','Économie du tour restaurée.',()=>{
     S.turn++;S.round++;
-    S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
+    S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.physicalFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null;
   });
   if(!window.RPGHealth?.authoritative()&&S.hp===0&&S.linceul.state!=='unequipped'&&S.linceul.judgment){
     commit('Jugement différé','Rufus revient automatiquement à 1 PV au début de son tour.',()=>{S.hp=1;S.linceul.judgment=false;},'raven');
@@ -843,7 +849,7 @@ function render(){
     $('#'+key+'Dice').textContent=fmt(spec.bonus-(S.sharpshooter?5:0))+' · 1d'+spec.sides+fmt(spec.mod+(S.sharpshooter?10:0))+' '+spec.type;
   }
   const sneakAvailable=!S[sneakBucket('own')];$('#restoreSneak').disabled=sneakAvailable;$('#sneakBadge').classList.toggle('used',!sneakAvailable);$('#sneakBadge').textContent=sneakAvailable?'6d6 prêts':'Dépensée';$('#sneakStatus').textContent=sneakAvailable?'Disponible · avantage ou allié adjacent.':'Utilisée sur le tour de Rufus · réaction suivie séparément.';
-  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=a.cost==='bonus'&&b.dataset.attack==='psychic2'&&!S.psychicFollowup;b.disabled=!!S.pending||actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?'Disponible après la première Lame psychique':'';});
+  $$('[data-attack]').forEach(b=>{const a=attacks[b.dataset.attack];const actionUsed=a.cost==='action'&&!S.economy.action,bonusUsed=a.cost==='bonus'&&!S.economy.bonus,followup=(b.dataset.attack==='psychic2'&&!S.psychicFollowup)||(b.dataset.attack==='kori'&&!S.physicalFollowup);b.disabled=!!S.pending||actionUsed||bonusUsed||followup;b.title=actionUsed?'Action déjà utilisée':bonusUsed?'Action bonus déjà utilisée':followup?(b.dataset.attack==='kori'?'Disponible après une attaque avec Veille-songe':'Disponible après la première Lame psychique'):'';});
   $$('.reaction-attack,.reaction-action').forEach(b=>{b.disabled=!S.economy.reaction;b.title=b.disabled?'Réaction déjà utilisée':'';});$$('.bonus-action').forEach(b=>{b.disabled=!S.economy.bonus;b.title=b.disabled?'Action bonus déjà utilisée':'';});
   $('#fireBladeBtn').disabled=!S.fireBlade.ready;$('#fireBladeBtn').textContent=!S.fireBlade.ready?'Dépensée':S.fireBlade.armed?'Désarmer':'Armer';$('#fireBladeStatus').className='fire-ribbon-state '+(S.fireBlade.armed?'hot':'');$('#fireBladeStatus').textContent=!S.fireBlade.ready?'Dépensée aujourd’hui':S.fireBlade.armed?'ARMÉE · +2d6 prochaine Sournoise':'Disponible · non armée';
   $('#visionTarget').value=S.vision.target||'';$('#visionTarget').readOnly=!!window.RPGConnect?.getStatus()?.controlled;$('#visionBtn').disabled=!S.economy.action;$('#visionStatus').className='status-line '+(S.vision.active?'active':'');$('#visionStatus').textContent=(S.vision.active?'ACTIVE sur '+(S.vision.target||'cible')+' · avantage · critique 17–20. ':'Inactive. ')+'Utilisations depuis repos long : '+S.vision.uses+' · pénalités SAG : '+S.vision.wisPenalty;
@@ -892,8 +898,8 @@ function bind(){
   $('#inventoryExportBtn').onclick=exportInventory;$('#inventoryImportBtn').onclick=()=>$('#inventoryImportFile').click();$('#inventoryImportFile').onchange=e=>importInventory(e.target.files?.[0]);$('#exportBtn').onclick=exportData;$('#exportNotesBtn').onclick=exportNotes;$('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=e=>importData(e.target.files?.[0]);$('#restoreBackupBtn').onclick=restoreBackup;$('#resetBtn').onclick=resetAll;
 }
 
-window.__CompanionBridge={concentrationProfile:()=>({modifier:veilleWorn(S.inventory)?2:0}),id:'rufus',name:'Rufus',get maxHp(){return S.maxHp},initiative:{bonus:3,mode:'normal'},read:()=>S,healthRefresh:()=>{render();save()},used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges,psiReconstitutionReady:s.psiReconstitutionReady,ravenShadow:s.linceul.ravenShadow,pilgrim:s.linceul.pilgrim,judgment:s.linceul.judgment,fireBladeReady:s.fireBlade.ready,visionUses:s.vision.uses}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),cancelPending:()=>{S.pending=null;render();save();},pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};window.__CompanionBridge.correctionLog=text=>commit('Correction',text,()=>{});S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>endConcentration('contrôle réseau'),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,!!S.pending?.useSneak),undo}};
-window.__CompanionBridge.hasteWeapons=()=>Object.entries(attacks).filter(([id,spec])=>id!=='psychic2'&&(!spec.ranged||equippedRanged().includes(id))).map(([id,spec])=>({id,label:spec.name}));window.__CompanionBridge.hasteAttack=weapon=>startAttack(weapon||'psychic','haste');
+window.__CompanionBridge={concentrationProfile:()=>({modifier:veilleWorn(S.inventory)?2:0}),id:'rufus',name:'Rufus',get maxHp(){return S.maxHp},initiative:{bonus:3,mode:'normal'},read:()=>S,healthRefresh:()=>{render();save()},used:false,ac:()=>acInfo().ac,inventory:()=>S.inventory,resources:s=>({psiDie:s.psiDie,lucky:s.lucky,hexCharges:s.hexCharges,psiReconstitutionReady:s.psiReconstitutionReady,ravenShadow:s.linceul.ravenShadow,pilgrim:s.linceul.pilgrim,judgment:s.linceul.judgment,fireBladeReady:s.fireBlade.ready,visionUses:s.vision.uses}),statuses:s=>[s.linceul.state!=='unequipped'?'linceul '+s.linceul.state:null,s.vision.active?'vision':null].filter(Boolean),custom:s=>({sneak:{own:s.sneakOwn,reaction:s.sneakReaction},linceul:s.linceul,fireBlade:s.fireBlade,vision:s.vision,pending:s.pending?{kind:s.pending.kind,attackId:s.pending.attackId}:null}),cancelPending:()=>{S.pending=null;render();save();},pending:()=>S.pending,lastHit:()=>window.__lastAttackHit??null,lastDamage:()=>Array.isArray(window.__lastDamageComponents)?window.__lastDamageComponents:null,commands:{damage:n=>applyHp('damage',n),heal:n=>applyHp('heal',n),setHP:n=>commit('PV fixés',`${n} PV`,()=>{S.hp=Math.min(S.maxHp,n)}),setTemporaryHP:n=>commit('PV temporaires',`${n} PV temp`,()=>{S.tempHp=n}),setResource:(k,v)=>{if(!['lucky','hexCharges','psiDie'].includes(k))throw Error('Ressource inconnue');commit('Ressource ajustée',`${k} : ${v}`,()=>{S[k]=v})},changeResource:(k,d)=>window.__CompanionBridge.commands.setResource(k,Math.max(0,S[k]+d)),setRollMode:m=>commit('Mode de jet',m,()=>{S.rollMode=m}),resetCombat:()=>commit('Prépa Fight','Données de tour réinitialisées · Tour 1.',()=>{S.turn=1;S.round=1;S.turnDamage=0;S.economy={action:true,bonus:true,reaction:true,move:true};window.__CompanionBridge.correctionLog=text=>commit('Correction',text,()=>{});S.sneakOwn=false;S.sneakReaction=false;S.psychicFollowup=false;S.physicalFollowup=false;S.conditions.allyAdjacent=false;S.conditions.agony=false;S.pending=null}),nextTurn,clearConcentration:()=>endConcentration('contrôle réseau'),setConcentration:name=>commit('Concentration',String(name),()=>{S.concentration={name:String(name),source:'manuel'}}),addInventoryItem:item=>commit('Objet ajouté',String(item.name||'Objet'),()=>{S.inventory.push(sanitizeItem(item))}),updateInventory:item=>commit('Objet modifié',String(item.id||item.name),()=>{let i=S.inventory.find(x=>x.name===item.id||x.name===item.name);if(!i)throw Error('Objet inconnu');if(item.qty!==undefined)i.qty=clamp(item.qty,0,999);if(item.note!==undefined)i.note=String(item.note).slice(0,3000)}),removeInventoryItem:id=>commit('Objet retiré',String(id),()=>{S.inventory=S.inventory.filter(x=>x.name!==id)}),applyHitDecision:hit=>S.pending?.kind==='wound'?resolveWound(hit):resolveAttack(hit,!!S.pending?.useSneak),undo}};
+window.__CompanionBridge.hasteWeapons=()=>Object.entries(attacks).filter(([id,spec])=>spec.cost!=='bonus'&&(!spec.ranged||equippedRanged().includes(id))).map(([id,spec])=>({id,label:spec.name}));window.__CompanionBridge.hasteAttack=weapon=>startAttack(weapon||'psychic','haste');
 window.__CompanionBridge.saveProfile=ability=>({modifier:effectiveAbilities().find(x=>x.abbr===ability)?.save,disadvantage:ability==='SAG'&&S.vision.wisPenalty>0});
 window.__CompanionBridge.defenses=()=>{const collier=S.inventory.find(i=>i.name==='Collier de résistance nécrotique'&&i.equipped&&i.qty>0);return {resistances:collier?['nécrotiques']:[],sources:collier?[{name:collier.name,resistance:'nécrotiques'}]:[]};};
 window.__CompanionBridge.rufusNative={guided:useGuidedStrikePending,absorb:()=>useLinceul('ravenShadow'),commit,log:logEvent,fx:playFx,die,visionMatches};
