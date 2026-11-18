@@ -16,11 +16,30 @@
  try { manualEffects = JSON.parse(localStorage.getItem(effectsKey) || '{}') || {}; } catch {}
  const combatSaves = document.querySelector('[data-combat-saves]');
  const summary = combatSaves?.querySelector('summary');
+ function receivedBlessing() {
+  const status = window.RPGConnect?.getStatus();
+  if (!status?.connected || status.sessionMode !== 'table-free') return null;
+  const context = window.RPGTable?.getContext();
+  if (context?.stale) return null;
+  const actor = context?.conditionActors?.find(row=>row.companionId===bridge.id);
+  return actor?.conditions?.find(effect=>effect.origin==='rpg-table-blessing') || null;
+ }
+ function blessingActive() {
+  const shared = receivedBlessing();
+  return manualEffects.bless===true || Boolean(shared && shared.effectId!==manualEffects.disabledBlessing);
+ }
  function updateEffectLabel() {
   if (!summary) return;
-  const effects = [manualEffects.bless && 'Bénédiction', manualEffects.aura && 'Aura'].filter(Boolean);
+  const effects = [blessingActive() && 'Bénédiction', manualEffects.aura && 'Aura'].filter(Boolean);
   summary.textContent = ['JDS', ...effects].join(' · ');
  }
+ let blessingToggle;
+ function updateBlessing() {
+  if (blessingToggle) blessingToggle.checked = blessingActive();
+  updateEffectLabel();
+ }
+ window.addEventListener('rpg-table:context', () => queueMicrotask(updateBlessing));
+ window.addEventListener('rpg-table:mode', () => queueMicrotask(updateBlessing));
  if (combatSaves) {
   const controls = document.createElement('div');
   for (const [id, label] of [['bless','Bénédiction (+1d4)'], ['aura','Aura de Zéphyr (+4 à 3 m)']]) {
@@ -28,9 +47,14 @@
    const row = document.createElement('label');
    const input = document.createElement('input');
    input.type = 'checkbox';
-   input.checked = manualEffects[id] === true;
+   if(id==='bless') blessingToggle=input;
+   input.checked = id==='bless' ? blessingActive() : manualEffects[id] === true;
    input.addEventListener('change', () => {
-    manualEffects[id] = input.checked;
+    const shared = id==='bless' && receivedBlessing();
+    if(shared) {
+     manualEffects.bless=false;
+     manualEffects.disabledBlessing=input.checked ? null : shared.effectId;
+    } else manualEffects[id] = input.checked;
     try { localStorage.setItem(effectsKey, JSON.stringify(manualEffects)); } catch {}
     updateEffectLabel();
    });
@@ -56,7 +80,7 @@
   dialog.querySelector('[data-save-detail]').textContent=bridge.name+' · '+q.source+' · '+q.ability+(q.dc?' DD '+q.dc:'')+' · bonus '+(p.modifier>=0?'+':'')+p.modifier+(p.advantage?' · avantage':'')+(p.disadvantage?' · désavantage':'');
   const restrainedDex=q.ability==='DEX'&&keys.has('entrave'),adv=!!p.advantage,dis=!!p.disadvantage||restrainedDex;
   dialog.querySelector('[data-save-mode]').value=adv===dis?'normal':adv?'adv':'dis';dialog.querySelector('[data-save-extra]').value='0';const auraControl=dialog.querySelector('[data-save-aura-wrap]');auraControl.hidden=!q.local&&bridge.id==='zephyr';dialog.querySelector('[data-save-cancel]').hidden=!q.local;dialog.querySelector('[data-save-manual]').value='';dialog.querySelector('[data-save-aura]').value=q.local?(bridge.id==='zephyr'||manualEffects.aura?'yes':'no'):'';dialog.querySelector('[data-save-aura-hint]').textContent=bridge.id==='zephyr'?'Ton propre +4 est séparé du modificateur de base : il sera appliqué une seule fois si tu confirmes.':(q.conditions||[]).some(c=>c.effectKind==='auraProtection'&&Number(c.saveBonus)===4)?'Couverture indiquée par le MJ : oui, à confirmer pour ce jet.':'Couverture non indiquée par le MJ : confirme ta distance réelle.';
-  dialog.querySelector('[data-save-status]').textContent=q.local?'Jet local · aucun effet sur Encounter.':'Jet obligatoire demandé par Encounter.';dialog.querySelector('[data-local-aura]').hidden=!q.local;dialog.querySelector('[data-local-bless]').hidden=!q.local;dialog.querySelector('[data-save-bless]').checked=q.local&&manualEffects.bless===true;dialog.querySelector('[data-local-aura]').setAttribute('aria-pressed',String(q.local&&(bridge.id==='zephyr'||manualEffects.aura===true)));dialog.querySelector('h2').textContent='JET DE SAUVEGARDE';dialog.querySelector('[data-save-roll]').textContent='LANCER LE D20';dialog.querySelector('[data-save-aura-wrap]').hidden=!!q.local;if(!dialog.open)dialog.showModal();
+  dialog.querySelector('[data-save-status]').textContent=q.local?'Jet local · aucun effet sur Encounter.':'Jet obligatoire demandé par Encounter.';dialog.querySelector('[data-local-aura]').hidden=!q.local;dialog.querySelector('[data-local-bless]').hidden=!q.local;dialog.querySelector('[data-save-bless]').checked=q.local&&blessingActive();dialog.querySelector('[data-local-aura]').setAttribute('aria-pressed',String(q.local&&(bridge.id==='zephyr'||manualEffects.aura===true)));dialog.querySelector('h2').textContent='JET DE SAUVEGARDE';dialog.querySelector('[data-save-roll]').textContent='LANCER LE D20';dialog.querySelector('[data-save-aura-wrap]').hidden=!!q.local;if(!dialog.open)dialog.showModal();
  }
  dialog.querySelector('[data-save-roll]').onclick=async()=>{const item=current;if(!item||item.rolling)return;const extra=Number(dialog.querySelector('[data-save-extra]').value);if(!Number.isFinite(extra)||Math.abs(extra)>100){dialog.querySelector('[data-save-status]').textContent='Indique un bonus circonstanciel valide.';return}if(!current.request.local&&bridge.id!=='zephyr'&&!dialog.querySelector('[data-save-aura]').value){dialog.querySelector('[data-save-status]').textContent='Confirme Oui ou Non pour l’Aura sur ce jet.';return;}const physical=dialog.querySelector('[data-save-manual]').value.trim();const manual=physical?physical.split(/[/,;\s]+/).map(Number):null;if(manual&&(![1,2].includes(manual.length)||manual.some(n=>!Number.isInteger(n)||n<1||n>20))){dialog.querySelector('[data-save-status]').textContent='Saisis un ou deux d20 de 1 à 20.';return;}item.rolling=true;const q=item.request,native=profile(q),p=bridge.id==='zephyr'?{...native,modifier:native.modifier-4}:native,keys=new Set((q.conditions||[]).map(c=>norm(c.name))),selected=dialog.querySelector('[data-save-mode]').value,adv=selected==='adv'||!!p.advantage,dis=selected==='dis'||!!p.disadvantage||(q.ability==='DEX'&&keys.has('entrave')),mode=adv===dis?'normal':adv?'adv':'dis',rolls=manual||Array.from({length:mode==='normal'?1:2},()=>die(20)),natural=mode==='adv'?Math.max(...rolls):mode==='dis'?Math.min(...rolls):rolls[0],auraConfirmed=(!q.local&&bridge.id==='zephyr')||dialog.querySelector('[data-save-aura]').value==='yes',auraBonus=auraConfirmed?4:0,blessRoll=(q.local?dialog.querySelector('[data-save-bless]').checked:(q.conditions||[]).some(c=>c.effectKind==='bless'))?die(4):0,otherBonuses=(q.conditions||[]).reduce((n,c)=>n+(c.effectKind==='auraProtection'||bridge.id==='zephyr'&&c.origin==='rpg-zephyr-aura'?0:Number(c.saveBonus)||0),0),effectBonus=otherBonuses+auraBonus+blessRoll,modifier=p.modifier+extra+effectBonus,total=natural+modifier,success=total>=q.dc;
   // Store the result before 3D animation: a refresh or lost ACK cannot roll again.
@@ -81,7 +105,7 @@
 
 
  // Guided attacks use Encounter's own effects. Other attacks use the player's declaration.
- function takeAttackBless(){return !online()&&manualEffects.bless===true?die(4):0;}
+ function takeAttackBless(){return !online()&&blessingActive()?die(4):0;}
 
 window.RPGResolution.register('RPGPlayerSaves',{detach:()=>{const old=JSON.parse(JSON.stringify(Object.values(ledger)));window.RPGPlayerSaves.cancelRequests(Object.values(ledger).map(x=>x.request.requestId));return old;}});
 })();
